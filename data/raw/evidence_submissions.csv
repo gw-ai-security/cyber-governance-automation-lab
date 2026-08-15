@@ -1,0 +1,16 @@
+submission_id,control_id,reporting_period,due_date,status,evidence_reference,submitted_at,submitted_by,comment
+SUB-001,CTRL-001,2026-Q1,2026-04-10,Compliant,EVID-001,2026-04-08,alice@example.com,"Evidence reviewed, no exceptions noted."
+SUB-002,CTRL-001,2026-Q2,2026-07-10,Compliant,,2026-07-08,alice@example.com,Evidence reference intentionally omitted for DQ testing.
+SUB-003,CTRL-001,2026-Q3,2026-10-10,Not Submitted,,,,Reporting period active; submission not yet due.
+SUB-004,CTRL-002,2026-Q1,2026-04-10,In Review,EVID-004,2026-04-12,bob@example.com,Evidence submitted after due date.
+SUB-005,CTRL-002,2026-Q2,2026-07-10,Non-Compliant,EVID-005,2026-07-09,bob@example.com,Access review identified unresolved privileged access.
+SUB-006,CTRL-002,2026-Q3,2026-10-10,Pending,EVID-006,2026-08-14,bob@example.com,Synthetic invalid status for DQ testing.
+SUB-007,CTRL-003,2026-Q1,2026-04-10,Compliant,EVID-007,2026-04-09,carol@example.com,Recovery test evidence reviewed successfully.
+SUB-008,CTRL-003,2026-Q2,2026-07-10,Compliant,EVID-008,2026-07-08,carol@example.com,Recovery test completed and documented.
+SUB-009,CTRL-003,2026-Q2,2026-07-10,Compliant,EVID-009,2026-07-09,carol@example.com,Synthetic duplicate business key for DQ testing.
+SUB-010,CTRL-003,2026-Q3,2026-10-10,Not Submitted,,,,Reporting period active; submission not yet due.
+SUB-011,CTRL-004,2025,2026-01-31,Compliant,EVID-011,2026-01-30,diana@example.com,Annual training completion evidence reviewed.
+SUB-012,CTRL-004,2026,2027-01-31,Not Submitted,,,,Annual reporting period still open.
+SUB-013,CTRL-005,2026-06,2026-07-10,Compliant,EVID-013,2026-07-08,erin@example.com,Critical system patch status reviewed.
+SUB-014,CTRL-005,2026-07,2026-08-10,Not Submitted,,,,No submission received by due date.
+SUB-015,CTRL-999,2026-Q2,2026-07-10,In Review,EVID-015,2026-07-08,qa@example.com,Synthetic unknown control for referential-integrity testing.
