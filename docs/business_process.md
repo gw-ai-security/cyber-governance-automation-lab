@@ -53,11 +53,11 @@ Full field-level definitions for each control are documented in [data_model.md](
 
 ## Submission Lifecycle
 
-A submission progresses through review and receives a status once evidence has been assessed. The submission lifecycle is described in detail in [Status Model](#status-model).
+A submission record exists for every expected control/reporting-period combination from the moment the reporting period becomes active, not only once evidence has been provided. This record starts in `Not Submitted`, then progresses through review and receives a status once evidence has been assessed. The submission lifecycle is described in detail in [Status Model](#status-model).
 
 At a high level, for each active reporting period and control:
 
-1. The reporting period becomes active.
+1. The reporting period becomes active; the expected submission record is created with status `Not Submitted`.
 2. The control owner prepares and submits evidence.
 3. The submission is reviewed.
 4. A status is assigned.
@@ -102,7 +102,7 @@ A missing submission is not the same as a control that was assessed and found no
 Non-Compliant != Overdue
 ```
 
-A submission can be non-compliant and still on time, or compliant and still overdue if submitted after review. Compliance status and timeliness are evaluated independently.
+A submission can be non-compliant and still on time, or compliant and still have been submitted late. Compliance status and timeliness are evaluated independently.
 
 ```text
 Evidence Present != Compliant
@@ -204,7 +204,7 @@ days_late
 
 ### Examples
 
-**On time and compliant**
+#### On time and compliant
 
 ```text
 due_date: 2026-08-10
@@ -217,7 +217,7 @@ days_overdue: 0
 days_late: 0
 ```
 
-**On time but non-compliant**
+#### On time but non-compliant
 
 ```text
 due_date: 2026-08-10
@@ -228,7 +228,7 @@ overdue_flag: false
 submission_late: false
 ```
 
-**Missing and overdue**
+#### Missing and overdue
 
 ```text
 due_date: 2026-08-10
@@ -240,7 +240,7 @@ overdue_flag: true
 days_overdue: 5
 ```
 
-**Submitted late**
+#### Submitted late
 
 ```text
 due_date: 2026-08-10

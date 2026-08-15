@@ -24,7 +24,7 @@ This document defines the data quality rule catalog for the Cyber Governance Aut
 | DQ-007 Invalid Due Date | Validity | High |
 | DQ-008 Invalid Submission State | Consistency | High |
 | DQ-009 Invalid Evidence State | Consistency | Medium |
-| DQ-010 Invalid Owner Email | Validity | Medium |
+| DQ-010 Invalid Submitter Email | Validity | Medium |
 
 ## DQ-001 Missing Required Field
 
@@ -153,7 +153,9 @@ status = Not Submitted
 
 **Severity:** Medium
 
-## DQ-010 Invalid Owner Email
+## DQ-010 Invalid Submitter Email
+
+Applies to `submitted_by` on submissions that have actually been submitted (`submitted_at` is present).
 
 For this proof of concept, only a simple plausibility check is documented:
 
@@ -164,6 +166,8 @@ contains "@"
 ```
 
 This is not a full RFC email validation.
+
+This rule validates `submitted_by` on the submission record, not `owner_email` on the control. Keeping the rule scoped to the submission keeps all ten DQ rules operating at the same level. Validating `owner_email` on the control catalog is a separate, simpler check to be applied when control reference data is loaded, and is not part of this submission-level rule catalog.
 
 **Severity:** Medium
 

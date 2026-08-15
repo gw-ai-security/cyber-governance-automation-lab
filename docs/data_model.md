@@ -18,7 +18,7 @@ This document describes the data model only. It does not create any data files. 
 Four entities make up the model:
 
 * **Control** — a stable, slowly-changing definition of a security control.
-* **Submission** — a recurring, period-specific evidence submission for a control.
+* **Submission** — a period-specific reporting record representing the expected or completed evidence submission for a control, one per expected control/reporting-period combination.
 * **Action** — a follow-up work item related to a control and/or submission.
 * **Data Quality Issue** — a validation finding raised against a submission.
 
@@ -46,6 +46,10 @@ Example rows:
 | CTRL-005 | Critical System Patch Status Review | IT Operations | Vulnerability & Patch Manager | `erin@example.com` | Monthly | Critical |
 
 ## Submission
+
+**Submission** — a period-specific reporting record representing the expected or completed evidence submission for a control. One record exists for each expected control/reporting-period combination, from the moment the reporting period becomes active, regardless of whether evidence has been provided yet.
+
+This means a submission record with `status = Not Submitted` is not the absence of data — it is the expected record for that control/reporting-period combination, created before any evidence exists, with `submitted_at` and `evidence_reference` still null. This record is what allows an overdue check to be performed: without it, there would be nothing to compare against `due_date` when a control owner has not submitted anything.
 
 | Field | Description |
 | --- | --- |
