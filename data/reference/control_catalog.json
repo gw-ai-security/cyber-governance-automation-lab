@@ -1,0 +1,52 @@
+[
+  {
+    "control_id": "CTRL-001",
+    "control_name": "Privileged Account MFA",
+    "control_statement": "Multi-factor authentication must be enabled for all privileged accounts.",
+    "business_unit": "IT Operations",
+    "owner_role": "Identity & Access Manager",
+    "owner_email": "alice@example.com",
+    "frequency": "Quarterly",
+    "risk_level": "Critical"
+  },
+  {
+    "control_id": "CTRL-002",
+    "control_name": "Privileged Access Review",
+    "control_statement": "Privileged user accounts and access assignments must be reviewed at defined intervals.",
+    "business_unit": "Retail Banking",
+    "owner_role": "Access Governance Manager",
+    "owner_email": "bob@example.com",
+    "frequency": "Quarterly",
+    "risk_level": "High"
+  },
+  {
+    "control_id": "CTRL-003",
+    "control_name": "Backup Recovery Testing",
+    "control_statement": "Recovery from backups must be tested at defined intervals and the test result must be documented.",
+    "business_unit": "IT Operations",
+    "owner_role": "Infrastructure & Resilience Manager",
+    "owner_email": "carol@example.com",
+    "frequency": "Quarterly",
+    "risk_level": "High"
+  },
+  {
+    "control_id": "CTRL-004",
+    "control_name": "Security Awareness Training",
+    "control_statement": "Staff must complete security awareness training at defined intervals.",
+    "business_unit": "Finance",
+    "owner_role": "Security Awareness Coordinator",
+    "owner_email": "diana@example.com",
+    "frequency": "Annual",
+    "risk_level": "Medium"
+  },
+  {
+    "control_id": "CTRL-005",
+    "control_name": "Critical System Patch Status Review",
+    "control_statement": "The patch status of critical systems must be reviewed at defined intervals and documented.",
+    "business_unit": "IT Operations",
+    "owner_role": "Vulnerability & Patch Manager",
+    "owner_email": "erin@example.com",
+    "frequency": "Monthly",
+    "risk_level": "Critical"
+  }
+]

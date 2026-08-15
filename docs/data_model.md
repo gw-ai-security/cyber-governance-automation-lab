@@ -45,6 +45,20 @@ Example rows:
 | CTRL-004 | Security Awareness Training | Finance | Security Awareness Coordinator | `diana@example.com` | Annual | Medium |
 | CTRL-005 | Critical System Patch Status Review | IT Operations | Vulnerability & Patch Manager | `erin@example.com` | Monthly | Critical |
 
+`control_statement` is omitted from the table above for readability and documented separately below, as the canonical text for each control's testable requirement.
+
+Canonical control statements:
+
+| control_id | control_statement |
+| --- | --- |
+| CTRL-001 | Multi-factor authentication must be enabled for all privileged accounts. |
+| CTRL-002 | Privileged user accounts and access assignments must be reviewed at defined intervals. |
+| CTRL-003 | Recovery from backups must be tested at defined intervals and the test result must be documented. |
+| CTRL-004 | Staff must complete security awareness training at defined intervals. |
+| CTRL-005 | The patch status of critical systems must be reviewed at defined intervals and documented. |
+
+These are the canonical statements. Any machine-readable representation, including [data/reference/control_catalog.json](../data/reference/control_catalog.json), must match this table exactly.
+
 ## Submission
 
 **Submission** — a period-specific reporting record representing the expected or completed evidence submission for a control. One record exists for each expected control/reporting-period combination, from the moment the reporting period becomes active, regardless of whether evidence has been provided yet.
