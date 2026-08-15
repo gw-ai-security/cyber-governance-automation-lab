@@ -24,6 +24,22 @@ flowchart TD
 
 The physical representation of the Raw Submission CSV is defined in the [Raw Data Contract](data_contract.md). The Control Catalog JSON provides the stable control reference data joined by Python ETL.
 
+## Expected Submission Initialization and Evidence Updates
+
+For the proof of concept, expected Submission records are pre-generated from the Control Catalog for the relevant synthetic reporting periods. Each record is seeded in the Submission Register with status `Not Submitted`. This gives the reminder workflow a record to evaluate even when a Control Owner submits nothing.
+
+```mermaid
+flowchart TD
+    A[Control Catalog] --> C[Seed Expected Submissions for Synthetic Reporting Periods]
+    B[Relevant Synthetic Reporting Periods] --> C
+    C --> D[Submission Register: Not Submitted]
+    E[Evidence Received through Microsoft Forms] --> F[Find Expected Submission by control_id and reporting_period]
+    D --> F
+    F --> G[Update Existing Submission to In Review]
+```
+
+The later Power Automate evidence-intake workflow must find the existing expected Submission by the `control_id + reporting_period` business key and update it. It must not blindly append another Submission row. A future extended design could automate period initialization with a scheduled flow, but that implementation is outside the current phase.
+
 ## Scheduled Reminder Workflow
 
 ```mermaid
@@ -33,9 +49,12 @@ flowchart TD
     B --> D[Identify Overdue Submissions]
     C --> D
     D --> E[Resolve Control Owner]
-    E --> F[Send Reminder]
-    F --> G[Update Reminder Tracking]
+    E --> F[Resolve or Create Follow-up Action]
+    F --> G[Send Reminder]
+    G --> H[Update Action Reminder Tracking]
 ```
+
+For the proof of concept, reminder tracking is stored on the follow-up Action associated with the overdue Submission. The scheduled workflow reuses the Submission's existing non-completed Action or creates one when none exists. After sending a reminder, it increments `Action.reminder_count` and sets `Action.last_reminder_at` to the processing date. Synthetic Action data must therefore contain at most one non-completed Action per Submission.
 
 ## Component Responsibilities
 

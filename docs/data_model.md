@@ -73,7 +73,7 @@ This means a submission record with `status = Not Submitted` is not the absence 
 | due_date | Submission deadline |
 | status | Submission assessment status |
 | evidence_reference | Reference to supporting evidence |
-| submitted_at | Submission timestamp/date |
+| submitted_at | Submission date |
 | submitted_by | Synthetic submitter identity |
 | comment | Short contextual note |
 
@@ -93,7 +93,7 @@ An Action is a follow-up work item related to exactly one Submission. Through th
 | due_date | Action deadline |
 | status | Open, In Progress, or Completed |
 | reminder_count | Number of reminders sent |
-| last_reminder_at | Timestamp/date of last reminder |
+| last_reminder_at | Date of last reminder |
 | description | Short action description |
 
 `control_id` is retained on Action as a denormalized convenience field for simple reporting and Excel-based workflows, even though it is reachable via `submission_id`. The following consistency rule applies:
@@ -115,12 +115,14 @@ The following invariants apply when synthetic Action data is created in Phase 2.
 * `submission_id` is required.
 * `control_id` is required.
 * `action.control_id` must equal the `control_id` of the referenced Submission.
+* `owner_email` is required and must contain `@` as a simple plausibility check.
 * `reminder_count` must be an integer greater than or equal to zero.
 * If `reminder_count = 0`, `last_reminder_at` may be null.
 * If `reminder_count > 0`, `last_reminder_at` must be present.
 * `created_at` is required.
 * `due_date` is required.
 * `status` must be one of `Open`, `In Progress`, or `Completed`.
+* A Submission may have at most one non-completed Action (`Open` or `In Progress`) for proof-of-concept reminder tracking.
 
 These constraints do not introduce Action-specific Data Quality rule IDs at this stage.
 
@@ -237,11 +239,13 @@ All six derived values are computed downstream and are not stored in the raw sou
 ```mermaid
 erDiagram
     CONTROL ||--o{ SUBMISSION : has
-    SUBMISSION ||--o{ DATA_QUALITY_ISSUE : generates
+    SUBMISSION o|--o{ DATA_QUALITY_ISSUE : may_generate
     SUBMISSION ||--o{ ACTION : may_generate
 ```
 
 No additional entities are introduced beyond Control, Submission, Action, and Data Quality Issue.
+
+The optional Submission side of the Data Quality Issue relationship reflects malformed raw input: a Data Quality Issue may not resolve to a Submission when `submission_id` is missing. Every issue still belongs to exactly one raw source row through `source_row_number`. An identifiable Submission may generate zero or many Data Quality Issues.
 
 ## Business Keys
 

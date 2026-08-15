@@ -19,6 +19,8 @@ No raw CSV files are created as part of this specification.
 
 An empty CSV field is interpreted by Python as null / `None`. The literal strings `NULL`, `null`, `None`, and `N/A` must not be used to represent missing values.
 
+Fields containing commas, double quotes, or line breaks must use standard CSV double-quote escaping. Within a quoted field, each literal double quote is escaped as two double quotes.
+
 All identities, email addresses, and references must be synthetic. No real company information, internal system names, credentials, secrets, or personal data may be stored.
 
 ## Raw Submission Dataset
@@ -96,6 +98,13 @@ Physical field rules:
 * `due_date`: required date formatted as `YYYY-MM-DD`.
 * `last_reminder_at`: date formatted as `YYYY-MM-DD`, or an empty field.
 * `reminder_count`: non-negative integer.
+* `owner_email`: required synthetic email address containing `@`.
 * Missing values: empty CSV field.
+
+Example with a comma in `description`:
+
+```csv
+ACT-001,CTRL-001,SUB-001,owner@example.com,2026-04-11,2026-04-20,Open,0,,"Evidence reviewed, remediation required."
+```
 
 The logical Action constraints, including status values and reminder tracking invariants, are defined in [data_model.md](data_model.md#action-data-constraints).

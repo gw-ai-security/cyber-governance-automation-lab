@@ -44,6 +44,7 @@ The repository currently includes:
 - architecture documentation,
 - business-process definition,
 - data model,
+- raw flat-file data contract,
 - data-quality rule catalog,
 - canonical synthetic Control Catalog.
 
@@ -56,6 +57,10 @@ The following components are planned and will be implemented incrementally:
 - Power BI dashboard,
 - controlled AI workflow,
 - mock REST API.
+
+## Source of Truth
+
+Historical initial project briefs and plans provide background context only. The current canonical business and technical definitions are the repository documents linked below together with [data/reference/control_catalog.json](data/reference/control_catalog.json). If a historical brief conflicts with these current artifacts, the repository documentation and canonical Control Catalog take precedence.
 
 ## Architecture
 
