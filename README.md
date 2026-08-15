@@ -46,11 +46,13 @@ The repository currently includes:
 - data model,
 - raw flat-file data contract,
 - data-quality rule catalog,
-- canonical synthetic Control Catalog.
+- canonical synthetic Control Catalog,
+- synthetic Submission dataset,
+- synthetic Action dataset,
+- Phase 2 dataset coverage / validation matrix.
 
 The following components are planned and will be implemented incrementally:
 
-- synthetic Submission and Action datasets,
 - Python ETL and Data Quality pipeline,
 - unit tests,
 - Power Automate workflows,
@@ -91,6 +93,8 @@ See [docs/data_contract.md](docs/data_contract.md) for the physical flat-file re
 The project applies explicit validation rules covering completeness, referential integrity, validity, consistency, and uniqueness.
 
 See [docs/data_quality.md](docs/data_quality.md) for the rule catalog.
+
+See [docs/phase2_dataset_coverage.md](docs/phase2_dataset_coverage.md) for the deterministic Phase 2 dataset validation matrix.
 
 ## Power BI Dashboard
 
