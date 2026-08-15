@@ -111,7 +111,6 @@ logs/
 #   ai/prompts/, ai/schemas/, ai/examples/
 #   requirements.txt
 #   src/, tests/
-#   *.csv, *.json (project sample & synthetic data)
 !data/raw/
 !data/reference/
 !data/curated/
@@ -122,5 +121,3 @@ logs/
 !requirements.txt
 !src/
 !tests/
-!*.csv
-!*.json
