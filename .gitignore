@@ -1,0 +1,126 @@
+# =============================================================
+# .gitignore — cyber-governance-automation-lab
+# Python / VS Code / Windows / Power Automate / Power BI project
+# =============================================================
+
+# -------------------------------------------------------------
+# 1. Python
+# -------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Testing / coverage / type-checker caches
+.pytest_cache/
+.cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+.tox/
+.nox/
+
+# Build / distribution artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+wheels/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# -------------------------------------------------------------
+# 2. Secrets & Environment files
+# -------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*.json
+*secrets*.json
+.secrets/
+
+# -------------------------------------------------------------
+# 3. VS Code / IDE (conservative)
+# -------------------------------------------------------------
+# Only ignore user-/machine-local VS Code state, keep shared
+# workspace configuration (settings.json, extensions.json, etc.)
+# versionable on purpose.
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+.history/
+*.code-workspace
+
+# Other common IDEs
+.idea/
+
+# -------------------------------------------------------------
+# 4. Windows
+# -------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# -------------------------------------------------------------
+# 5. Logs & temporary files
+# -------------------------------------------------------------
+*.log
+logs/
+*.tmp
+*.temp
+*.bak
+*.swp
+~$*
+.tmp/
+
+# -------------------------------------------------------------
+# 6. Power BI (only clearly local/user-specific artifacts)
+# -------------------------------------------------------------
+# Local Power BI Desktop cache/temp files — not the project's
+# .pbip/.pbix/report/semantic-model/documentation files.
+*.pbi.bak
+.pbi/
+~*.pbix
+*.pbix.lock
+
+# -------------------------------------------------------------
+# 7. Project-specific (explicit keep-list / do NOT ignore)
+# -------------------------------------------------------------
+# The following are intentionally versioned and must never be
+# excluded by any broader rule above:
+#   data/raw/, data/reference/, data/curated/
+#   docs/screenshots/
+#   ai/prompts/, ai/schemas/, ai/examples/
+#   requirements.txt
+#   src/, tests/
+#   *.csv, *.json (project sample & synthetic data)
+!data/raw/
+!data/reference/
+!data/curated/
+!docs/screenshots/
+!ai/prompts/
+!ai/schemas/
+!ai/examples/
+!requirements.txt
+!src/
+!tests/
+!*.csv
+!*.json
