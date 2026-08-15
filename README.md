@@ -20,7 +20,7 @@ Without automation, a typical process may involve:
 - contacting control owners manually,
 - collecting evidence through emails or files,
 - checking whether required information is complete,
-- identifying overdue controls,
+- identifying overdue submissions,
 - sending reminders,
 - updating tracking data,
 - preparing management reports manually.
@@ -34,7 +34,28 @@ This creates several risks and inefficiencies:
 - weak process traceability,
 - time-consuming reporting.
 
-This project implements a simplified workflow in which evidence submissions are collected and processed through Power Automate, validated and transformed with Python, reported through Power BI, and selectively prepared for controlled AI-assisted review.
+The target solution is designed as a simplified workflow in which evidence submissions are collected and processed through Power Automate, validated and transformed with Python, reported through Power BI, and selectively prepared for controlled AI-assisted review.
+
+## Current Implementation Status
+
+The repository currently includes:
+
+- project foundation and repository structure,
+- architecture documentation,
+- business-process definition,
+- data model,
+- data-quality rule catalog,
+- canonical synthetic Control Catalog.
+
+The following components are planned and will be implemented incrementally:
+
+- synthetic Submission and Action datasets,
+- Python ETL and Data Quality pipeline,
+- unit tests,
+- Power Automate workflows,
+- Power BI dashboard,
+- controlled AI workflow,
+- mock REST API.
 
 ## Architecture
 

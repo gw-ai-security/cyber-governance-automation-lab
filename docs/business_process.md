@@ -182,6 +182,18 @@ THEN overdue_flag = true
 
 A submission is currently overdue when it is still missing after the deadline has passed.
 
+`as_of_date` is the reference date used when evaluating whether an unsubmitted submission is currently overdue.
+
+```text
+Normal execution:
+as_of_date = current processing date
+
+Tests / synthetic scenarios:
+as_of_date may be explicitly supplied as a fixed date for reproducible results
+```
+
+`as_of_date` is not stored as a source field on every submission. It is a parameter of the overdue evaluation, not a persisted attribute of the Submission entity.
+
 ### Late Submission
 
 ```text

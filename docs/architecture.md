@@ -26,7 +26,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     A[Scheduled Flow] --> B[Read Control Register]
-    B --> C[Identify Overdue Controls]
+    B --> C[Identify Overdue Submissions]
     C --> D[Send Reminder]
     D --> E[Update Reminder Tracking]
 ```
@@ -43,7 +43,7 @@ flowchart TD
 * Validates required information.
 * Writes data to the central register.
 * Sends confirmations.
-* Identifies overdue controls.
+* Identifies overdue submissions.
 * Sends reminders.
 * Creates reporting snapshots.
 
@@ -59,7 +59,7 @@ flowchart TD
 * Reads CSV and JSON data.
 * Normalizes values.
 * Applies data quality rules.
-* Merges control and evidence data.
+* Merges control reference data with submission data.
 * Computes derived fields.
 * Produces a curated reporting dataset.
 * Produces structured AI review inputs.

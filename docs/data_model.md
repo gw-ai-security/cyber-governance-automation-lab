@@ -19,7 +19,7 @@ Four entities make up the model:
 
 * **Control** — a stable, slowly-changing definition of a security control.
 * **Submission** — a period-specific reporting record representing the expected or completed evidence submission for a control, one per expected control/reporting-period combination.
-* **Action** — a follow-up work item related to a control and/or submission.
+* **Action** — a follow-up work item related to exactly one Submission, and through that Submission, indirectly to exactly one Control.
 * **Data Quality Issue** — a validation finding raised against a submission.
 
 ## Control
@@ -81,6 +81,8 @@ No submission data file is created by this document. This section defines the st
 
 ## Action
 
+An Action is a follow-up work item related to exactly one Submission. Through that Submission, the Action is also related to exactly one Control. There is no direct Action-to-Control relationship independent of a Submission.
+
 | Field | Description |
 | --- | --- |
 | action_id | Unique action identifier |
@@ -93,6 +95,17 @@ No submission data file is created by this document. This section defines the st
 | reminder_count | Number of reminders sent |
 | last_reminder_at | Timestamp/date of last reminder |
 | description | Short action description |
+
+`control_id` is retained on Action as a denormalized convenience field for simple reporting and Excel-based workflows, even though it is reachable via `submission_id`. The following consistency rule applies:
+
+```text
+action.control_id
+must equal
+submission.control_id
+for the Action's submission_id
+```
+
+This is a business/data consistency constraint. It is documented here but not yet implemented in validation code.
 
 ## Data Quality Issue
 
@@ -130,6 +143,27 @@ Business Logic
     v
 Derived Metrics
 ```
+
+### data_quality_status
+
+`data_quality_status` is a derived reporting field on Submission with exactly two allowed values:
+
+```text
+Valid
+Invalid
+```
+
+Derivation:
+
+```text
+0 Data Quality Issues
+-> Valid
+
+1 or more Data Quality Issues
+-> Invalid
+```
+
+`data_quality_status` is not manually entered and is not added to raw Submission source data — it is computed from the associated Data Quality Issue records. `Invalid` means the Submission has at least one Data Quality Issue; it does not represent security control compliance and does not automatically make the related Control Non-Compliant. Compliance, timeliness, and data quality remain separate concepts, as described in [data_quality.md](data_quality.md#out-of-scope).
 
 ## Relationships
 
