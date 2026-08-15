@@ -44,13 +44,25 @@ See [docs/architecture.md](docs/architecture.md) for the initial system architec
 
 ## Business Process
 
+The project models a recurring control evidence process: control ownership, periodic submissions per reporting period, status assessment, timeliness evaluation, and data-quality validation.
+
+See [docs/business_process.md](docs/business_process.md) for the detailed process definition.
+
 ## Data Model
+
+The data model defines stable control definitions, recurring submissions, follow-up actions, derived metrics, and data-quality issues.
+
+See [docs/data_model.md](docs/data_model.md) for the detailed data model.
 
 ## Power Automate Workflows
 
 ## Python Pipeline
 
 ## Data Quality
+
+The project applies explicit validation rules covering completeness, referential integrity, validity, consistency, and uniqueness.
+
+See [docs/data_quality.md](docs/data_quality.md) for the rule catalog.
 
 ## Power BI Dashboard
 

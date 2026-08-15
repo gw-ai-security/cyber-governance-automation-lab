@@ -86,6 +86,14 @@ flowchart TD
 * Data quality checks before reporting.
 * Simple technology choices over unnecessary enterprise complexity.
 
+## Business Model Reference
+
+The technical architecture implements the governance process and data model defined in:
+
+* [business_process.md](business_process.md)
+* [data_model.md](data_model.md)
+* [data_quality.md](data_quality.md)
+
 ## Out of Scope
 
 * SIEM
