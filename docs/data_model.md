@@ -132,7 +132,7 @@ days_late
 data_quality_status
 ```
 
-These fields are derived values, not source-of-truth inputs. They are computed from source data using the business rules defined in [business_process.md](business_process.md), not entered directly.
+These fields are derived values, not source-of-truth inputs. They are computed from source data and validation outputs using the business rules defined in [business_process.md](business_process.md) and the data-quality rules defined in [data_quality.md](data_quality.md), not entered directly.
 
 ```text
 Source Data

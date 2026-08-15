@@ -131,6 +131,7 @@ Rules:
 ```text
 Not Submitted
 -> submitted_at must be null
+-> submitted_by must be null
 ```
 
 ```text
@@ -139,6 +140,8 @@ Compliant
 Non-Compliant
 -> submitted_at must be present
 ```
+
+The `submitted_by must be null` condition closes a gap with DQ-010: without it, a `Not Submitted` record could carry a `submitted_by` value despite no submission having occurred. The reverse case, `submitted_by` required once `submitted_at` is present, is already covered by DQ-010.
 
 **Severity:** High
 
