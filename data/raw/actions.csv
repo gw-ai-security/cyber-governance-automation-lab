@@ -1,0 +1,6 @@
+action_id,control_id,submission_id,owner_email,created_at,due_date,status,reminder_count,last_reminder_at,description
+ACT-001,CTRL-005,SUB-014,erin@example.com,2026-08-11,2026-08-18,Open,1,2026-08-15,Request missing July patch status submission.
+ACT-002,CTRL-002,SUB-005,bob@example.com,2026-07-09,2026-07-16,In Progress,1,2026-07-15,Remediate unresolved privileged access identified by review.
+ACT-003,CTRL-002,SUB-004,bob@example.com,2026-04-11,2026-04-18,Completed,1,2026-04-11,Follow up on overdue Q1 privileged access review submission.
+ACT-004,CTRL-001,SUB-002,alice@example.com,2026-07-09,2026-07-16,Open,1,2026-07-15,Provide missing evidence reference for Q2 MFA submission.
+ACT-005,CTRL-002,SUB-006,bob@example.com,2026-08-15,2026-08-22,Open,0,,Correct invalid submission status after governance review.

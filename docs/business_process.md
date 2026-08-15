@@ -343,6 +343,41 @@ Action Status
 
 A submission status describes the assessment outcome of a specific reporting period. An action status describes the progress of a follow-up task (for example, remediating a non-compliant finding or chasing a missing submission). The two are related but independent.
 
+### Action Due-Date Rule
+
+For this proof of concept, every Action uses the following synthetic due-date rule:
+
+```text
+Action due_date = created_at + 7 calendar days
+```
+
+Example:
+
+```text
+created_at: 2026-08-11
+due_date: 2026-08-18
+```
+
+This is a synthetic workflow assumption for the proof of concept, not a regulatory requirement.
+
+### Missing-Submission Follow-up Completion
+
+If a follow-up Action exists because a Submission was overdue and still `Not Submitted`, and evidence is later received so that the Submission moves to `In Review`, the missing-submission follow-up Action is resolved and moves to `Completed`. This means the task of obtaining the missing submission is complete; the Submission still requires Governance Reviewer assessment.
+
+```text
+Action completion
+!=
+Submission compliance
+```
+
+### Non-Compliant Remediation Actions
+
+An Action created because a Submission is `Non-Compliant` represents remediation work. Evidence presence does not automatically complete that Action. It remains `Open` or `In Progress` until the remediation is considered complete.
+
+### Data Quality Follow-up Actions
+
+For this proof of concept, a Data Quality exception may generate a follow-up Action when human correction is required, for example for a missing evidence reference or an invalid status. The Action represents the follow-up task, not an automatic correction. The raw Submission record remains unchanged so intentional Data Quality scenarios remain available for later validation testing.
+
 ## End-to-End Process
 
 ```mermaid

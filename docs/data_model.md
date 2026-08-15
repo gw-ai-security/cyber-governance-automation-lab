@@ -109,7 +109,7 @@ This is a business/data consistency constraint. It is documented here but not ye
 
 ### Action Data Constraints
 
-The following invariants apply when synthetic Action data is created in Phase 2.4 and when Action validation is implemented later:
+The following invariants apply to synthetic Action data and when Action validation is implemented later:
 
 * `action_id` is required and unique.
 * `submission_id` is required.
@@ -121,6 +121,7 @@ The following invariants apply when synthetic Action data is created in Phase 2.
 * If `reminder_count > 0`, `last_reminder_at` must be present.
 * `created_at` is required.
 * `due_date` is required.
+* `due_date` must equal `created_at + 7 calendar days` under the synthetic proof-of-concept rule.
 * `status` must be one of `Open`, `In Progress`, or `Completed`.
 * A Submission may have at most one non-completed Action (`Open` or `In Progress`) for proof-of-concept reminder tracking.
 

@@ -71,7 +71,7 @@ Derived booleans and metrics are computed downstream and are not stored in raw i
 
 ## Raw Action Dataset
 
-The expected raw Action CSV contract for later Phase 2.4 work uses these existing Action fields, in order:
+The raw Action CSV contract uses these existing Action fields, in order:
 
 ```text
 action_id
