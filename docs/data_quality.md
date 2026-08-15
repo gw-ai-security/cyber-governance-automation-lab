@@ -85,22 +85,32 @@ compliant
 Condition:
 
 ```text
-status = Compliant
+status IN (
+  In Review,
+  Compliant,
+  Non-Compliant
+)
 AND
 evidence_reference is null or empty
 ```
 
 **Severity:** High
 
-This rule does not automatically change the status to `Non-Compliant`. It is flagged as a data quality conflict for review, not resolved automatically.
+Evidence must be present once a Submission enters review and for either final assessment outcome. A `Non-Compliant` result represents reviewed evidence whose assessed control outcome failed; it does not represent missing evidence. This rule does not automatically change Submission status. It is flagged as a data quality conflict for review, not resolved automatically.
 
 ## DQ-005 Duplicate Submission
 
-Unique business key:
+DQ-005 enforces two separate uniqueness invariants:
 
 ```text
+Technical identifier uniqueness:
+submission_id
+
+Business uniqueness:
 control_id + reporting_period
 ```
+
+DQ-005 is triggered when either the same `submission_id` occurs more than once, or the same `control_id + reporting_period` business key occurs more than once.
 
 **Severity:** High
 
@@ -156,6 +166,8 @@ status = Not Submitted
 
 **Severity:** Medium
 
+Together, DQ-004 and DQ-009 define the complete evidence state model: evidence is required for `In Review`, `Compliant`, and `Non-Compliant`, and must be absent for `Not Submitted`.
+
 ## DQ-010 Invalid Submitter Email
 
 Applies to `submitted_by` on submissions that have actually been submitted (`submitted_at` is present).
@@ -186,6 +198,20 @@ Low
 
 There is no `Critical` severity for data quality issues. A control's `risk_level` (Low, Medium, High, Critical) and a data quality issue's `severity` (High, Medium, Low) are two different concepts and are not interchangeable.
 
+## Rule Evaluation Order and Dependencies
+
+Rules are evaluated conceptually in this order:
+
+1. Completeness
+2. Referential Integrity
+3. Basic Validity
+4. Cross-field Consistency
+5. Derived / downstream evaluation
+
+Dependent rules must not generate misleading secondary errors when a prerequisite cannot be evaluated. For example, if `control_id = CTRL-999`, DQ-002 Unknown Control ID is triggered. DQ-006 Invalid Reporting Period and DQ-007 Invalid Due Date cannot reliably compare the row against the Control frequency because the referenced Control does not exist. Those dependent checks are therefore treated as not evaluated, rather than automatically failed because prerequisite reference data is unavailable.
+
+`Not evaluated` is an evaluation behavior, not a new Data Quality Issue severity or status, and it does not produce a Data Quality Issue record. A single row may legitimately trigger multiple independent Data Quality Issues wherever their checks can be evaluated.
+
 ## Data Quality Issue Output
 
 Each triggered rule produces a Data Quality Issue record, as defined in [data_model.md](data_model.md#data-quality-issue):
@@ -194,11 +220,14 @@ Each triggered rule produces a Data Quality Issue record, as defined in [data_mo
 issue_id
 submission_id
 control_id
+source_row_number
 rule
 severity
 field
 message
 ```
+
+`submission_id` and `control_id` are nullable on a Data Quality Issue when the corresponding identifier is missing from the source Submission row. `source_row_number` is the 1-based raw Submission row number that preserves traceability in those cases.
 
 ## Out of Scope
 

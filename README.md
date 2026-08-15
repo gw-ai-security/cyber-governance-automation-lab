@@ -75,6 +75,8 @@ The data model defines stable control definitions, recurring submissions, follow
 
 See [docs/data_model.md](docs/data_model.md) for the detailed data model.
 
+See [docs/data_contract.md](docs/data_contract.md) for the physical flat-file representation of raw Submission and Action data.
+
 ## Power Automate Workflows
 
 ## Python Pipeline

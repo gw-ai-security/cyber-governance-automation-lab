@@ -4,7 +4,7 @@
 
 This document defines the business data model for the Cyber Governance Automation Lab: the entities, fields, relationships, and enumerations used by the governance process described in [business_process.md](business_process.md).
 
-This document describes the data model only. It does not create any data files. No CSV or JSON data files are produced as part of this document.
+This document defines the logical data model. The physical serialization and flat-file representation are defined separately in the [Raw Data Contract](data_contract.md). This document does not create any data files.
 
 ## Modeling Principles
 
@@ -107,19 +107,39 @@ for the Action's submission_id
 
 This is a business/data consistency constraint. It is documented here but not yet implemented in validation code.
 
+### Action Data Constraints
+
+The following invariants apply when synthetic Action data is created in Phase 2.4 and when Action validation is implemented later:
+
+* `action_id` is required and unique.
+* `submission_id` is required.
+* `control_id` is required.
+* `action.control_id` must equal the `control_id` of the referenced Submission.
+* `reminder_count` must be an integer greater than or equal to zero.
+* If `reminder_count = 0`, `last_reminder_at` may be null.
+* If `reminder_count > 0`, `last_reminder_at` must be present.
+* `created_at` is required.
+* `due_date` is required.
+* `status` must be one of `Open`, `In Progress`, or `Completed`.
+
+These constraints do not introduce Action-specific Data Quality rule IDs at this stage.
+
 ## Data Quality Issue
 
 | Field | Description |
 | --- | --- |
 | issue_id | Unique DQ issue identifier |
-| submission_id | Related submission |
-| control_id | Related control |
+| submission_id | Related submission; nullable if the source Submission row has no submission_id |
+| control_id | Related control; nullable if the source Submission row has no control_id |
+| source_row_number | 1-based row number in the raw Submission dataset |
 | rule | Triggered data-quality rule |
 | severity | High, Medium, or Low |
 | field | Field associated with the issue |
 | message | Human-readable issue description |
 
 The full rule catalog is documented in [data_quality.md](data_quality.md).
+
+`source_row_number` is technical traceability metadata for the flat-file proof of concept. It allows a finding to be traced to its source record even when `submission_id` or `control_id` is unavailable. It does not create a fifth business entity.
 
 ## Derived Metrics
 
@@ -144,6 +164,51 @@ Business Logic
 Derived Metrics
 ```
 
+All date differences below are calendar-day differences. `as_of_date` is the reference date used for overdue evaluation: the current processing date in normal execution, or an explicitly supplied fixed date in tests and synthetic scenarios. It is an execution parameter and is not a Submission source field.
+
+### evidence_present
+
+```text
+IF evidence_reference is not null
+AND evidence_reference is not empty
+THEN evidence_present = true
+ELSE evidence_present = false
+```
+
+### overdue_flag
+
+```text
+IF submitted_at IS NULL
+AND as_of_date > due_date
+THEN overdue_flag = true
+ELSE overdue_flag = false
+```
+
+### submission_late
+
+```text
+IF submitted_at IS NOT NULL
+AND submitted_at > due_date
+THEN submission_late = true
+ELSE submission_late = false
+```
+
+### days_overdue
+
+```text
+IF overdue_flag = true
+THEN days_overdue = as_of_date - due_date in calendar days
+ELSE days_overdue = 0
+```
+
+### days_late
+
+```text
+IF submission_late = true
+THEN days_late = submitted_at - due_date in calendar days
+ELSE days_late = 0
+```
+
 ### data_quality_status
 
 `data_quality_status` is a derived reporting field on Submission with exactly two allowed values:
@@ -164,6 +229,8 @@ Derivation:
 ```
 
 `data_quality_status` is not manually entered and is not added to raw Submission source data — it is computed from the associated Data Quality Issue records. `Invalid` means the Submission has at least one Data Quality Issue; it does not represent security control compliance and does not automatically make the related Control Non-Compliant. Compliance, timeliness, and data quality remain separate concepts, as described in [data_quality.md](data_quality.md#out-of-scope).
+
+All six derived values are computed downstream and are not stored in the raw source CSV.
 
 ## Relationships
 

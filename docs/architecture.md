@@ -12,23 +12,29 @@ It is a simplified cybersecurity control evidence process built as a portfolio p
 flowchart TD
     A[Microsoft Forms] --> B[Power Automate]
     B --> C[Excel Online / OneDrive]
-    C --> D[Raw CSV Export]
-    D --> E[Python ETL]
-    E --> F[Curated CSV]
-    F --> G[Power BI]
-    E --> H[AI Review Queue JSON]
-    H --> I[Controlled AI Review]
-    I --> J[Structured JSON Output]
+    C --> D[Raw Submission CSV]
+    D --> F[Python ETL]
+    E[Control Catalog JSON] --> F
+    F --> G[Curated CSV]
+    G --> H[Power BI]
+    F --> I[AI Review Queue JSON]
+    I --> J[Controlled AI Review]
+    J --> K[Structured JSON Output]
 ```
+
+The physical representation of the Raw Submission CSV is defined in the [Raw Data Contract](data_contract.md). The Control Catalog JSON provides the stable control reference data joined by Python ETL.
 
 ## Scheduled Reminder Workflow
 
 ```mermaid
 flowchart TD
-    A[Scheduled Flow] --> B[Read Control Register]
-    B --> C[Identify Overdue Submissions]
-    C --> D[Send Reminder]
-    D --> E[Update Reminder Tracking]
+    A[Scheduled Flow] --> B[Read Submission Register]
+    A --> C[Read Control Catalog]
+    B --> D[Identify Overdue Submissions]
+    C --> D
+    D --> E[Resolve Control Owner]
+    E --> F[Send Reminder]
+    F --> G[Update Reminder Tracking]
 ```
 
 ## Component Responsibilities
@@ -73,7 +79,7 @@ flowchart TD
 * May summarize supplied control information.
 * May identify missing information.
 * May recommend follow-up actions.
-* May not autonomously set a control to compliant.
+* May not autonomously assign `Compliant` status to a Submission.
 * Human review is mandatory.
 
 ## Architecture Principles
@@ -92,6 +98,7 @@ The technical architecture implements the governance process and data model defi
 
 * [business_process.md](business_process.md)
 * [data_model.md](data_model.md)
+* [data_contract.md](data_contract.md)
 * [data_quality.md](data_quality.md)
 
 ## Out of Scope

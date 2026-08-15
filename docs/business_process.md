@@ -22,6 +22,22 @@ The control owner is accountable for a security control from a governance perspe
 
 A control owner does not need to personally execute every technical activity related to the control (for example, running a patch scan or configuring MFA). Their accountability is for ensuring the control is confirmed and evidenced on time, not for performing every underlying technical task themselves.
 
+### Governance Reviewer
+
+The Governance Reviewer represents the cybersecurity governance function responsible for reviewing submitted evidence and assigning the assessment outcome for a Submission.
+
+Responsibilities:
+
+* Review submitted evidence.
+* Determine whether the Submission is `Compliant` or `Non-Compliant`.
+* Review relevant data-quality exceptions where business interpretation is required.
+* Review AI-assisted recommendations.
+* Retain final human decision authority.
+
+The Control Owner submits or ensures submission of evidence. The Governance Reviewer performs the governance assessment.
+
+For this proof of concept, these responsibilities are deliberately separated to avoid treating control-owner self-attestation as the final compliance decision. This role clarification does not add reviewer fields to the Submission entity.
+
 ## Business Units
 
 This project uses exactly three business units:
@@ -57,13 +73,15 @@ A submission record exists for every expected control/reporting-period combinati
 
 At a high level, for each active reporting period and control:
 
-1. The reporting period becomes active; the expected submission record is created with status `Not Submitted`.
-2. The control owner prepares and submits evidence.
-3. The submission is reviewed.
-4. A status is assigned.
-5. Timeliness is evaluated.
-6. Data quality is validated.
-7. Exceptions, actions, or reporting outputs are generated as needed.
+1. The reporting period becomes active.
+2. The expected Submission is created with status `Not Submitted`.
+3. The Control Owner prepares and submits evidence.
+4. The Submission moves to `In Review`.
+5. The Governance Reviewer reviews the evidence.
+6. The Governance Reviewer assigns `Compliant` or `Non-Compliant`.
+7. Timeliness is evaluated.
+8. Data Quality is validated.
+9. Exceptions, Actions, reminders, and reporting are generated as appropriate.
 
 ## Status Model
 
@@ -109,6 +127,23 @@ Evidence Present != Compliant
 ```
 
 Attaching evidence does not by itself make a submission compliant. Compliance is a review outcome, not a byproduct of evidence being present.
+
+### Evidence-State Semantics
+
+A Submission enters `In Review` only after evidence has been submitted. A `Non-Compliant` result means the evidence was reviewed and the assessed control outcome failed; it is not the same as missing evidence.
+
+| Status | submitted_at | submitted_by | evidence_reference |
+| --- | --- | --- | --- |
+| Not Submitted | null | null | null |
+| In Review | present | present | present |
+| Compliant | present | present | present |
+| Non-Compliant | present | present | present |
+
+Evidence presence is required for every reviewed Submission state, but it does not imply compliance:
+
+```text
+Evidence Present != Compliant
+```
 
 ## Reporting Frequency and Periods
 
@@ -313,13 +348,14 @@ A submission status describes the assessment outcome of a specific reporting per
 ```mermaid
 flowchart TD
     A[Governance Defines Controls] --> B[Reporting Period Becomes Active]
-    B --> C[Control Owner Prepares Submission]
-    C --> D[Evidence Submitted]
-    D --> E[Submission Reviewed]
-    E --> F[Status Assigned]
-    F --> G[Timeliness Evaluated]
-    G --> H[Data Quality Validated]
-    H --> I[Exception / Action / Reporting]
+    B --> C[Create Expected Submission: Not Submitted]
+    C --> D[Control Owner Prepares and Submits Evidence]
+    D --> E[Submission Moves to In Review]
+    E --> F[Governance Reviewer Reviews Evidence]
+    F --> G[Governance Reviewer Assigns Compliant or Non-Compliant]
+    G --> H[Timeliness Evaluated]
+    H --> I[Data Quality Validated]
+    I --> J[Exceptions, Actions, Reminders, and Reporting]
 ```
 
 ## Scope Limitations
