@@ -49,15 +49,22 @@ The repository currently includes:
 - canonical synthetic Control Catalog,
 - synthetic Submission dataset,
 - synthetic Action dataset,
-- Phase 2 dataset coverage / validation matrix.
+- Phase 2 dataset coverage / validation matrix,
+- Phase 3.0 Python pipeline and output contract.
 
-The following components are planned and will be implemented incrementally:
+Phase 0 through Phase 2 are complete. Phase 3.0 is complete and fixes the implementation boundaries, output schemas, deterministic acceptance criteria, and controlled AI queue policy before executable ETL code is introduced.
 
-- Python ETL and Data Quality pipeline,
+The next implementation step is:
+
+- Phase 3.1 – Extract.
+
+The following components remain planned and will be implemented incrementally:
+
+- executable Python ETL and Data Quality pipeline,
 - unit tests,
 - Power Automate workflows,
 - Power BI dashboard,
-- controlled AI workflow,
+- controlled AI runtime workflow,
 - mock REST API.
 
 ## Source of Truth
@@ -87,6 +94,26 @@ See [docs/data_contract.md](docs/data_contract.md) for the physical flat-file re
 ## Power Automate Workflows
 
 ## Python Pipeline
+
+Phase 3 uses the explicit processing model:
+
+```text
+EXTRACT
+   ↓
+NORMALIZE
+   ↓
+VALIDATE
+   ↓
+TRANSFORM / ENRICH
+   ↓
+DERIVE
+   ↓
+LOAD
+```
+
+The Phase 3.0 contract fixes the exact inputs, output schemas, module responsibilities, Data Quality issue emission semantics, Action aggregation behavior, deterministic `as_of_date` execution, and AI review queue policy before implementation begins.
+
+See [docs/phase3_pipeline_contract.md](docs/phase3_pipeline_contract.md) for the canonical Phase 3 implementation contract.
 
 ## Data Quality
 
