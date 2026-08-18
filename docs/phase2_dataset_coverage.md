@@ -51,7 +51,7 @@ For SUB-015, DQ-006 Invalid Reporting Period and DQ-007 Invalid Due Date are `no
 | DQ-004 | Missing Evidence | SUB-002 |
 | DQ-005 | Duplicate Submission business key | SUB-008 and SUB-009 |
 
-Phase 2 does not deliberately create failing examples for every rule DQ-001 through DQ-010. Rules without a deliberately failing dataset example remain part of the canonical rule catalog and will be tested through validation logic and unit tests in later phases. No additional invalid Submission records are added merely to trigger every rule.
+Phase 2 does not deliberately create failing examples for every rule DQ-001 through DQ-010. Rules without a deliberately failing dataset example remain part of the canonical rule catalog and are covered by isolated automated validation tests in Phase 3. No additional invalid Submission records are added merely to trigger every rule.
 
 ## Non-DQ Business / Process Coverage
 

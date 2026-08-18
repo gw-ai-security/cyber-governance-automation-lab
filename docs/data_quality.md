@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the data quality rule catalog for the Cyber Governance Automation Lab. It documents the checks applied to submission data before it is used for reporting, without implementing them.
+This document defines the implementation-independent data quality rule catalog for the Cyber Governance Automation Lab. The executable checks are implemented in `src/validate.py` and verified by the automated test suite.
 
 ## Data Quality Principles
 

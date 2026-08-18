@@ -1,5 +1,4 @@
-# json is part of Python's standard library.
-# We use it to convert JSON file content into normal Python objects.
+import csv
 import json
 
 # pandas is used for reading and processing tabular CSV data.
@@ -53,6 +52,92 @@ EXPECTED_ACTION_COLUMNS = [
     "last_reminder_at",
     "description",
 ]
+
+
+def _validate_exact_columns(
+    actual_columns,
+    expected_columns: list[str],
+    dataset_name: str,
+) -> None:
+    """Enforce the exact CSV header required by the raw-data contract."""
+
+    actual = list(actual_columns)
+
+    if actual == expected_columns:
+        return
+
+    missing = [
+        column
+        for column in expected_columns
+        if column not in actual
+    ]
+    unexpected = [
+        column
+        for column in actual
+        if column not in expected_columns
+    ]
+
+    details = []
+
+    if missing:
+        details.append(
+            "missing: " + ", ".join(missing)
+        )
+
+    if unexpected:
+        details.append(
+            "unexpected: " + ", ".join(unexpected)
+        )
+
+    if not missing and not unexpected:
+        details.append("columns are in the wrong order")
+
+    raise ValueError(
+        f"{dataset_name} CSV header does not match the exact contract "
+        f"({'; '.join(details)})."
+    )
+
+
+def _validate_csv_structure(
+    file_path: Path,
+    expected_columns: list[str],
+    dataset_name: str,
+) -> None:
+    """Reject malformed CSV rows before pandas can reinterpret them."""
+
+    try:
+        with file_path.open(
+            "r",
+            encoding="utf-8",
+            newline="",
+        ) as file:
+            rows = csv.reader(file, strict=True)
+            header = next(rows, None)
+
+            if header is None:
+                raise ValueError(
+                    f"{dataset_name} CSV is empty."
+                )
+
+            _validate_exact_columns(
+                header,
+                expected_columns,
+                dataset_name,
+            )
+
+            expected_width = len(expected_columns)
+
+            for row_number, row in enumerate(rows, start=2):
+                if len(row) != expected_width:
+                    raise ValueError(
+                        f"{dataset_name} CSV row {row_number} has "
+                        f"{len(row)} field(s); expected {expected_width}."
+                    )
+
+    except csv.Error as error:
+        raise ValueError(
+            f"{dataset_name} CSV is malformed: {error}"
+        ) from error
 
 
 def load_control_catalog(file_path: Path) -> list[dict]:
@@ -132,6 +217,14 @@ def load_submissions(file_path: Path) -> pd.DataFrame:
     Data Quality validation can be handled explicitly in later stages.
     """
 
+    # Reject malformed rows before pandas can infer an unintended row index
+    # and silently shift or discard values.
+    _validate_csv_structure(
+        file_path,
+        EXPECTED_SUBMISSION_COLUMNS,
+        "Submission",
+    )
+
     # Read the CSV as strings and preserve empty fields and literal text values.
     submissions = pd.read_csv(
         file_path,
@@ -140,22 +233,12 @@ def load_submissions(file_path: Path) -> pd.DataFrame:
         encoding="utf-8",
     )
 
-    # Determine whether required Submission columns are missing.
-    missing_columns = set(EXPECTED_SUBMISSION_COLUMNS).difference(
-        submissions.columns
+    # The physical contract fixes both the column set and its order.
+    _validate_exact_columns(
+        submissions.columns,
+        EXPECTED_SUBMISSION_COLUMNS,
+        "Submission",
     )
-
-    # Stop the pipeline if one or more required columns are missing.
-    if missing_columns:
-        # Sort the column names so the error message is deterministic.
-        missing_columns_text = ", ".join(
-            sorted(missing_columns)
-        )
-
-        raise ValueError(
-            f"Submission CSV is missing required column(s): "
-            f"{missing_columns_text}"
-        )
 
     # Return the raw and structurally checked tabular data to the caller.
     return submissions
@@ -169,6 +252,14 @@ def load_actions(file_path: Path) -> pd.DataFrame:
     validation can be handled explicitly in later pipeline stages.
     """
 
+    # Reject malformed rows before pandas can infer an unintended row index
+    # and silently shift or discard values.
+    _validate_csv_structure(
+        file_path,
+        EXPECTED_ACTION_COLUMNS,
+        "Action",
+    )
+
     # Read the CSV as strings and preserve empty fields and literal text values.
     actions = pd.read_csv(
         file_path,
@@ -177,22 +268,12 @@ def load_actions(file_path: Path) -> pd.DataFrame:
         encoding="utf-8",
     )
 
-    # Determine whether required Action columns are missing.
-    missing_columns = set(EXPECTED_ACTION_COLUMNS).difference(
-        actions.columns
+    # The physical contract fixes both the column set and its order.
+    _validate_exact_columns(
+        actions.columns,
+        EXPECTED_ACTION_COLUMNS,
+        "Action",
     )
-
-    # Stop the pipeline if one or more required columns are missing.
-    if missing_columns:
-        # Sort the column names so the error message is deterministic.
-        missing_columns_text = ", ".join(
-            sorted(missing_columns)
-        )
-
-        raise ValueError(
-            f"Action CSV is missing required column(s): "
-            f"{missing_columns_text}"
-        )
 
     # Return the raw and structurally checked Action data.
     return actions
