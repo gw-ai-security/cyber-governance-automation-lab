@@ -51,17 +51,16 @@ The repository currently includes:
 - synthetic Action dataset,
 - Phase 2 dataset coverage / validation matrix,
 - Phase 3.0 Python pipeline and output contract,
-- executable Extract, Normalize/Transform, and Submission Validate modules,
+- executable Extract, Normalize/Transform, Submission Validate, Load, and
+  command-line orchestration modules,
 - deterministic curated-data and controlled AI-queue builders,
-- automated tests for the implemented Phase 3 scope.
+- serialization of all three contractual Phase 3 outputs,
+- automated unit and end-to-end tests for the complete Phase 3 scope.
 
-Phase 0 through Phase 2 are complete. Phase 3 is in progress: the contract, Extract, Normalize/Transform, and Submission Validate stages are implemented and covered by automated tests. The canonical Phase 2 dataset produces the five documented Data Quality issues and the expected derived results.
-
-The remaining Phase 3 implementation steps are:
-
-- output serialization in `src/load.py`,
-- orchestration and command-line handling in `src/main.py`,
-- an executable end-to-end run that writes all three contractual outputs.
+Phase 0 through Phase 3 are complete. The full Python pipeline is executable
+and covered by automated tests. The canonical Phase 2 dataset produces the
+five documented Data Quality issues and the expected derived results and
+writes the three contractual outputs under `data/curated/`.
 
 The following components remain planned and will be implemented incrementally:
 
@@ -122,7 +121,7 @@ DERIVE
 LOAD
 ```
 
-The Phase 3.0 contract fixes the exact inputs, output schemas, module responsibilities, Data Quality issue emission semantics, Action aggregation behavior, deterministic `as_of_date` execution, and AI review queue policy. `src/extract.py`, `src/transform.py`, and `src/validate.py` implement the currently completed portion of that contract.
+The Phase 3.0 contract fixes the exact inputs, output schemas, module responsibilities, Data Quality issue emission semantics, Action aggregation behavior, deterministic `as_of_date` execution, and AI review queue policy. `src/extract.py`, `src/transform.py`, `src/validate.py`, `src/load.py`, and `src/main.py` implement that contract.
 
 See [docs/phase3_pipeline_contract.md](docs/phase3_pipeline_contract.md) for the canonical Phase 3 implementation contract.
 
@@ -151,14 +150,36 @@ The deterministic, data-minimized AI review queue builder is implemented in Pyth
 
 ## How to Run
 
-Create a virtual environment, install `requirements.txt`, and run the automated verification from the repository root:
+Create a virtual environment and install `requirements.txt` from the
+repository root:
 
 ```bash
 python -m pip install -r requirements.txt
+```
+
+Run the full automated test suite:
+
+```bash
 python -m pytest -q
 ```
 
-The contractual `python src/main.py --as-of-date YYYY-MM-DD` command is not available yet because serialization and orchestration remain open Phase 3 work.
+Run the pipeline using the current processing date:
+
+```bash
+python src/main.py
+```
+
+Run the deterministic canonical acceptance scenario:
+
+```bash
+python src/main.py --as-of-date 2026-08-15
+```
+
+Successful execution writes:
+
+- `data/curated/curated_control_status.csv`,
+- `data/curated/data_quality_issues.csv`,
+- `data/curated/ai_review_queue.json`.
 
 ## Testing
 
@@ -168,14 +189,15 @@ The automated test suite covers:
 - technical normalization and source-row lineage,
 - DQ-001 through DQ-010, dependency behavior, ordering, and deterministic issue IDs,
 - canonical Phase 3 acceptance counts and findings,
-- row-preserving Control enrichment, Action aggregation, timing metrics, and AI queue selection.
+- row-preserving Control enrichment, Action aggregation, timing metrics, and AI queue selection,
+- exact CSV and strict JSON serialization,
+- command-line date handling, fatal input behavior, and end-to-end output generation.
 
 The canonical regression uses `as_of_date = 2026-08-15` and must produce 5 Data Quality issues, 10 valid Submissions, 5 invalid Submissions, and 2 AI review queue items.
 
 ## Limitations
 
-- no output serialization or command-line orchestration yet,
-- no committed curated output files until the contractual loader exists,
+- generated curated output files are runtime artifacts and are not committed as redundant snapshots,
 - no Action-specific DQ rule IDs; the canonical Action dataset is treated as trusted synthetic workflow input after structural parsing,
 - flat-file proof of concept rather than a production data platform.
 
