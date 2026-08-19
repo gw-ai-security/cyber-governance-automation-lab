@@ -55,12 +55,16 @@ The repository currently includes:
   command-line orchestration modules,
 - deterministic curated-data and controlled AI-queue builders,
 - serialization of all three contractual Phase 3 outputs,
-- automated unit and end-to-end tests for the complete Phase 3 scope.
+- automated unit and end-to-end tests for the complete Phase 3 scope,
+- Phase 4 regression hardening for critical business-rule invariants and
+  boundary conditions.
 
-Phase 0 through Phase 3 are complete. The full Python pipeline is executable
-and covered by automated tests. The canonical Phase 2 dataset produces the
-five documented Data Quality issues and the expected derived results and
-writes the three contractual outputs under `data/curated/`.
+Phase 0 through Phase 4 are complete. The full Python pipeline is executable
+and covered by automated tests. Phase 4 verified the Phase 3 implementation
+without changing its business rules or output schemas. The canonical Phase 2
+dataset produces the five documented Data Quality issues and the expected
+derived results and writes the three contractual outputs under
+`data/curated/`.
 
 The following components remain planned and will be implemented incrementally:
 
@@ -194,6 +198,13 @@ The automated test suite covers:
 - command-line date handling, fatal input behavior, and end-to-end output generation.
 
 The canonical regression uses `as_of_date = 2026-08-15` and must produce 5 Data Quality issues, 10 valid Submissions, 5 invalid Submissions, and 2 AI review queue items.
+
+Phase 4 adds focused regression protection for duplicate technical and
+business keys, one-finding-per-rule behavior, multi-field completeness
+findings, submission-state consistency, submitter requirements, deterministic
+issue ordering, and strict overdue/late equality boundaries. See
+[docs/phase4_test_acceptance.md](docs/phase4_test_acceptance.md) for the
+acceptance record.
 
 ## Limitations
 
