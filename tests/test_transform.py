@@ -23,7 +23,7 @@ from src.validate import validate_submissions
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def _canonical_pipeline():
+def _canonical_pipeline(as_of_date=date(2026, 8, 15)):
     controls = normalize_control_catalog(
         load_control_catalog(
             REPO_ROOT / "data/reference/control_catalog.json"
@@ -45,11 +45,11 @@ def _canonical_pipeline():
         controls,
         actions,
         issues,
-        date(2026, 8, 15),
+        as_of_date,
     )
     queue = build_ai_review_queue(
         curated,
-        date(2026, 8, 15),
+        as_of_date,
     )
     return controls, submissions, actions, issues, curated, queue
 
@@ -121,6 +121,38 @@ def test_canonical_timing_and_left_join_exceptions():
     assert by_submission.loc["SUB-014", "days_overdue"] == 5
     assert by_submission.loc["SUB-015", "data_quality_status"] == "Invalid"
     assert pd.isna(by_submission.loc["SUB-015", "control_name"])
+
+
+def test_submission_due_on_as_of_date_is_not_overdue():
+    _, _, _, _, curated, _ = _canonical_pipeline(
+        date(2026, 8, 10)
+    )
+    row = curated.set_index("submission_id").loc["SUB-014"]
+
+    assert not bool(row["overdue_flag"])
+    assert row["days_overdue"] == 0
+
+
+def test_submission_received_on_due_date_is_not_late():
+    controls, submissions, actions, _, _, _ = _canonical_pipeline()
+    changed = submissions.copy()
+    changed.loc[
+        changed["submission_id"] == "SUB-004",
+        "submitted_at",
+    ] = "2026-04-10"
+    changed_issues = validate_submissions(changed, controls)
+
+    curated = build_curated_control_status(
+        changed,
+        controls,
+        actions,
+        changed_issues,
+        date(2026, 8, 15),
+    )
+    row = curated.set_index("submission_id").loc["SUB-004"]
+
+    assert not bool(row["submission_late"])
+    assert row["days_late"] == 0
 
 
 def test_action_aggregation_does_not_multiply_submission_rows():
