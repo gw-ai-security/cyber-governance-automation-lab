@@ -42,6 +42,19 @@ data/raw/actions.csv                ┘
 
 The repository CSV/JSON files are canonical synthetic acceptance fixtures. They are **not** generated automatically from the live Microsoft 365 workbook.
 
+### Planned Phase 7 bridge
+
+Phase 7.0 now fixes the contract for a private operational snapshot package containing:
+
+```text
+Control snapshot JSON
+Submission snapshot CSV
+Action snapshot CSV
+Completion manifest JSON
+```
+
+The runtime Power Automate export and Python external-input path are still **not implemented**. The contract is defined in [phase7_reporting_export.md](phase7_reporting_export.md).
+
 ## 2. High-Level Architecture
 
 ```mermaid
@@ -66,16 +79,17 @@ flowchart TD
         K --> N[AI Review Queue]
     end
 
-    C -. Phase 7 reporting export .-> S[Reporting Snapshot]
+    C -. Phase 7 Submission export .-> S[Operational Snapshot Package]
+    E -. Phase 7 Control export .-> S
     F -. Phase 7 Action/reminder export .-> S
-    S -. future integration adapter .-> K
+    S -. planned explicit external-input path .-> K
 
     L --> P[Power BI — Planned]
     N --> Q[Controlled AI Runtime — Planned]
     Q --> R[Human Governance Review]
 ```
 
-Phase 7 remains the planned bridge from operational Microsoft 365 state to downstream reporting/integration.
+Phase 7.0 defines this bridge but does not yet implement the runtime synchronization.
 
 ## 3. Why Operational State Does Not Replace Canonical Fixtures
 
@@ -86,6 +100,7 @@ Phase 6 later added operational acceptance fixtures and live Actions for reminde
 The canonical repository files:
 
 ```text
+data/reference/control_catalog.json
 data/raw/evidence_submissions.csv
 data/raw/actions.csv
 ```
@@ -97,6 +112,8 @@ as_of_date = 2026-08-15
 ```
 
 Changing those fixtures merely to mirror later live testing would destroy the reproducible acceptance baseline. The two data planes serve different purposes.
+
+Phase 7 therefore introduces an **explicit external snapshot boundary**, not an overwrite of canonical raw/reference files.
 
 ## 4. Expected Submission Initialization
 
@@ -244,7 +261,39 @@ Reminder state belongs to Action, not Submission compliance state.
 
 See [phase6_reminder_automation.md](phase6_reminder_automation.md).
 
-## 7. Operational Workbook Contract
+## 7. Phase 7 Reporting Snapshot Boundary
+
+Phase 7.0 defines the planned bridge from operational Microsoft 365 state to downstream Python/reporting integration.
+
+The snapshot includes all three operational source tables because mixing live Submissions/Actions with only the synthetic repository Control reference would create a mixed-state reporting run.
+
+Planned logical package:
+
+```text
+ControlCatalog
+    ↓
+security_control_snapshot_<snapshot_id>.json
+
+SubmissionRegister
+    ↓
+security_submission_snapshot_<snapshot_id>.csv
+
+ActionRegister
+    ↓
+security_action_snapshot_<snapshot_id>.csv
+
+all source artifacts complete
+    ↓
+security_snapshot_manifest_<snapshot_id>.json
+```
+
+The manifest is technical provenance metadata and completion state, not another business entity.
+
+Power Automate will export source facts only. Python remains responsible for Data Quality, Control enrichment, Action aggregation, and derived governance/timeliness metrics.
+
+See [phase7_reporting_export.md](phase7_reporting_export.md).
+
+## 8. Operational Workbook Contract
 
 ### `SubmissionRegister`
 
@@ -290,7 +339,7 @@ description
 
 The operational workbook is not committed because authenticated identities and reachable acceptance-test recipients can be written during live testing.
 
-## 8. Component Responsibilities
+## 9. Component Responsibilities
 
 ### Microsoft Forms
 
@@ -316,16 +365,34 @@ The operational workbook is not committed because authenticated identities and r
 - updates tracking only after successful delivery,
 - fails safely on missing/duplicate Controls and duplicate active Actions.
 
+### Power Automate — Reporting Snapshot
+
+Phase 7.0 contract only; runtime implementation remains planned.
+
+The planned flow may:
+
+- read `ControlCatalog`, `SubmissionRegister`, and `ActionRegister`,
+- create one shared snapshot identity,
+- serialize exact source-field contracts,
+- normalize technical date representation for export,
+- write private source artifacts and a completion manifest,
+- fail explicitly when required export steps fail.
+
+It must not implement compliance, Data Quality rules, Action aggregation, or silent source-data repair.
+
 ### Excel Online / OneDrive
 
 - stores operational Submission, Control, and Action state,
 - provides low-complexity Microsoft 365 integration for the PoC,
 - is not presented as a production transactional datastore,
-- is not synchronized into canonical repository raw data before Phase 7.
+- remains separate from canonical repository raw/reference data,
+- will host private Phase 7 reporting snapshots once the export flow is implemented.
 
-For production, Dataverse, SharePoint Lists, or a relational database would generally be preferable where stronger concurrency, auditability, and transactional behavior are required.
+For production, Dataverse, SharePoint Lists, or a relational database would generally be preferable where stronger concurrency, auditability, transactional behavior, or snapshot consistency are required.
 
 ### Python
+
+Currently:
 
 - reads canonical repository CSV/JSON inputs,
 - normalizes technical representation without semantic repair,
@@ -334,6 +401,8 @@ For production, Dataverse, SharePoint Lists, or a relational database would gene
 - aggregates Action context without changing Submission grain,
 - derives governance/timeliness fields,
 - writes curated reporting and AI-queue outputs.
+
+Phase 7 implementation is planned to add explicit external input paths while preserving canonical paths as defaults. Phase 7.0 does not yet change Python code.
 
 ### Power BI
 
@@ -344,17 +413,21 @@ reminder_count
 last_reminder_at
 ```
 
+Phase 7 must carry those facts across the reporting boundary before live reminder execution can be represented in Phase 8.
+
 ### Controlled AI Workflow
 
 Planned for Phase 9. AI output remains advisory and cannot autonomously assign final compliance status.
 
-## 9. Repository Governance Boundary
+## 10. Repository Governance Boundary
 
 GitHub Actions runs the Python test suite for pull requests and pushes to `main`.
 
 Current repository metadata marks `main` as protected, but the Python check is not enforced as a required merge gate. CI is active; strict merge gating requires an explicit GitHub ruleset/branch-protection configuration.
 
-## 10. Architecture Principles
+Operational snapshot artifacts must remain outside the public repository because they can contain authenticated or reachable identities and operational comments.
+
+## 11. Architecture Principles
 
 - Expected state exists before observed evidence.
 - Evidence submission is not a compliance decision.
@@ -366,7 +439,9 @@ Current repository metadata marks `main` as protected, but the Python check is n
 - Reminder automation operationally enforces at most one active missing-submission follow-up Action per Submission.
 - Same-day reminder execution is idempotent.
 - The operational workbook and canonical repository fixtures are separate artifacts.
-- Cross-platform reporting synchronization is not claimed before Phase 7.
+- Phase 7 snapshots are explicit external artifacts; they do not overwrite canonical fixtures.
+- Phase 7.0 defines the integration contract but does not claim runtime synchronization is implemented.
+- Source facts are exported before Data Quality, aggregation, and derived metrics are applied.
 - AI-assisted processing is downstream of deterministic validation.
 - Actual evidence files are not stored in the repository.
 - Canonical repository business data is synthetic.
@@ -374,7 +449,7 @@ Current repository metadata marks `main` as protected, but the Python check is n
 - Final compliance authority remains human.
 - Excel/OneDrive is a PoC boundary, not an enterprise architecture claim.
 
-## 11. Business Model Reference
+## 12. Business Model Reference
 
 - [business_process.md](business_process.md)
 - [data_model.md](data_model.md)
@@ -382,10 +457,11 @@ Current repository metadata marks `main` as protected, but the Python check is n
 - [data_quality.md](data_quality.md)
 - [phase5_evidence_intake.md](phase5_evidence_intake.md)
 - [phase6_reminder_automation.md](phase6_reminder_automation.md)
+- [phase7_reporting_export.md](phase7_reporting_export.md)
 
 Historical phase-specific acceptance documents remain valid for the phase they describe and are not rewritten merely to resemble later operational state.
 
-## 12. Out of Scope
+## 13. Out of Scope
 
 - SIEM / SOC operations,
 - malware analysis,
@@ -396,4 +472,5 @@ Historical phase-specific acceptance documents remain valid for the phase they d
 - enterprise authentication architecture,
 - production evidence-document repository,
 - production-grade Power Platform monitoring and alerting,
-- production escalation/SLA engine.
+- production escalation/SLA engine,
+- production transactional snapshot guarantees for the Excel-based operational plane.
