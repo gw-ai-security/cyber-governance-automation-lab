@@ -6,26 +6,85 @@ This document describes the current architecture of the Cyber Governance Automat
 
 The project is a simplified cybersecurity-control evidence process built as a portfolio proof of concept. It is not production-ready. The architecture emphasizes explicit business semantics, traceable state transitions, deterministic Data Quality checks, controlled workflow automation, and small technology choices over unnecessary platform complexity.
 
+## Current Architecture and Data-Plane Boundary
+
+The project currently contains two distinct data planes that must not be conflated.
+
+### Operational evidence-intake plane
+
+Implemented in Phase 5:
+
+```text
+Microsoft Forms
+      ↓
+Power Automate
+      ↓
+Excel Online / OneDrive Submission Register
+```
+
+This is the live Microsoft 365 workflow PoC.
+
+### Deterministic repository data plane
+
+Implemented in Phases 2–4:
+
+```text
+data/reference/control_catalog.json
+                    ┐
+data/raw/evidence_submissions.csv ──► Python ETL + Data Quality
+data/raw/actions.csv                ┘
+                                    ↓
+                         data/curated/*
+```
+
+The repository raw CSV is a canonical synthetic acceptance dataset. It is **not** automatically generated from the Phase 5 Excel workbook.
+
 ## High-Level Architecture
 
 ```mermaid
 flowchart TD
-    A[Microsoft Forms<br/>IMPLEMENTED] --> B[Power Automate Evidence Intake<br/>IMPLEMENTED]
-    B --> C[Excel Online / OneDrive Submission Register<br/>IMPLEMENTED PoC]
-    C --> D[Raw Submission CSV]
-    E[Control Catalog JSON] --> F[Python ETL + Data Quality<br/>IMPLEMENTED]
-    D --> F
-    G[Action CSV] --> F
-    F --> H[Curated Control Status CSV<br/>IMPLEMENTED]
-    F --> I[Data Quality Issues CSV<br/>IMPLEMENTED]
-    F --> J[AI Review Queue JSON<br/>IMPLEMENTED]
+    subgraph OP[Operational Evidence Intake — Phase 5]
+        A[Microsoft Forms<br/>IMPLEMENTED] --> B[Power Automate Evidence Intake<br/>IMPLEMENTED]
+        B --> C[Excel Online / OneDrive Submission Register<br/>IMPLEMENTED PoC]
+    end
+
+    subgraph REPO[Deterministic Repository Data Layer — Phases 2–4]
+        D[Canonical Raw Submission CSV] --> F[Python ETL + Data Quality<br/>IMPLEMENTED]
+        E[Control Catalog JSON] --> F
+        G[Action CSV] --> F
+        F --> H[Curated Control Status CSV<br/>IMPLEMENTED]
+        F --> I[Data Quality Issues CSV<br/>IMPLEMENTED]
+        F --> J[AI Review Queue JSON<br/>IMPLEMENTED]
+    end
+
+    C -. Phase 7 reporting snapshot/export<br/>PLANNED; not automated in Phase 5 .-> S[security_control_snapshot.csv<br/>PLANNED]
+    S -. future integration adapter .-> F
+
     H --> K[Power BI Governance Dashboard<br/>PLANNED]
     J --> L[Controlled AI Runtime<br/>PLANNED]
     L --> M[Human Governance Review<br/>PLANNED]
-    N[Scheduled Power Automate Reminder Flow<br/>PLANNED] --> C
+    N[Scheduled Power Automate Reminder Flow<br/>PHASE 6 PLANNED] --> C
 ```
 
-The physical Raw Submission contract is defined in [data_contract.md](data_contract.md). The Control Catalog JSON provides stable control reference data joined by the Python pipeline.
+The Phase 7 snapshot/export is the planned bridge between the Power Platform workflow and later Python/reporting integration. Phase 5 does not claim such synchronization already exists.
+
+## Why the Operational Workbook Does Not Replace the Canonical Raw Dataset
+
+The Phase 5 happy-path acceptance test updated the operational Excel record for `SUB-014` from `Not Submitted` to `In Review` on the live test date.
+
+The repository file:
+
+```text
+data/raw/evidence_submissions.csv
+```
+
+intentionally remains unchanged. In that canonical synthetic dataset, `SUB-014` remains `Not Submitted` because the Phase 2–4 deterministic acceptance scenario is evaluated at:
+
+```text
+as_of_date = 2026-08-15
+```
+
+Changing the repository raw dataset merely to mirror a later operational test would destroy the deterministic test baseline and change the documented DQ/process scenarios. The two artifacts therefore serve different purposes.
 
 ## Expected Submission Initialization
 
@@ -113,7 +172,7 @@ Non-Compliant
 
 Those remain Governance Reviewer decisions.
 
-See [power_automate.md](power_automate.md) for the complete workflow contract, screenshots, and acceptance evidence.
+See [power_automate.md](power_automate.md) for the complete workflow contract, expressions, screenshots, and acceptance evidence.
 
 ## Evidence-Intake Guardrails
 
@@ -186,6 +245,14 @@ reporting_period
 due_date
 ```
 
+## Phase 5 Roadmap Delta
+
+The original project roadmap illustrated a separate **Confirmation Email** after the successful Excel write.
+
+The implemented Phase 5 workflow currently ends after the controlled Excel update on the success path. No separate Power Automate confirmation-email action is implemented.
+
+This is documented explicitly rather than being presented as implemented. The core Phase 5 Definition of Done — Forms input updating the expected register record with validation and controlled error handling — has been acceptance-tested successfully.
+
 ## Component Responsibilities
 
 ### Microsoft Forms
@@ -210,13 +277,16 @@ due_date
 
 - stores the operational `SubmissionRegister` used by Phase 5,
 - provides low-complexity integration with Power Automate,
-- is intentionally a PoC storage choice rather than a production database.
+- is intentionally a PoC storage choice rather than a production database,
+- is not automatically synchronized to the repository raw CSV in Phase 5.
+
+The operational workbook is not committed to the repository because authenticated responder identity can be written into it during live testing.
 
 For production, Dataverse, SharePoint Lists, or a relational database would generally be preferable where stronger concurrency, governance, auditability, and transactional behavior are required.
 
 ### Python
 
-- reads CSV and JSON inputs,
+- reads canonical repository CSV and JSON inputs,
 - normalizes technical representation,
 - applies DQ-001 through DQ-010,
 - enriches Submission data with Control metadata,
@@ -254,6 +324,24 @@ flowchart TD
 
 Reminder state belongs to the Action workflow rather than the Submission compliance state.
 
+The exact Phase 6 overdue logic must continue to follow the canonical business rule:
+
+```text
+submitted_at IS NULL
+AND
+as_of_date > due_date
+```
+
+It must not collapse overdue state into a generic `status != Compliant` condition.
+
+## Repository Governance Boundary
+
+GitHub Actions runs the Python test suite for pull requests and pushes to `main`.
+
+Current repository metadata marks `main` as protected, but required status-check enforcement is not currently active in classic branch protection. PR #8 was merged before its successful Python test workflow finished. Therefore CI is active, but it is not presently a guaranteed merge gate.
+
+If strict repository governance is intended, the required `Python tests / test` check must be re-enabled in GitHub branch/ruleset settings.
+
 ## Architecture Principles
 
 - Expected state exists before observed evidence.
@@ -262,6 +350,8 @@ Reminder state belongs to the Action workflow rather than the Submission complia
 - Compliance, timeliness, Data Quality, and workflow state are separate dimensions.
 - Invalid or ambiguous data is preserved or rejected explicitly; it is not silently repaired.
 - Evidence intake performs update, not append.
+- The live operational workbook and canonical repository raw dataset are separate artifacts.
+- Cross-platform snapshot/export is not claimed before Phase 7 implements it.
 - AI-assisted processing is downstream of deterministic validation.
 - Actual evidence files are not stored in the repository.
 - Synthetic repository data only.
@@ -278,6 +368,8 @@ The architecture implements the governance process and data model defined in:
 - [data_contract.md](data_contract.md)
 - [data_quality.md](data_quality.md)
 - [power_automate.md](power_automate.md)
+
+Historical phase-specific acceptance documents remain valid for the phase they describe and are not rewritten merely to read like current-state documentation.
 
 ## Out of Scope
 
