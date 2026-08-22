@@ -1,44 +1,50 @@
-# Power Automate Evidence Intake Workflow
+# Phase 5 Evidence Intake Automation
 
-## Phase 5 Status
+## Status
 
-**Phase 5 core evidence-intake flow: IMPLEMENTED AND ACCEPTANCE-TESTED**
+**IMPLEMENTED AND ACCEPTANCE-TESTED**
 
-This document describes the implemented Microsoft Forms → Power Automate → Excel evidence-intake workflow for the Cyber Governance Automation Lab.
+Phase 5 implements the operational Microsoft Forms → Power Automate → Excel evidence-intake workflow for the Cyber Governance Automation Lab.
 
-The workflow is a portfolio proof of concept. It demonstrates controlled evidence intake, expected-Submission lookup, state validation, deterministic update behavior, and explicit failure handling. It is not presented as a production-ready Power Platform implementation.
+The workflow is a portfolio proof of concept. It demonstrates authenticated evidence intake, deterministic lookup of an expected Submission, controlled state transition, explicit failure handling, and preservation of the project’s governance semantics. It is not presented as a production-ready Power Platform implementation.
 
-The original project roadmap also illustrated a separate confirmation email. That specific action is **not** implemented in the current flow and is documented as a roadmap delta rather than being claimed as complete.
+The original roadmap illustrated a separate custom confirmation e-mail after a successful intake. That specific action is **not implemented** and remains a documented roadmap delta.
 
 ## 1. Purpose
 
-Phase 5 automates the first operational step of the cybersecurity-governance evidence process.
+A Control Owner submits evidence for an already expected Control and reporting period. Power Automate resolves the corresponding expected Submission and updates that existing operational record.
 
-A Control Owner submits evidence for an already expected Control and reporting period. Power Automate identifies the corresponding expected Submission in the operational register and updates that existing record.
-
-The workflow deliberately does **not** create a new Submission row for every Form response.
+The workflow deliberately performs:
 
 ```text
-Expected Submission already exists
+Expected Submission
+        +
+Evidence Intake
         ↓
-status = Not Submitted
+Controlled State Transition
+```
+
+not:
+
+```text
+Every Form Response
         ↓
-Control Owner submits evidence
-        ↓
-Power Automate identifies expected Submission
-        ↓
-existing row is updated
-        ↓
-status = In Review
-        ↓
-Governance Reviewer assesses evidence later
-        ↓
-Compliant OR Non-Compliant
+New Submission Row
 ```
 
 Core governance principle:
 
-> Evidence submission is not a compliance decision.
+```text
+Evidence submission != compliance decision
+```
+
+Phase 5 permits only:
+
+```text
+Not Submitted → In Review
+```
+
+Final `Compliant` / `Non-Compliant` assessment remains a human Governance Reviewer decision.
 
 ## 2. Scope
 
@@ -49,54 +55,37 @@ Phase 5 implements:
 - Power Automate orchestration,
 - Excel Online / OneDrive operational Submission Register,
 - lookup by the Submission business key,
+- exactly-one-match validation,
+- current-state validation,
 - update of the existing expected Submission,
-- `Not Submitted → In Review` state transition,
 - resubmission / overwrite protection,
 - no-match protection,
 - duplicate-business-key protection,
-- explicit controlled failure states,
-- acceptance testing of success and failure paths.
+- explicit controlled failure outcomes,
+- manual acceptance testing of the success and failure paths.
 
-Phase 5 does **not** implement:
+Phase 5 itself does **not** implement:
 
 - automated compliance decisions,
 - Governance Reviewer decision UI,
-- scheduled reminder automation,
+- scheduled overdue reminders,
 - Action creation or reminder counters,
 - Power BI reporting,
 - AI review execution,
 - file-upload evidence storage,
 - production monitoring / alerting,
 - automatic generation of expected reporting-period instances,
-- automatic synchronization of the operational Excel workbook into repository raw CSV,
-- a custom confirmation email,
+- automatic synchronization of the operational workbook into repository raw data,
+- a custom confirmation e-mail,
 - production database storage.
 
-Reminder automation belongs to **Phase 6**. The cross-platform reporting snapshot/export belongs to **Phase 7**.
+Scheduled overdue follow-up is implemented separately in [Phase 6 Reminder Automation](phase6_reminder_automation.md). Phase 7 remains the planned reporting snapshot/export bridge.
 
 ## 3. Governance Principles
 
-### Evidence does not equal compliance
-
-The Control Owner provides evidence. The Control Owner does not select `Compliant` or `Non-Compliant`.
-
-Phase 5 only performs:
-
-```text
-Not Submitted → In Review
-```
-
-Final compliance assessment remains a human Governance Reviewer responsibility.
-
 ### Expected state exists before observed evidence
 
-Expected Submission records already exist in the register. This makes missing process events observable.
-
-```text
-Expected state + observed evidence = detectable process state
-```
-
-### Business key and technical key are different
+Expected Submission records exist before evidence arrives. This makes missing process events observable.
 
 Submission business key:
 
@@ -112,18 +101,28 @@ submission_id
 
 The workflow first resolves and validates the business key, then uses the matched `submission_id` as the technical Excel update key.
 
-### No silent repair
+### Compliance, evidence, and workflow state remain separate
 
-If the workflow cannot identify exactly one valid target Submission, it does not guess, deduplicate, or overwrite a record. Processing is stopped explicitly.
+```text
+Evidence Present != Compliant
+Not Submitted != Non-Compliant
+Submission Status != Action Status
+```
 
-## 4. Components
+The Control Owner supplies evidence but cannot assign the compliance result.
+
+### Ambiguity fails safely
+
+If the workflow cannot identify exactly one writable target Submission, it does not guess, deduplicate, append a replacement, or overwrite an existing governance state.
+
+## 4. Operational Components
 
 | Component | Responsibility |
 | --- | --- |
-| Microsoft Forms | Evidence intake |
-| Power Automate | Workflow orchestration and guardrails |
-| Excel Online / OneDrive | Operational Submission Register |
-| Existing project contracts | Business rules and Submission state semantics |
+| Microsoft Forms | Authenticated evidence intake |
+| Power Automate | Lookup, guardrails, and controlled update |
+| Excel Online / OneDrive | Operational Submission state |
+| Existing project contracts | Business rules and Submission semantics |
 
 Operational workbook:
 
@@ -143,11 +142,11 @@ Excel table:
 SubmissionRegister
 ```
 
-The workbook is an operational Microsoft 365 artifact and is intentionally not a canonical repository dataset.
+The workbook is an operational Microsoft 365 artifact. It is not a canonical repository dataset and is intentionally excluded from version control.
 
 ## 5. Submission Register Contract
 
-The operational Excel table uses the canonical raw Submission fields:
+The operational `SubmissionRegister` uses the canonical Submission source fields:
 
 ```text
 submission_id
@@ -161,9 +160,7 @@ submitted_by
 comment
 ```
 
-No helper-key column or new business entity was introduced.
-
-The workflow preserves:
+During Phase 5 intake, the workflow preserves:
 
 ```text
 submission_id
@@ -172,7 +169,9 @@ reporting_period
 due_date
 ```
 
-during evidence intake.
+and updates only intake-owned fields.
+
+No helper key or additional business entity is introduced.
 
 ## 6. Microsoft Forms Intake Contract
 
@@ -182,11 +181,7 @@ Form name:
 Cyber Governance Evidence Submission
 ```
 
-Form description:
-
-> Submit evidence for an existing cybersecurity control and reporting period. Evidence submissions are subject to governance review. Submission of evidence does not constitute a compliance decision.
-
-### User-entered fields
+User-entered fields:
 
 | Form field | Type | Required | Purpose |
 | --- | --- | ---: | --- |
@@ -205,64 +200,37 @@ CTRL-004
 CTRL-005
 ```
 
-Reporting Period remains text because the representation depends on Control frequency:
+Reporting-period representation follows Control frequency:
 
 ```text
-Quarterly → 2026-Q3
-Monthly   → 2026-07
-Annual    → 2026
+Monthly   → YYYY-MM
+Quarterly → YYYY-QN
+Annual    → YYYY
 ```
 
-### Fields intentionally not collected
+The form does not ask the submitter for system- or governance-owned values such as `submission_id`, `due_date`, `status`, `submitted_at`, Control metadata, owner metadata, or a compliance decision.
 
-The form does not ask the submitter for:
-
-```text
-submission_id
-due_date
-status
-submitted_at
-business_unit
-risk_level
-owner_email
-compliance decision
-```
-
-These remain system/reference/governance-owned values.
-
-### Submitter identity
-
-The form is organization-restricted and records authenticated responder identity. `submitted_by` is populated from the authenticated Forms responder rather than a manually entered email field.
-
-Multiple responses per authenticated person are allowed because the same person may submit evidence for multiple Controls and periods.
+The form is organization-restricted and records authenticated responder identity. `submitted_by` is populated from the authenticated responder rather than from a manually entered e-mail field.
 
 ## 7. Evidence Handling Boundary
 
-Phase 5 stores only:
+Phase 5 stores only an `evidence_reference`; it does not store actual evidence files in the repository or operational workbook contract documented here.
 
-```text
-evidence_reference
-```
-
-It does not upload or store actual evidence files.
-
-Actual security evidence may contain confidential content and would require additional design for access control, retention, auditability, classification, storage permissions, and lifecycle management. That is outside the PoC scope.
+Actual evidence may require dedicated access control, retention, classification, auditability, lifecycle management, and storage permissions. That is outside this proof-of-concept scope.
 
 ## 8. Operational vs. Repository Data Boundary
 
-The live Phase 5 workbook and the repository raw dataset are separate artifacts.
-
-Operational Phase 5 state:
+Operational plane:
 
 ```text
 Microsoft Forms
       ↓
-Power Automate
+Power Automate Evidence Intake
       ↓
 Cyber_Governance_Control_Register.xlsx
 ```
 
-Deterministic repository state:
+Deterministic repository plane:
 
 ```text
 data/raw/evidence_submissions.csv
@@ -270,179 +238,98 @@ data/raw/evidence_submissions.csv
 Python pipeline
 ```
 
-Phase 5 does **not** automatically export the Excel register into `data/raw/evidence_submissions.csv`.
+Phase 5 does **not** export the live workbook into `data/raw/evidence_submissions.csv`.
 
-This distinction is intentional. The Phase 5 happy-path test changed the live operational `SUB-014` record to `In Review` on 2026-08-21. The canonical repository dataset keeps `SUB-014` as `Not Submitted` because it is the deterministic Phase 2–4 acceptance scenario evaluated at `as_of_date = 2026-08-15`.
+The Phase 5 happy-path test changed operational `SUB-014` to `In Review` on 2026-08-21. The canonical repository fixture intentionally keeps `SUB-014` as `Not Submitted` because the deterministic Phase 2–4 acceptance scenario is evaluated at:
 
-A future reporting snapshot/export is planned in Phase 7.
+```text
+as_of_date = 2026-08-15
+```
 
-## 9. Implemented Flow Architecture
+This is a deliberate data-plane boundary, not an inconsistency.
+
+## 9. Implemented Workflow
 
 ```mermaid
 flowchart TD
-    A[Microsoft Forms<br/>New response submitted] --> B[Get response details]
-    B --> C[Read Submission Register]
-    C --> D[Filter by Control ID]
-    D --> E[Filter by Reporting Period]
-    E --> F{Validate Unique Submission Match<br/>match count = 1?}
+    A[Microsoft Forms<br/>New response] --> B[Get response details]
+    B --> C[Read SubmissionRegister]
+    C --> D[Filter by control_id]
+    D --> E[Filter by reporting_period]
+    E --> F{Exactly one business-key match?}
 
-    F -->|Yes| G{Validate Submission Status<br/>status = Not Submitted?}
-    G -->|Yes| H[Update Submission to In Review]
-    G -->|No| I[Terminate - Invalid Submission State<br/>FAILED]
+    F -->|Yes| G{status = Not Submitted?}
+    G -->|Yes| H[Update existing row by submission_id]
+    H --> I[status = In Review]
+    G -->|No| J[Terminate<br/>INVALID_SUBMISSION_STATE]
 
-    F -->|No| J{Classify Match Failure<br/>match count = 0?}
-    J -->|Yes| K[Terminate - No Submission Match<br/>FAILED]
-    J -->|No| L[Terminate - Duplicate Business Key<br/>FAILED]
+    F -->|No| K{Match count = 0?}
+    K -->|Yes| L[Terminate<br/>NO_MATCH]
+    K -->|No| M[Terminate<br/>DUPLICATE_BUSINESS_KEY]
 ```
 
-The flow intentionally separates lookup, uniqueness validation, state validation, and update.
+Implemented Power Automate actions logically perform:
 
-## 10. Implemented Power Automate Actions
+1. Forms trigger.
+2. Get response details.
+3. Read `SubmissionRegister`.
+4. Filter by Control ID.
+5. Filter by Reporting Period.
+6. Require exactly one candidate.
+7. Require `status = Not Submitted`.
+8. Update existing row using `submission_id`.
+9. Classify zero vs. multiple business-key matches.
+10. Terminate explicitly on invalid paths.
 
-1. **Bei Übermitteln einer neuen Antwort** — Microsoft Forms trigger.
-2. **Antwortdetails abrufen** — retrieves form fields using Response ID.
-3. **Read Submission Register** — reads `SubmissionRegister` through Excel Online (Business).
-4. **Array filtern - Control ID** — filters `row.control_id = Forms.Control ID`.
-5. **Array filtern - Reporting Period** — filters the previous result by reporting period.
-6. **Validate Unique Submission Match** — requires exactly one candidate row.
-7. **Validate Submission Status** — requires `status = Not Submitted`.
-8. **Update Submission to In Review** — updates the existing Excel row using `submission_id`.
-9. **Classify Match Failure** — distinguishes zero from multiple matches.
-10. **Terminate - No Submission Match**.
-11. **Terminate - Duplicate Business Key**.
-12. **Terminate - Invalid Submission State**.
+Power Automate may generate tenant-specific internal action/question identifiers. Those identifiers are not treated as portable business-contract names.
 
-## 11. Expressions and Dynamic Content
+## 10. Stable Expressions and Guardrails
 
-Power Automate stores Forms question identifiers as generated internal IDs. Those IDs are tenant/form-specific and are not useful as portable business documentation. The contract therefore documents the stable expressions and business fields.
-
-### Control ID filter
-
-Logical expression:
+Logical Control filter:
 
 ```text
 @equals(item()?['control_id'], <Forms Control ID>)
 ```
 
-The source array is the `value` array returned by **Read Submission Register**.
-
-### Reporting Period filter
-
-Logical expression:
+Logical reporting-period filter:
 
 ```text
 @equals(item()?['reporting_period'], <Forms Reporting Period>)
 ```
 
-The source array is the output of **Array filtern - Control ID**, not the original unfiltered Excel row set.
-
-### Unique-match validation
-
-Implemented comparison:
+Unique-match invariant:
 
 ```text
-length(body('Array_filtern_-_Reporting_Period')) = 1
+length(filtered_business_key_matches) = 1
 ```
 
-The designer-generated internal action name can differ if the flow is recreated, but the invariant must remain `length(matches) = 1`.
-
-### Current-state validation
-
-Implemented lookup:
+Current-state invariant:
 
 ```text
-first(body('Array_filtern_-_Reporting_Period'))?['status']
+first(filtered_business_key_matches)?['status'] = 'Not Submitted'
 ```
 
-Required value:
-
-```text
-Not Submitted
-```
-
-### Technical update key
-
-Implemented key lookup:
-
-```text
-first(body('Array_filtern_-_Reporting_Period'))?['submission_id']
-```
-
-Excel key column:
-
-```text
-submission_id
-```
-
-### Submitted date
-
-Implemented expression:
-
-```text
-convertTimeZone(utcNow(),'UTC','W. Europe Standard Time','yyyy-MM-dd')
-```
-
-This writes the local Central European calendar date while preserving the project's date-only `YYYY-MM-DD` logical contract.
-
-## 12. Lookup Logic
-
-The two sequential filters produce candidates for the complete business key:
-
-```text
-control_id + reporting_period
-```
-
-Unique-match validation requires:
-
-```text
-length(filtered_matches) = 1
-```
-
-Exactly one match is required before any write operation.
-
-## 13. Submission-State Guardrail
-
-Even a unique match is writable only when:
-
-```text
-status = Not Submitted
-```
-
-This protects existing workflow/governance states from overwrite:
-
-```text
-In Review
-Compliant
-Non-Compliant
-```
-
-The workflow therefore permits:
-
-```text
-Not Submitted → In Review
-```
-
-and rejects resubmission against an already progressed record.
-
-## 14. Excel Update Mapping
-
-Excel update key:
+Technical update key:
 
 ```text
 Key Column = submission_id
 ```
 
-Key Value is the `submission_id` of the uniquely matched expected Submission.
+Submitted local date:
 
-Updated fields:
+```text
+convertTimeZone(utcNow(),'UTC','W. Europe Standard Time','yyyy-MM-dd')
+```
+
+## 11. Excel Update Mapping
 
 | Submission field | Source |
 | --- | --- |
 | `status` | literal `In Review` |
-| `evidence_reference` | Forms `Evidence Reference` |
-| `submitted_at` | `convertTimeZone(...)` system date expression |
+| `evidence_reference` | Forms Evidence Reference |
+| `submitted_at` | local system-date expression |
 | `submitted_by` | authenticated Forms responder |
-| `comment` | Forms `Comment` |
+| `comment` | Forms Comment |
 
 Preserved fields:
 
@@ -453,113 +340,23 @@ reporting_period
 due_date
 ```
 
-The workflow updates an expected Submission; it does not create a new business object.
+The workflow updates the expected Submission; it does not append another Submission.
 
-Excel Online may display the date according to workbook/user locale, for example `21.08.2026`. The repository CSV serialization contract remains `YYYY-MM-DD`.
+Excel may display dates according to workbook/user locale. The logical repository date contract remains `YYYY-MM-DD`.
 
-## 15. Explicit Failure Handling
+## 12. Controlled Failure Outcomes
 
-### `NO_MATCH`
+| Outcome | Condition | Effect |
+| --- | --- | --- |
+| `NO_MATCH` | business-key match count = 0 | No update; flow fails explicitly |
+| `DUPLICATE_BUSINESS_KEY` | business-key match count > 1 | No arbitrary target; flow fails explicitly |
+| `INVALID_SUBMISSION_STATE` | exactly one match but status != `Not Submitted` | No overwrite; flow fails explicitly |
 
-Condition:
+These are Phase 5 workflow outcomes. They are not new Data Quality rule IDs.
 
-```text
-business-key match count = 0
-```
+## 13. Acceptance Tests
 
-Terminate action:
-
-```text
-Terminate - No Submission Match
-```
-
-Status: `Failed`
-
-Code:
-
-```text
-NO_MATCH
-```
-
-Message:
-
-> No expected submission was found for the submitted control ID and reporting period.
-
-### `DUPLICATE_BUSINESS_KEY`
-
-Condition:
-
-```text
-business-key match count > 1
-```
-
-Terminate action:
-
-```text
-Terminate - Duplicate Business Key
-```
-
-Status: `Failed`
-
-Code:
-
-```text
-DUPLICATE_BUSINESS_KEY
-```
-
-Message:
-
-> Multiple submissions were found for the submitted control ID and reporting period. Automated processing was stopped.
-
-### `INVALID_SUBMISSION_STATE`
-
-Condition:
-
-```text
-exactly one match
-AND
-status != Not Submitted
-```
-
-Terminate action:
-
-```text
-Terminate - Invalid Submission State
-```
-
-Status: `Failed`
-
-Code:
-
-```text
-INVALID_SUBMISSION_STATE
-```
-
-Message:
-
-> The submission exists but is not in status 'Not Submitted'. Resubmission or overwrite is not permitted.
-
-The explicit `Failed` result makes invalid workflow states visible in Power Automate run history rather than silently ending as successful no-op runs.
-
-## 16. Confirmation Behavior and Roadmap Delta
-
-The original project roadmap illustrated:
-
-```text
-successful Excel write
-        ↓
-Confirmation Email
-```
-
-The current flow does **not** contain this custom confirmation-email action.
-
-No documentation should claim otherwise. The core Phase 5 DoD is accepted because the Forms submission updates the expected Control Register record and the success/failure paths are validated. If strict parity with the original illustrative roadmap is required, adding a confirmation-email action remains the only identified Phase 5 workflow follow-up.
-
-## 17. Acceptance Tests
-
-Phase 5 was tested manually through Microsoft Forms submissions and Power Automate run history.
-
-### Happy path
+### 13.1 Happy path
 
 Input:
 
@@ -576,12 +373,6 @@ Expected target:
 SUB-014
 ```
 
-Initial state:
-
-```text
-status = Not Submitted
-```
-
 Observed operational result:
 
 ```text
@@ -596,13 +387,13 @@ submitted_by        = authenticated organizational user
 comment             = Phase 5.3 happy-path test.
 ```
 
-The operational register remained at **15 Submission rows**. No new row was appended.
+The operational register remained at 15 Submission rows. No row was appended.
 
 Result: **PASS**
 
-### Resubmission / invalid state
+### 13.2 Resubmission / invalid state
 
-Tested `CTRL-005 + 2026-07` after the operational `SUB-014` was already `In Review`.
+A second submission for `CTRL-005 + 2026-07` was tested after operational `SUB-014` was already `In Review`.
 
 Observed:
 
@@ -610,14 +401,12 @@ Observed:
 unique match = true
 status validation = false
 Excel update = skipped
-Terminate - Invalid Submission State = executed
+INVALID_SUBMISSION_STATE
 ```
-
-Failure code: `INVALID_SUBMISSION_STATE`
 
 Result: **PASS**
 
-### No expected Submission
+### 13.3 No expected Submission
 
 Test:
 
@@ -628,16 +417,14 @@ CTRL-001 + 2099-Q1
 Observed:
 
 ```text
-business-key matches = 0
-Excel update = not executed
-Terminate - No Submission Match = executed
+business-key match count = 0
+Excel update = skipped
+NO_MATCH
 ```
-
-Failure code: `NO_MATCH`
 
 Result: **PASS**
 
-### Duplicate business key
+### 13.4 Duplicate business key
 
 Test:
 
@@ -645,206 +432,118 @@ Test:
 CTRL-003 + 2026-Q2
 ```
 
-The canonical synthetic seed dataset deliberately contains both `SUB-008` and `SUB-009` for this business key.
+The canonical synthetic seed data contains both `SUB-008` and `SUB-009` for this business key.
 
 Observed:
 
 ```text
-business-key matches = 2
-Excel update = not executed
-Terminate - Duplicate Business Key = executed
+business-key match count = 2
+Excel update = skipped
+DUPLICATE_BUSINESS_KEY
 ```
-
-Failure code: `DUPLICATE_BUSINESS_KEY`
 
 Result: **PASS**
 
-## 18. Acceptance Matrix
+## 14. Acceptance Matrix
 
 | Scenario | Match Count | Current Status | Expected Outcome | Result |
 | --- | ---: | --- | --- | --- |
 | Normal evidence intake | 1 | Not Submitted | Update existing row → In Review | PASS |
-| Resubmission | 1 | In Review | Fail: `INVALID_SUBMISSION_STATE` | PASS |
-| Missing business key | 0 | n/a | Fail: `NO_MATCH` | PASS |
-| Duplicate business key | >1 | n/a | Fail: `DUPLICATE_BUSINESS_KEY` | PASS |
+| Resubmission | 1 | In Review | `INVALID_SUBMISSION_STATE` | PASS |
+| Missing business key | 0 | n/a | `NO_MATCH` | PASS |
+| Duplicate business key | >1 | n/a | `DUPLICATE_BUSINESS_KEY` | PASS |
 
-## 19. Core Invariants Demonstrated
+## 15. Roadmap Delta
 
-```text
-Form response != new Submission
-```
+The original project roadmap illustrated:
 
 ```text
-control_id + reporting_period must identify exactly one expected Submission
+successful Excel write
+        ↓
+Confirmation Email
 ```
 
-```text
-Only Not Submitted may transition through evidence intake
-```
+The implemented Phase 5 workflow does **not** contain this custom confirmation e-mail. The core Phase 5 Definition of Done is accepted because evidence intake updates the correct expected Submission and the success/failure paths are validated.
 
-```text
-Evidence intake does not assign Compliant or Non-Compliant
-```
+Scheduled reminder e-mails are a different capability and are implemented in Phase 6; they do not close this Phase 5 confirmation-email delta.
 
-```text
-Existing governance decisions must not be overwritten by resubmission
-```
-
-```text
-Ambiguous data must fail safely rather than be silently repaired
-```
-
-## 20. Security and Governance Considerations
+## 16. Security and Privacy Boundary
 
 - repository business records and identities are synthetic,
-- the operational workbook can contain authenticated Microsoft 365 identity and is therefore not a repository source artifact,
+- the operational workbook can contain authenticated Microsoft 365 identity,
 - actual evidence files are not stored in the repository,
-- credentials, API keys, tokens, passwords, and private keys must not be committed,
-- screenshots committed to the public repository are sanitized where necessary to avoid publishing authenticated account identifiers,
+- credentials, tokens, keys, tenant identifiers, and secrets must not be committed,
 - evidence submitters cannot self-declare compliance,
-- ambiguous, missing, or invalid-state records are rejected rather than modified,
-- Excel/OneDrive is explicitly documented as a PoC storage boundary.
+- ambiguous or invalid-state targets are rejected rather than modified,
+- public screenshots are sanitized where needed.
 
-## 21. Proof-of-Concept Limitations
+## 17. Limitations
 
-Excel Online / OneDrive is intentionally used because it is simple and integrates directly with Power Automate. It is not treated as the preferred production datastore.
+Phase 5 remains a proof of concept. Production concerns not engineered in this phase include stronger concurrency/transaction guarantees, service accounts, environment separation, Power Platform DLP policies, RBAC, audit logging, monitoring, retry strategy, retention/recovery, and a production evidence repository.
 
-Production concerns not engineered in this phase include:
+Power Automate flows are not committed as importable packages. The repository documents workflow contracts, expressions, screenshots, conditions, and acceptance evidence instead.
 
-- concurrency and workbook locking,
-- transactional guarantees,
-- service accounts,
-- environment separation,
-- Power Platform DLP policies,
-- RBAC,
-- audit logging,
-- monitoring and alerting,
-- retry strategy,
-- retention and recovery,
-- production evidence storage.
+Phase 6 reminder automation is implemented separately. Phase 7 remains responsible for the planned operational reporting export.
 
-Potential production alternatives include Dataverse, SharePoint Lists, or a relational database.
+## 18. Definition of Done
 
-Power Automate flows are not committed as importable packages. This is permitted by the project plan; the repository instead contains the workflow contract, expressions, screenshots, trigger/action descriptions, conditions, and acceptance evidence required to understand and review the implementation.
+Phase 5 is complete because:
 
-## 22. Boundary to Phase 6 and Phase 7
-
-### Phase 6
-
-Phase 6 will implement scheduled reminder automation. Phase 5 does not send scheduled overdue reminders, increment `reminder_count`, update `last_reminder_at`, or create/resolve reminder Actions.
-
-The canonical overdue rule remains:
-
-```text
-submitted_at IS NULL
-AND
-as_of_date > due_date
-```
-
-Reminder logic must not be simplified to `status != Compliant`.
-
-### Phase 7
-
-Phase 7 will create the Power Platform reporting snapshot/export that makes the connection to Python visible.
-
-Phase 5 does not currently produce or synchronize a repository raw CSV from the live workbook.
-
-## 23. Screenshot Evidence
-
-### Complete Power Automate flow overview
-
-![Complete Power Automate flow overview](screenshots/phase5_flow_overview.webp)
-
-### Core lookup and validation steps
-
-![Core lookup and validation steps](screenshots/phase5_flow_core_steps.webp)
-
-### Microsoft Forms evidence intake
-
-![Microsoft Forms evidence intake](screenshots/phase5_forms_intake.webp)
-
-### Microsoft Forms access and identity settings
-
-![Microsoft Forms settings](screenshots/phase5_forms_settings.webp)
-
-### Happy-path Power Automate execution
-
-![Happy path run](screenshots/phase5_happy_path_run.webp)
-
-### Updated expected Submission in Excel
-
-The authenticated test-account identifier is redacted in the repository screenshot.
-
-![Updated Submission Register](screenshots/phase5_happy_path_register.webp)
-
-### Invalid Submission state failure
-
-![Invalid Submission state](screenshots/phase5_invalid_submission_state.webp)
-
-### No-match failure
-
-![No Submission match](screenshots/phase5_no_match.webp)
-
-### Duplicate business-key failure
-
-![Duplicate business key](screenshots/phase5_duplicate_business_key.webp)
-
-## 24. Core Definition of Done
-
-The implemented Phase 5 core is accepted because:
-
-- Microsoft Forms evidence intake exists,
-- authenticated responder identity is captured,
-- the operational Excel Submission Register exists,
-- the workflow reads existing expected Submissions,
+- authenticated Forms intake exists,
+- the operational `SubmissionRegister` exists,
+- expected Submissions are read rather than blindly appended,
 - the business key is `control_id + reporting_period`,
 - exactly one business-key match is required,
 - current state must be `Not Submitted`,
-- the existing row is updated rather than appended,
-- `submission_id` is used as the technical Excel update key,
-- status transitions to `In Review`,
-- evidence reference, submission date, authenticated submitter, and optional comment are populated,
+- `submission_id` is used as the technical update key,
+- the existing row moves to `In Review`,
+- intake-owned evidence fields are populated,
 - Submission identity and due date remain unchanged,
-- resubmission cannot overwrite an already progressed Submission,
-- no-match situations fail explicitly,
-- duplicate business keys fail explicitly,
-- invalid Submission state fails explicitly,
-- the happy path and all three failure paths were executed successfully,
-- operational Submission row count remains unchanged during intake,
+- resubmission cannot overwrite progressed state,
+- no-match and duplicate-match situations fail explicitly,
 - no automated compliance decision is performed,
-- Phase 6 reminder behavior remains out of scope.
+- the happy path and all three failure paths were acceptance-tested.
 
 **Phase 5 core acceptance status: COMPLETE**
 
 **Original-roadmap confirmation-email action: NOT IMPLEMENTED**
 
-## 25. Key Architectural Takeaway
+## 19. Evidence Screenshots
 
-The central Phase 5 design decision is:
+### Flow overview
 
-```text
-Form response != new Submission
-```
+![Phase 5 flow overview](screenshots/phase-5-evidence-intake/phase5_flow_overview.webp)
 
-Instead:
+### Core lookup and validation steps
 
-```text
-Expected Submission
-        +
-Evidence intake
-        ↓
-Controlled state transition
-```
+![Phase 5 core steps](screenshots/phase-5-evidence-intake/phase5_flow_core_steps.webp)
 
-The workflow therefore demonstrates:
+### Microsoft Forms evidence intake
 
-```text
-Expected state
-→ authenticated observation
-→ deterministic identity resolution
-→ guardrails
-→ controlled update
-→ human review
-```
+![Phase 5 Forms intake](screenshots/phase-5-evidence-intake/phase5_forms_intake.webp)
 
-The next integration boundaries are reminder automation in Phase 6 and the reporting snapshot/export in Phase 7.
+### Microsoft Forms access and identity settings
+
+![Phase 5 Forms settings](screenshots/phase-5-evidence-intake/phase5_forms_settings.webp)
+
+### Happy-path execution
+
+![Phase 5 happy path run](screenshots/phase-5-evidence-intake/phase5_happy_path_run.webp)
+
+### Updated operational Submission Register
+
+The authenticated test-account identifier is redacted in the public screenshot.
+
+![Phase 5 updated Submission Register](screenshots/phase-5-evidence-intake/phase5_happy_path_register.webp)
+
+### Invalid Submission state
+
+![Phase 5 invalid state](screenshots/phase-5-evidence-intake/phase5_invalid_submission_state.webp)
+
+### No expected Submission
+
+![Phase 5 no match](screenshots/phase-5-evidence-intake/phase5_no_match.webp)
+
+### Duplicate business key
+
+![Phase 5 duplicate business key](screenshots/phase-5-evidence-intake/phase5_duplicate_business_key.webp)
