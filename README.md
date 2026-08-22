@@ -11,11 +11,11 @@ The project is intentionally small and explicit. It demonstrates business-proces
 ## What This Project Demonstrates
 
 - **Cybersecurity governance modeling** — Controls, recurring Submissions, follow-up Actions, reporting periods, deadlines, and human compliance review are separate business concepts.
-- **Controlled evidence intake** — Microsoft Forms and Power Automate resolve an expected Submission by business key and update the existing record from `Not Submitted` to `In Review`.
+- **Controlled evidence intake** — Microsoft Forms and Power Automate resolve an expected Submission by business key and update the existing operational record from `Not Submitted` to `In Review`.
 - **Fail-safe workflow design** — missing targets, duplicate business keys, and invalid Submission states stop automated processing explicitly instead of being silently repaired or overwritten.
-- **Deterministic Python processing** — raw CSV/JSON inputs are structurally checked, normalized without semantic repair, validated, enriched, transformed, and serialized into contractual outputs.
+- **Deterministic Python processing** — canonical repository CSV/JSON inputs are structurally checked, normalized without semantic repair, validated, enriched, transformed, and serialized into contractual outputs.
 - **Explicit Data Quality controls** — ten documented DQ rules cover completeness, referential integrity, validity, consistency, and uniqueness.
-- **Engineering discipline** — critical business invariants are regression-tested, CI runs the full test suite, and `main` is governed through pull requests and required checks.
+- **Engineering discipline** — critical business invariants are regression-tested and GitHub Actions runs the complete test suite on pull requests and pushes to `main`.
 - **Controlled AI design** — only Data-Quality-valid governance exceptions enter the AI review queue; payloads are minimized and final compliance authority remains human.
 
 ## Current Engineering Evidence
@@ -23,10 +23,10 @@ The project is intentionally small and explicit. It demonstrates business-proces
 | Evidence | Current state |
 | --- | ---: |
 | Security Controls | 5 |
-| Synthetic Submissions | 15 |
+| Canonical synthetic Submissions | 15 |
 | Follow-up Actions | 5 |
 | Explicit Submission DQ rules | 10 |
-| Automated tests | **42 passing in the Phase 4 acceptance baseline** |
+| Automated tests | **42 passing** |
 | Canonical DQ findings | 5 |
 | Valid / invalid Submissions | 10 / 5 |
 | Raw / curated Submission rows | 15 / 15 |
@@ -35,6 +35,7 @@ The project is intentionally small and explicit. It demonstrates business-proces
 | Power Automate evidence-intake workflow | Implemented and acceptance-tested |
 | Evidence-intake failure codes | 3 |
 | Continuous Integration | GitHub Actions |
+| Required CI merge gate | **Not currently enforced** |
 
 The deterministic Python acceptance run uses:
 
@@ -56,24 +57,39 @@ AI review queue items: 2
 
 ## Architecture
 
+The project currently has two deliberately distinct data planes:
+
+1. **Operational Phase 5 intake PoC** — Microsoft Forms → Power Automate → Excel Online / OneDrive.
+2. **Deterministic repository pipeline** — canonical synthetic CSV/JSON files → Python ETL + Data Quality.
+
+They are **not automatically synchronized** in Phase 5.
+
 ```mermaid
 flowchart TD
-    A[Microsoft Forms<br/>IMPLEMENTED] --> B[Power Automate Evidence Intake<br/>IMPLEMENTED]
-    B --> C[Excel Online / OneDrive Submission Register<br/>IMPLEMENTED PoC]
-    C --> D[Raw Submission CSV]
-    E[Control Catalog JSON] --> F[Python ETL + Data Quality<br/>IMPLEMENTED]
-    D --> F
-    G[Action CSV] --> F
-    F --> H[Curated Control Status CSV<br/>IMPLEMENTED]
-    F --> I[Data Quality Issues CSV<br/>IMPLEMENTED]
-    F --> J[AI Review Queue JSON<br/>IMPLEMENTED]
+    subgraph OP[Operational Evidence Intake — Phase 5]
+        A[Microsoft Forms<br/>IMPLEMENTED] --> B[Power Automate Evidence Intake<br/>IMPLEMENTED]
+        B --> C[Excel Online / OneDrive Submission Register<br/>IMPLEMENTED PoC]
+    end
+
+    subgraph REPO[Deterministic Repository Data Layer — Phases 2–4]
+        D[Canonical Raw Submission CSV] --> F[Python ETL + Data Quality<br/>IMPLEMENTED]
+        E[Control Catalog JSON] --> F
+        G[Action CSV] --> F
+        F --> H[Curated Control Status CSV]
+        F --> I[Data Quality Issues CSV]
+        F --> J[AI Review Queue JSON]
+    end
+
+    C -. Phase 7 reporting snapshot/export<br/>PLANNED; not automated in Phase 5 .-> S[security_control_snapshot.csv<br/>PLANNED]
+    S -. future integration adapter .-> F
+
     H --> K[Power BI Governance Dashboard<br/>PLANNED]
     J --> L[Controlled AI Runtime<br/>PLANNED]
     L --> M[Human Governance Review<br/>PLANNED]
-    N[Scheduled Power Automate Reminder Flow<br/>PLANNED] --> C
+    N[Scheduled Reminder Flow<br/>PHASE 6 PLANNED] --> C
 ```
 
-Phase 5 implements the operational evidence-intake path. The Python/data layer remains the deterministic validation and reporting-data layer. Reminder automation, Power BI, external AI invocation, and the mock REST API remain later phases.
+The live Excel register used for Phase 5 acceptance is an operational Microsoft 365 artifact. It does **not** overwrite `data/raw/evidence_submissions.csv`. The repository raw dataset intentionally remains the deterministic Phase 2–4 acceptance baseline.
 
 See [docs/architecture.md](docs/architecture.md) and [docs/power_automate.md](docs/power_automate.md).
 
@@ -86,8 +102,9 @@ See [docs/architecture.md](docs/architecture.md) and [docs/power_automate.md](do
 | Phase 2 | Synthetic Dataset | ✅ Complete |
 | Phase 3 | Python Data Quality Pipeline | ✅ Complete |
 | Phase 4 | Test Hardening & Acceptance | ✅ Complete |
-| Repository Governance | GitHub Actions CI + protected `main` | ✅ Active |
-| Phase 5 | Power Automate Evidence Flow | ✅ Complete |
+| Repository CI | GitHub Actions | ✅ Active |
+| Repository merge gating | Required CI check before merge | ⚠ Not currently enforced |
+| Phase 5 | Power Automate Evidence Flow | ✅ Core DoD complete; see roadmap delta below |
 | Phase 6 | Reminder Automation | ▶ Next |
 | Phase 7 | Reporting Export | ○ Planned |
 | Phase 8 | Power BI Dashboard | ○ Planned |
@@ -95,9 +112,13 @@ See [docs/architecture.md](docs/architecture.md) and [docs/power_automate.md](do
 | Phase 10 | REST API | ○ Planned |
 | Phase 11 | Documentation & Handover | ○ Planned |
 
+### Phase 5 roadmap delta
+
+The original project roadmap illustrated a separate **Confirmation Email** after a successful evidence submission. The implemented Phase 5 flow does not contain a custom confirmation-email action. The core Phase 5 Definition of Done — a Forms submission deterministically updating the expected Control Register record with validation and error handling — is implemented and acceptance-tested. The missing custom confirmation email is documented rather than falsely presented as implemented.
+
 ## Core Domain Model
 
-The logical model contains four core entities:
+The logical model contains exactly four core entities:
 
 ```text
 CONTROL
@@ -179,7 +200,7 @@ Three explicit failure paths are implemented and acceptance-tested:
 | `DUPLICATE_BUSINESS_KEY` | More than one Submission exists for the business key |
 | `INVALID_SUBMISSION_STATE` | A unique Submission exists but is not `Not Submitted` |
 
-See [docs/power_automate.md](docs/power_automate.md) for the complete workflow contract, screenshots, and acceptance evidence.
+See [docs/power_automate.md](docs/power_automate.md) for the complete workflow contract, expressions, screenshots, and acceptance evidence.
 
 ## Python Pipeline
 
@@ -226,7 +247,7 @@ The project applies exactly DQ-001 through DQ-010:
 | DQ-004 | Missing Evidence | Consistency | High |
 | DQ-005 | Duplicate Submission | Uniqueness | High |
 | DQ-006 | Invalid Reporting Period | Validity | Medium |
-| DQ-007 | Invalid Due Date | Consistency | High |
+| DQ-007 | Invalid Due Date | Validity | High |
 | DQ-008 | Invalid Submission State | Consistency | High |
 | DQ-009 | Invalid Evidence State | Consistency | Medium |
 | DQ-010 | Invalid Submitter Email | Validity | Medium |
@@ -253,7 +274,15 @@ python -m pytest -q
 
 for pull requests against `main` and pushes to `main`.
 
-Phase 5 was additionally acceptance-tested through real Microsoft Forms submissions and Power Automate run history for:
+The Phase 5 pull request CI run also completed successfully with:
+
+```text
+42 passed
+```
+
+However, the current GitHub configuration does **not** enforce completion of that check as a merge gate. PR #8 was merged before its successful CI run finished. CI is therefore active and useful, but required-check enforcement must be restored in GitHub repository rules/settings if merge gating is intended.
+
+Phase 5 was additionally acceptance-tested through Microsoft Forms submissions and Power Automate run history for:
 
 - successful evidence intake,
 - resubmission / invalid state,
@@ -286,9 +315,11 @@ DQ-invalid records remain in deterministic Data Quality / human-correction workf
 | Python 3.14.5 | Pipeline orchestration and business rules |
 | pandas | Transformation and enrichment |
 | pytest | Automated testing |
-| CSV / JSON | Contractual inputs and outputs |
+| CSV / JSON | Contractual repository inputs and outputs |
 | GitHub Actions | Continuous Integration |
-| Git / GitHub | Version control and repository governance |
+| Git / GitHub | Version control and repository workflow |
+
+`requests`, `FastAPI`, and `uvicorn` are already present in `requirements.txt` for later integration/API phases; they are not evidence that Phase 10 is implemented.
 
 ## How to Run
 
@@ -304,7 +335,7 @@ Successful pipeline execution writes runtime artifacts to `data/curated/`.
 
 | Document | Purpose |
 | --- | --- |
-| [docs/architecture.md](docs/architecture.md) | System architecture and component responsibilities |
+| [docs/architecture.md](docs/architecture.md) | Current architecture, data-plane boundaries, and component responsibilities |
 | [docs/business_process.md](docs/business_process.md) | Governance process and role semantics |
 | [docs/data_model.md](docs/data_model.md) | Logical domain model |
 | [docs/data_contract.md](docs/data_contract.md) | Physical raw CSV contracts |
@@ -312,11 +343,12 @@ Successful pipeline execution writes runtime artifacts to `data/curated/`.
 | [docs/phase2_dataset_coverage.md](docs/phase2_dataset_coverage.md) | Synthetic scenario coverage |
 | [docs/phase3_pipeline_contract.md](docs/phase3_pipeline_contract.md) | Python pipeline contract |
 | [docs/phase4_test_acceptance.md](docs/phase4_test_acceptance.md) | Regression hardening and acceptance |
-| [docs/power_automate.md](docs/power_automate.md) | Phase 5 workflow, guardrails, screenshots, and acceptance tests |
+| [docs/power_automate.md](docs/power_automate.md) | Phase 5 workflow, expressions, guardrails, screenshots, and acceptance tests |
 
 ## Security and Governance Considerations
 
 - repository business records and identities are synthetic,
+- the operational Microsoft 365 workbook is not a repository source artifact,
 - actual evidence files are not stored in the repository,
 - credentials, tokens, keys, and secrets must not be committed,
 - evidence intake is authenticated in the Microsoft 365 PoC,
@@ -326,16 +358,27 @@ Successful pipeline execution writes runtime artifacts to `data/curated/`.
 - AI payloads are minimized,
 - final governance review remains human-controlled.
 
-Screenshots committed as Phase 5 evidence are sanitized where necessary so personal account identifiers are not published.
+Screenshots committed as Phase 5 evidence are sanitized where necessary so authenticated test-account identifiers are not published.
 
 ## Limitations
 
 This repository is a **portfolio proof of concept**, not a production cybersecurity-governance platform.
 
-Current limitations include Excel/OneDrive rather than a transactional production datastore, no production IAM/RBAC or audit-trail service, no automated reporting-period generation, no scheduled reminder workflow yet, no Power BI report artifact yet, no external AI model invocation, and no REST API implementation.
+Current limitations include:
+
+- Excel/OneDrive rather than a transactional production datastore,
+- no automatic Phase 5 Excel → repository raw-CSV synchronization,
+- no production IAM/RBAC or audit-trail service,
+- no automated reporting-period generation,
+- no custom Phase 5 confirmation email,
+- no scheduled reminder workflow yet,
+- no Power BI report artifact yet,
+- no external AI model invocation,
+- no REST API implementation,
+- no enforced required CI status check before merge at the current repository configuration.
 
 For production, Dataverse, SharePoint Lists, or a relational database would generally be preferable where stronger concurrency, governance, auditability, and scale are required.
 
 ## Source of Truth
 
-Historical planning documents provide background context only. Current repository documentation, canonical datasets, implementation code, automated tests, and implemented workflow acceptance evidence are the source of truth for the implemented project state.
+Historical phase documents remain valid for the phase they describe. Current repository documentation, canonical datasets, implementation code, automated tests, and implemented workflow acceptance evidence define the current project state. Later implementation must not retroactively rewrite historical acceptance records merely to make them read like current-state documentation.

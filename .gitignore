@@ -102,18 +102,31 @@ logs/
 *.pbix.lock
 
 # -------------------------------------------------------------
-# 7. Project-specific (explicit keep-list / do NOT ignore)
+# 7. Generated curated runtime outputs
 # -------------------------------------------------------------
-# The following are intentionally versioned and must never be
-# excluded by any broader rule above:
-#   data/raw/, data/reference/, data/curated/
-#   docs/screenshots/
-#   ai/prompts/, ai/schemas/, ai/examples/
-#   requirements.txt
-#   src/, tests/
+# The Python pipeline writes reproducible runtime artifacts here.
+# Keep the directory itself, but do not commit generated snapshots.
+data/curated/*
+!data/curated/.gitkeep
+
+# -------------------------------------------------------------
+# 8. Operational Phase 5 workbook
+# -------------------------------------------------------------
+# The live Microsoft 365 workbook can contain authenticated
+# responder identity from acceptance tests. It is an operational
+# PoC artifact, not a canonical repository dataset.
+Cyber_Governance_Control_Register.xlsx
+
+# -------------------------------------------------------------
+# 9. Project-specific keep-list / do NOT ignore
+# -------------------------------------------------------------
+# Canonical source/reference data, documentation evidence, future
+# phase directories, requirements, source code, and tests remain
+# versionable. data/curated is the exception documented above:
+# only its .gitkeep is retained until a later phase deliberately
+# introduces a versioned artifact contract.
 !data/raw/
 !data/reference/
-!data/curated/
 !docs/screenshots/
 !ai/prompts/
 !ai/schemas/
