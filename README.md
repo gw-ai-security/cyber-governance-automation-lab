@@ -18,6 +18,7 @@ The implementation is intentionally small and explicit. It demonstrates business
 - **Same-day idempotency** — repeated reminder-flow execution on the same day does not resend or increment tracking.
 - **Deterministic Data Quality** — DQ-001 through DQ-010 are applied to canonical repository Submission data without silent semantic correction.
 - **Deterministic engineering baseline** — GitHub Actions executes the complete Python test suite on pushes and pull requests targeting `main`.
+- **Controlled reporting boundary** — Phase 7.0 fixes how live Microsoft 365 Control, Submission, and Action state will be exported without overwriting deterministic repository fixtures.
 - **Controlled AI boundary** — only Data-Quality-valid governance exceptions enter the AI review queue; final compliance authority remains human.
 
 ## Current Engineering Evidence
@@ -38,6 +39,8 @@ The implementation is intentionally small and explicit. It demonstrates business
 | Phase 5 controlled failure outcomes | 3 |
 | Phase 6 reminder workflow | ✅ Implemented and acceptance-tested |
 | Phase 6 guard outcomes | 4 |
+| Phase 7.0 reporting export contract | ✅ Defined |
+| Phase 7 runtime snapshot export | ○ Not implemented yet |
 | Continuous Integration | ✅ GitHub Actions |
 | Required CI merge gate | ⚠ Not currently enforced |
 
@@ -93,7 +96,7 @@ data/raw/actions.csv                ┘
                          data/curated/*
 ```
 
-These planes are intentionally **not automatically synchronized yet**. Phase 7 is the planned reporting snapshot/export bridge.
+These planes are intentionally **not automatically synchronized yet**. Phase 7.0 defines the planned reporting snapshot/export bridge; the runtime export and Python external-input path are not implemented yet.
 
 ```mermaid
 flowchart TD
@@ -116,16 +119,17 @@ flowchart TD
         K --> N[AI Review Queue]
     end
 
-    C -. Phase 7 export .-> S[Reporting Snapshot]
-    F -. Phase 7 export .-> S
-    S -. future adapter .-> K
+    C -. Phase 7 Submission export .-> S[Operational Snapshot Package]
+    E -. Phase 7 Control export .-> S
+    F -. Phase 7 Action/reminder export .-> S
+    S -. planned explicit external-input path .-> K
 
     L --> P[Power BI — Planned]
     N --> Q[Controlled AI Runtime — Planned]
     Q --> R[Human Governance Review]
 ```
 
-See [Architecture](docs/architecture.md), [Phase 5 Evidence Intake](docs/phase5_evidence_intake.md), and [Phase 6 Reminder Automation](docs/phase6_reminder_automation.md).
+See [Architecture](docs/architecture.md), [Phase 5 Evidence Intake](docs/phase5_evidence_intake.md), [Phase 6 Reminder Automation](docs/phase6_reminder_automation.md), and [Phase 7 Reporting Export Contract](docs/phase7_reporting_export.md).
 
 ## Current Implementation Status
 
@@ -140,7 +144,8 @@ See [Architecture](docs/architecture.md), [Phase 5 Evidence Intake](docs/phase5_
 | Repository merge gating | Required CI check before merge | ⚠ Not currently enforced |
 | Phase 5 | Power Automate Evidence Intake | ✅ Core DoD complete |
 | Phase 6 | Scheduled Reminder Automation | ✅ Complete and acceptance-tested |
-| Phase 7 | Reporting Export | ▶ Next |
+| Phase 7.0 | Reporting Export Contract | ✅ Complete |
+| Phase 7 runtime | Reporting Snapshot Export + Python Bridge | ○ Planned |
 | Phase 8 | Power BI Dashboard | ○ Planned |
 | Phase 9 | Controlled AI Workflow | ○ Planned |
 | Phase 10 | REST API | ○ Planned |
@@ -273,6 +278,39 @@ Later reminders reuse the same active Action and increment the existing count dy
 
 See [docs/phase6_reminder_automation.md](docs/phase6_reminder_automation.md).
 
+## Phase 7: Reporting Export Contract
+
+Phase 7.0 defines the planned operational reporting bridge but does not yet implement it.
+
+The snapshot contract carries all three operational source tables:
+
+```text
+ControlCatalog     → Control JSON snapshot
+SubmissionRegister → Submission CSV snapshot
+ActionRegister     → Action CSV snapshot
+```
+
+All artifacts share one `snapshot_id` and are completed by a manifest that records the snapshot `as_of_date`, file names, row counts, and completion state.
+
+Critical boundary:
+
+```text
+Power Automate exports source facts.
+Python owns Data Quality, Control enrichment, Action aggregation, and derived metrics.
+```
+
+The operational snapshot must not overwrite:
+
+```text
+data/reference/control_catalog.json
+data/raw/evidence_submissions.csv
+data/raw/actions.csv
+```
+
+Those files remain the deterministic acceptance baseline.
+
+See [docs/phase7_reporting_export.md](docs/phase7_reporting_export.md).
+
 ## Python Pipeline
 
 Phase 3 implements:
@@ -308,6 +346,8 @@ active_action_due_date
 reminder_count
 last_reminder_at
 ```
+
+Phase 7 runtime implementation is planned to add explicit external input paths while preserving the current canonical file paths as defaults.
 
 See [docs/phase3_pipeline_contract.md](docs/phase3_pipeline_contract.md).
 
@@ -346,7 +386,7 @@ python -m pytest -q
 
 for pull requests targeting `main` and pushes to `main`.
 
-The current deterministic suite contains **42 passing tests**. The Phase 6 documentation PR also completed this suite successfully after the Phase 6 changes.
+The current deterministic suite contains **42 passing tests**. Phase 7.0 is documentation/contract work only and does not change the Python runtime or test count.
 
 The repository currently does **not** enforce the Python check as a required merge gate. CI is active, but strict merge gating must be configured separately in GitHub repository rules/settings.
 
@@ -378,13 +418,13 @@ AI processing remains downstream of deterministic validation and does not hold f
 | Technology | Role |
 | --- | --- |
 | Microsoft Forms | Authenticated evidence intake |
-| Power Automate | Evidence intake and scheduled reminder orchestration |
-| Excel Online / OneDrive | Operational Submission, Control, and Action tables |
+| Power Automate | Evidence intake, scheduled reminders, planned reporting snapshot orchestration |
+| Excel Online / OneDrive | Operational Submission, Control, and Action tables; planned private snapshots |
 | Office 365 Outlook | Reminder delivery |
 | Python 3.14.5 | Deterministic data pipeline |
 | pandas | Transformation and enrichment |
 | pytest | Automated testing |
-| CSV / JSON | Canonical repository contracts |
+| CSV / JSON | Canonical repository contracts and planned operational snapshot formats |
 | GitHub Actions | Continuous Integration |
 | Git / GitHub | Version control and repository workflow |
 
@@ -400,7 +440,7 @@ python src/main.py --as-of-date 2026-08-15
 
 Generated runtime outputs are written to `data/curated/` and ignored except for `.gitkeep`.
 
-Power Automate workflows execute in the Microsoft 365 environment and are not executable from the repository CLI.
+Power Automate workflows execute in the Microsoft 365 environment and are not executable from the repository CLI. The Phase 7 external-snapshot CLI path is still planned rather than implemented.
 
 ## Repository Guide
 
@@ -416,21 +456,24 @@ Power Automate workflows execute in the Microsoft 365 environment and are not ex
 | [docs/phase4_test_acceptance.md](docs/phase4_test_acceptance.md) | Regression hardening and acceptance |
 | [docs/phase5_evidence_intake.md](docs/phase5_evidence_intake.md) | Phase 5 evidence-intake workflow and acceptance |
 | [docs/phase6_reminder_automation.md](docs/phase6_reminder_automation.md) | Phase 6 reminder workflow, guardrails, and acceptance |
+| [docs/phase7_reporting_export.md](docs/phase7_reporting_export.md) | Phase 7.0 operational snapshot/export contract and later acceptance criteria |
 
 ## Security and Governance Considerations
 
 - canonical repository identities are synthetic,
-- the operational Microsoft 365 workbook is not a repository source artifact,
+- the operational Microsoft 365 workbook is not a canonical repository source artifact,
+- operational Phase 7 snapshots will remain private and outside GitHub,
 - reachable acceptance-test recipients are not published,
 - actual evidence files are not stored in the repository,
 - credentials, connection tokens, keys, tenant identifiers, and secrets must not be committed,
 - evidence intake cannot assign compliance,
 - reminder automation cannot assign compliance,
+- reporting export cannot assign compliance or silently repair operational state,
 - Submission DQ failures and operational workflow ambiguity are surfaced explicitly,
 - DQ-invalid records do not enter the AI review queue,
 - final governance review remains human-controlled.
 
-Published Phase 5–6 screenshots are sanitized where needed.
+Published Phase 5–6 screenshots are sanitized where needed. Future Phase 7 screenshots must follow the same rule.
 
 ## Process Impact Boundary
 
@@ -441,7 +484,7 @@ reminder_count
 last_reminder_at
 ```
 
-These enable later Process Impact measures. Phase 7 must export operational Action/reminder state before Phase 8 Power BI metrics can represent live reminder execution.
+Phase 7.0 now defines how this Action/reminder state must cross the reporting boundary. The runtime export must still be implemented before Phase 8 Power BI metrics can represent live reminder execution.
 
 The project does not invent unmeasured labour-savings or ROI claims.
 
@@ -452,7 +495,8 @@ This repository is a **portfolio proof of concept**, not a production cybersecur
 Current limitations include:
 
 - Excel/OneDrive rather than a transactional production datastore,
-- no operational workbook → repository/reporting synchronization before Phase 7,
+- Phase 7.0 reporting contract defined but no operational workbook → reporting runtime synchronization yet,
+- no transactional multi-table snapshot guarantee for the Excel-based operational plane,
 - no production IAM/RBAC or audit-trail service,
 - no automated reporting-period generation,
 - no custom Phase 5 confirmation e-mail,
@@ -464,7 +508,7 @@ Current limitations include:
 - no REST API implementation,
 - no enforced required CI status check before merge.
 
-For production, Dataverse, SharePoint Lists, or a relational database would generally be preferable where stronger concurrency, governance, auditability, and scale are required.
+For production, Dataverse, SharePoint Lists, or a relational database would generally be preferable where stronger concurrency, governance, auditability, consistency, and scale are required.
 
 ## Source of Truth
 
