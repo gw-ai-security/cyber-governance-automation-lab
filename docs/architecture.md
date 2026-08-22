@@ -8,25 +8,26 @@ The project is a simplified cybersecurity-control evidence process built as a po
 
 ## Current Architecture and Data-Plane Boundary
 
-The project currently contains two distinct data planes that must not be conflated.
+The project contains two deliberately distinct data planes that must not be conflated.
 
-### Operational evidence-intake plane
-
-Implemented in Phase 5:
+### Operational Microsoft 365 plane — Phases 5–6
 
 ```text
 Microsoft Forms
       ↓
-Power Automate
+Power Automate Evidence Intake
       ↓
-Excel Online / OneDrive Submission Register
+Excel Online / OneDrive
+      ├─ SubmissionRegister
+      ├─ ControlCatalog
+      └─ ActionRegister
+      ↑
+Power Automate Scheduled Reminder Flow
 ```
 
-This is the live Microsoft 365 workflow PoC.
+Phase 5 implements authenticated evidence intake. Phase 6 implements scheduled overdue detection, Control-owner resolution, Action creation/reuse, reminder delivery, and reminder tracking.
 
-### Deterministic repository data plane
-
-Implemented in Phases 2–4:
+### Deterministic repository data plane — Phases 2–4
 
 ```text
 data/reference/control_catalog.json
@@ -37,54 +38,63 @@ data/raw/actions.csv                ┘
                          data/curated/*
 ```
 
-The repository raw CSV is a canonical synthetic acceptance dataset. It is **not** automatically generated from the Phase 5 Excel workbook.
+The repository raw CSV/JSON files are canonical synthetic acceptance fixtures. They are **not** automatically generated from the live Microsoft 365 workbook.
 
 ## High-Level Architecture
 
 ```mermaid
 flowchart TD
-    subgraph OP[Operational Evidence Intake — Phase 5]
+    subgraph OP[Operational Microsoft 365 Plane — Phases 5–6]
         A[Microsoft Forms<br/>IMPLEMENTED] --> B[Power Automate Evidence Intake<br/>IMPLEMENTED]
-        B --> C[Excel Online / OneDrive Submission Register<br/>IMPLEMENTED PoC]
+        B --> C[SubmissionRegister<br/>Excel Online / OneDrive]
+
+        D[Scheduled Reminder Flow<br/>IMPLEMENTED] --> C
+        D --> E[ControlCatalog<br/>Excel Online / OneDrive]
+        D --> F[ActionRegister<br/>Excel Online / OneDrive]
+        D --> G[Reminder Email<br/>IMPLEMENTED]
+        G --> F
     end
 
     subgraph REPO[Deterministic Repository Data Layer — Phases 2–4]
-        D[Canonical Raw Submission CSV] --> F[Python ETL + Data Quality<br/>IMPLEMENTED]
-        E[Control Catalog JSON] --> F
-        G[Action CSV] --> F
-        F --> H[Curated Control Status CSV<br/>IMPLEMENTED]
-        F --> I[Data Quality Issues CSV<br/>IMPLEMENTED]
-        F --> J[AI Review Queue JSON<br/>IMPLEMENTED]
+        H[Canonical Raw Submission CSV] --> K[Python ETL + Data Quality<br/>IMPLEMENTED]
+        I[Control Catalog JSON] --> K
+        J[Action CSV] --> K
+        K --> L[Curated Control Status CSV<br/>IMPLEMENTED]
+        K --> M[Data Quality Issues CSV<br/>IMPLEMENTED]
+        K --> N[AI Review Queue JSON<br/>IMPLEMENTED]
     end
 
-    C -. Phase 7 reporting snapshot/export<br/>PLANNED; not automated in Phase 5 .-> S[security_control_snapshot.csv<br/>PLANNED]
-    S -. future integration adapter .-> F
+    C -. Phase 7 reporting snapshot/export<br/>PLANNED .-> S[security_control_snapshot.csv<br/>PLANNED]
+    F -. Phase 7 Action/reminder export<br/>PLANNED .-> S
+    S -. future integration adapter .-> K
 
-    H --> K[Power BI Governance Dashboard<br/>PLANNED]
-    J --> L[Controlled AI Runtime<br/>PLANNED]
-    L --> M[Human Governance Review<br/>PLANNED]
-    N[Scheduled Power Automate Reminder Flow<br/>PHASE 6 PLANNED] --> C
+    L --> P[Power BI Governance Dashboard<br/>PLANNED]
+    N --> Q[Controlled AI Runtime<br/>PLANNED]
+    Q --> R[Human Governance Review<br/>PLANNED]
 ```
 
-The Phase 7 snapshot/export is the planned bridge between the Power Platform workflow and later Python/reporting integration. Phase 5 does not claim such synchronization already exists.
+Phase 7 remains the planned bridge between the operational Microsoft 365 plane and later repository/reporting integration.
 
 ## Why the Operational Workbook Does Not Replace the Canonical Raw Dataset
 
 The Phase 5 happy-path acceptance test updated the operational Excel record for `SUB-014` from `Not Submitted` to `In Review` on the live test date.
 
-The repository file:
+Phase 6 later added operational acceptance fixtures and live Actions to validate reminder automation.
+
+The repository files:
 
 ```text
 data/raw/evidence_submissions.csv
+data/raw/actions.csv
 ```
 
-intentionally remains unchanged. In that canonical synthetic dataset, `SUB-014` remains `Not Submitted` because the Phase 2–4 deterministic acceptance scenario is evaluated at:
+intentionally remain unchanged. In the canonical synthetic dataset, `SUB-014` remains `Not Submitted` because the deterministic Phase 2–4 acceptance scenario is evaluated at:
 
 ```text
 as_of_date = 2026-08-15
 ```
 
-Changing the repository raw dataset merely to mirror a later operational test would destroy the deterministic test baseline and change the documented DQ/process scenarios. The two artifacts therefore serve different purposes.
+Changing repository fixtures merely to mirror later operational tests would destroy the deterministic acceptance baseline. The operational workbook and repository data therefore serve different purposes.
 
 ## Expected Submission Initialization
 
@@ -137,98 +147,123 @@ flowchart TD
     K -->|No| M[Terminate<br/>DUPLICATE_BUSINESS_KEY]
 ```
 
-The evidence-intake workflow must **update an existing expected Submission**. It must not blindly append a new Submission row for each form response.
-
-This preserves the domain model:
-
-```text
-Expected Submission
-        +
-Evidence Intake
-        ↓
-Controlled State Transition
-```
-
-and not:
-
-```text
-Every Form Response
-        ↓
-New Submission Row
-```
-
-### Allowed Phase 5 state transition
+The evidence-intake workflow performs **UPDATE, not APPEND** and only allows:
 
 ```text
 Not Submitted → In Review
 ```
 
-The workflow does not assign:
+It does not assign `Compliant` or `Non-Compliant`.
+
+See [power_automate.md](power_automate.md) for the Phase 5 workflow contract and acceptance evidence.
+
+## Phase 6 Scheduled Reminder Workflow
+
+Phase 6 is implemented as a separate scheduled Power Automate flow:
 
 ```text
-Compliant
-Non-Compliant
+Cyber Governance - Overdue Submission Reminder
 ```
 
-Those remain Governance Reviewer decisions.
-
-See [power_automate.md](power_automate.md) for the complete workflow contract, expressions, screenshots, and acceptance evidence.
-
-## Evidence-Intake Guardrails
-
-### Unique business-key match
-
-The combination:
+Schedule:
 
 ```text
-control_id + reporting_period
+Daily at 08:00
+W. Europe Standard Time
 ```
 
-must resolve to exactly one expected Submission.
+Implemented architecture:
 
-If no match exists, processing terminates with:
+```mermaid
+flowchart TD
+    A[Recurrence] --> B[List SubmissionRegister]
+    B --> C[List ControlCatalog]
+    C --> D[List ActionRegister]
+    D --> E[Resolve local processing date]
+    E --> F[Filter overdue Submissions]
+    F --> G[For each overdue Submission]
+
+    G --> H[Resolve Control]
+    H --> I{Exactly one Control?}
+    I -->|No, 0| J[CONTROL_NOT_FOUND]
+    I -->|No, >1| K[DUPLICATE_CONTROL]
+
+    I -->|Yes| L[Resolve Owner]
+    L --> M[Find active Actions]
+    M --> N{Active Action count}
+
+    N -->|0| O[Create Open Action]
+    O --> P[Send Reminder]
+    P --> Q[Set reminder_count = 1<br/>Set last_reminder_at]
+
+    N -->|1| R[Reuse active Action]
+    R --> S{Already reminded today?}
+    S -->|Yes| T[SAME_DAY_REMINDER_SKIPPED]
+    S -->|No| U[Send Reminder]
+    U --> V[Increment reminder_count<br/>Set last_reminder_at]
+
+    N -->|>1| W[DUPLICATE_ACTIVE_ACTION]
+```
+
+Reminder state belongs to the Action workflow rather than the Submission compliance state.
+
+Canonical overdue rule:
 
 ```text
-NO_MATCH
+submitted_at IS NULL
+AND
+as_of_date > due_date
 ```
 
-If multiple matches exist, processing terminates with:
+The implementation additionally requires `status = Not Submitted` as an operational guardrail. It must not collapse overdue state into a generic `status != Compliant` condition.
+
+### Action cardinality invariant
+
+For missing-submission follow-up, the flow expects at most one active Action for a Submission:
 
 ```text
-DUPLICATE_BUSINESS_KEY
+status = Open OR In Progress
 ```
 
-The workflow does not guess which duplicate record is correct.
-
-### Valid current state
-
-Even a unique match is writable only when:
+Resolution behavior:
 
 ```text
-status = Not Submitted
+0 active Actions → create one
+1 active Action  → reuse it
+>1 active Actions → DUPLICATE_ACTIVE_ACTION
 ```
 
-Otherwise processing terminates with:
+The flow does not choose an arbitrary Action when state is ambiguous.
+
+### Same-day idempotency
+
+If an existing Action has already been reminded on the current local processing date:
 
 ```text
-INVALID_SUBMISSION_STATE
+last_reminder_at == today
 ```
 
-This protects `In Review`, `Compliant`, and `Non-Compliant` records from resubmission overwrite.
+then:
 
-### Technical update key
+```text
+SAME_DAY_REMINDER_SKIPPED
+```
 
-After the business key is resolved and validated, Excel `Update a row` uses:
+No e-mail is sent and the reminder counter is not incremented.
+
+See [phase6_reminder_automation.md](phase6_reminder_automation.md) for the complete Phase 6 contract and acceptance evidence.
+
+## Operational Workbook Contract
+
+Phase 6 extends the operational workbook with three physical tables representing existing business entities.
+
+### `SubmissionRegister`
 
 ```text
 submission_id
-```
-
-as the technical key.
-
-The update changes only intake-owned fields:
-
-```text
+control_id
+reporting_period
+due_date
 status
 evidence_reference
 submitted_at
@@ -236,22 +271,35 @@ submitted_by
 comment
 ```
 
-The workflow preserves:
+### `ControlCatalog`
 
 ```text
-submission_id
 control_id
-reporting_period
-due_date
+control_name
+control_statement
+business_unit
+owner_role
+owner_email
+frequency
+risk_level
 ```
 
-## Phase 5 Roadmap Delta
+### `ActionRegister`
 
-The original project roadmap illustrated a separate **Confirmation Email** after the successful Excel write.
+```text
+action_id
+control_id
+submission_id
+owner_email
+created_at
+due_date
+status
+reminder_count
+last_reminder_at
+description
+```
 
-The implemented Phase 5 workflow currently ends after the controlled Excel update on the success path. No separate Power Automate confirmation-email action is implemented.
-
-This is documented explicitly rather than being presented as implemented. The core Phase 5 Definition of Done — Forms input updating the expected register record with validation and controlled error handling — has been acceptance-tested successfully.
+The workbook is not committed because live testing can contain authenticated organizational identities and reachable test recipients.
 
 ## Component Responsibilities
 
@@ -262,27 +310,34 @@ This is documented explicitly rather than being presented as implemented. The co
 - records responder identity,
 - does not collect compliance decisions.
 
-### Power Automate
+### Power Automate — Evidence Intake
 
 - reacts to new Form responses,
-- retrieves response details,
-- reads the Submission Register,
 - resolves the Submission business key,
-- validates match cardinality,
-- validates current Submission state,
-- updates the existing expected Submission,
-- terminates explicitly on controlled failure states.
+- validates match cardinality and current state,
+- updates the expected Submission,
+- terminates explicitly on controlled Phase 5 failure states.
+
+### Power Automate — Reminder Automation
+
+- runs daily on a controlled local schedule,
+- reads operational Submission, Control, and Action tables,
+- applies the canonical overdue rule,
+- resolves the accountable Control Owner,
+- creates or reuses a single active follow-up Action,
+- sends reminder e-mail,
+- increments reminder tracking only after successful send,
+- prevents same-day duplicate reminders,
+- fails safely on missing/duplicate Controls and duplicate active Actions.
 
 ### Excel Online / OneDrive
 
-- stores the operational `SubmissionRegister` used by Phase 5,
-- provides low-complexity integration with Power Automate,
-- is intentionally a PoC storage choice rather than a production database,
-- is not automatically synchronized to the repository raw CSV in Phase 5.
+- stores operational Submission, Control, and Action state,
+- provides low-complexity Microsoft 365 integration for the PoC,
+- is intentionally not presented as a production transactional datastore,
+- is not automatically synchronized into repository raw files before Phase 7.
 
-The operational workbook is not committed to the repository because authenticated responder identity can be written into it during live testing.
-
-For production, Dataverse, SharePoint Lists, or a relational database would generally be preferable where stronger concurrency, governance, auditability, and transactional behavior are required.
+For production, Dataverse, SharePoint Lists, or a relational database would generally be preferable where stronger concurrency, auditability, and transactional behavior are required.
 
 ### Python
 
@@ -297,50 +352,26 @@ For production, Dataverse, SharePoint Lists, or a relational database would gene
 
 ### Power BI
 
-Planned to provide governance, Data Quality, and Process Impact reporting based on curated outputs.
+Planned to provide governance, Data Quality, and Process Impact reporting based on curated/reporting snapshot outputs.
+
+Phase 6 now produces the operational fields needed for future reminder metrics:
+
+```text
+reminder_count
+last_reminder_at
+```
 
 ### Controlled AI Workflow
 
 Planned to review selected Data-Quality-valid exceptions. AI output is advisory and may not autonomously assign compliance status.
 
-## Scheduled Reminder Workflow — Phase 6
-
-Phase 6 remains separate from Phase 5 evidence intake.
-
-Planned architecture:
-
-```mermaid
-flowchart TD
-    A[Scheduled Flow] --> B[Read Submission Register]
-    A --> C[Read Control Catalog]
-    B --> D[Identify Overdue Submissions]
-    C --> D
-    D --> E[Resolve Control Owner]
-    E --> F[Resolve or Create Follow-up Action]
-    F --> G[Send Reminder]
-    G --> H[Increment reminder_count]
-    H --> I[Set last_reminder_at]
-```
-
-Reminder state belongs to the Action workflow rather than the Submission compliance state.
-
-The exact Phase 6 overdue logic must continue to follow the canonical business rule:
-
-```text
-submitted_at IS NULL
-AND
-as_of_date > due_date
-```
-
-It must not collapse overdue state into a generic `status != Compliant` condition.
-
 ## Repository Governance Boundary
 
 GitHub Actions runs the Python test suite for pull requests and pushes to `main`.
 
-Current repository metadata marks `main` as protected, but required status-check enforcement is not currently active in classic branch protection. PR #8 was merged before its successful Python test workflow finished. Therefore CI is active, but it is not presently a guaranteed merge gate.
+Current repository metadata marks `main` as protected, but required status-check enforcement is not currently active in classic branch protection. CI is active, but it is not presently a guaranteed merge gate.
 
-If strict repository governance is intended, the required `Python tests / test` check must be re-enabled in GitHub branch/ruleset settings.
+If strict repository governance is intended, the required `Python tests / test` check must be enforced in GitHub branch/ruleset settings.
 
 ## Architecture Principles
 
@@ -348,8 +379,11 @@ If strict repository governance is intended, the required `Python tests / test` 
 - Evidence submission is not a compliance decision.
 - Business identity and technical identity are separate.
 - Compliance, timeliness, Data Quality, and workflow state are separate dimensions.
-- Invalid or ambiguous data is preserved or rejected explicitly; it is not silently repaired.
+- Reminder state belongs to Action, not Submission compliance state.
+- Invalid or ambiguous data is rejected explicitly; it is not silently repaired.
 - Evidence intake performs update, not append.
+- Reminder automation creates at most one active follow-up Action per Submission.
+- Same-day reminder execution is idempotent.
 - The live operational workbook and canonical repository raw dataset are separate artifacts.
 - Cross-platform snapshot/export is not claimed before Phase 7 implements it.
 - AI-assisted processing is downstream of deterministic validation.
@@ -368,6 +402,7 @@ The architecture implements the governance process and data model defined in:
 - [data_contract.md](data_contract.md)
 - [data_quality.md](data_quality.md)
 - [power_automate.md](power_automate.md)
+- [phase6_reminder_automation.md](phase6_reminder_automation.md)
 
 Historical phase-specific acceptance documents remain valid for the phase they describe and are not rewritten merely to read like current-state documentation.
 
@@ -382,3 +417,4 @@ Historical phase-specific acceptance documents remain valid for the phase they d
 - enterprise authentication architecture
 - production evidence-document repository
 - production-grade Power Platform monitoring and alerting
+- production escalation/SLA engine
