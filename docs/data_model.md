@@ -2,40 +2,53 @@
 
 ## Purpose
 
-This document defines the business data model for the Cyber Governance Automation Lab: the entities, fields, relationships, and enumerations used by the governance process described in [business_process.md](business_process.md).
+This document defines the logical business data model for the Cyber Governance Automation Lab: entities, fields, relationships, keys, enumerations, and derived-state semantics.
 
-This document defines the logical data model. The physical serialization and flat-file representation are defined separately in the [Raw Data Contract](data_contract.md). This document does not create any data files.
+Physical CSV serialization is defined separately in [data_contract.md](data_contract.md). Operational Microsoft 365 table mappings are documented in the Phase 5 and Phase 6 workflow contracts.
 
-## Modeling Principles
+## 1. Modeling Principles
 
-* The model is intentionally small: four entities, no more than needed to demonstrate the end-to-end process.
-* A clear distinction is maintained between source data (entered or submitted) and derived data (computed from source data and business rules).
-* Business keys are kept as simple as possible while remaining unambiguous.
-* All identities, emails, and references used as examples are synthetic.
+- The logical model contains exactly four core entities.
+- Source data and derived data remain separate.
+- Business identity and technical identity remain separate.
+- Compliance, timeliness, Data Quality, and workflow state remain separate dimensions.
+- Canonical repository identities and e-mail addresses are synthetic.
+- Operational workbook data may evolve independently from canonical repository fixtures.
 
-## Entity Overview
+## 2. Entity Overview
 
-Four entities make up the model:
+The four core entities are:
 
-* **Control** — a stable, slowly-changing definition of a security control.
-* **Submission** — a period-specific reporting record representing the expected or completed evidence submission for a control, one per expected control/reporting-period combination.
-* **Action** — a follow-up work item related to exactly one Submission, and through that Submission, indirectly to exactly one Control.
-* **Data Quality Issue** — a validation finding raised against a submission.
+- **Control** — stable definition of a security control.
+- **Submission** — one expected or completed evidence-assessment record for one Control and reporting period.
+- **Action** — follow-up work related to exactly one Submission.
+- **Data Quality Issue** — deterministic validation finding against a raw Submission source row.
 
-## Control
+```text
+CONTROL
+   │ 1:n
+   ▼
+SUBMISSION
+   ├──────────────► ACTION
+   └──────────────► DATA QUALITY ISSUE
+```
+
+No additional physical table, runtime parameter, screenshot, or workflow branch creates another core business entity.
+
+## 3. Control
 
 | Field | Description |
 | --- | --- |
-| control_id | Unique identifier of the security control |
-| control_name | Human-readable control name |
-| control_statement | Testable control requirement |
-| business_unit | Primary responsible business unit |
-| owner_role | Accountable organizational role |
-| owner_email | Synthetic contact address |
-| frequency | Monthly, Quarterly, or Annual |
-| risk_level | Low, Medium, High, or Critical |
+| `control_id` | Unique Control identifier |
+| `control_name` | Human-readable name |
+| `control_statement` | Testable Control requirement |
+| `business_unit` | Primary responsible business unit |
+| `owner_role` | Accountable organizational role |
+| `owner_email` | Synthetic repository contact address |
+| `frequency` | Monthly, Quarterly, or Annual |
+| `risk_level` | Low, Medium, High, or Critical |
 
-Example rows:
+Canonical Control inventory:
 
 | control_id | control_name | business_unit | owner_role | owner_email | frequency | risk_level |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -45,9 +58,7 @@ Example rows:
 | CTRL-004 | Security Awareness Training | Finance | Security Awareness Coordinator | `diana@example.com` | Annual | Medium |
 | CTRL-005 | Critical System Patch Status Review | IT Operations | Vulnerability & Patch Manager | `erin@example.com` | Monthly | Critical |
 
-`control_statement` is omitted from the table above for readability and documented separately below, as the canonical text for each control's testable requirement.
-
-Canonical control statements:
+Canonical Control statements:
 
 | control_id | control_statement |
 | --- | --- |
@@ -57,214 +68,123 @@ Canonical control statements:
 | CTRL-004 | Staff must complete security awareness training at defined intervals. |
 | CTRL-005 | The patch status of critical systems must be reviewed at defined intervals and documented. |
 
-These are the canonical statements. Any machine-readable representation, including [data/reference/control_catalog.json](../data/reference/control_catalog.json), must match this table exactly.
+[data/reference/control_catalog.json](../data/reference/control_catalog.json) must match these canonical values.
 
-## Submission
+## 4. Submission
 
-**Submission** — a period-specific reporting record representing the expected or completed evidence submission for a control. One record exists for each expected control/reporting-period combination, from the moment the reporting period becomes active, regardless of whether evidence has been provided yet.
+A Submission is a period-specific expected assessment record for a Control. One record exists for each expected Control/reporting-period combination before evidence is received.
 
-This means a submission record with `status = Not Submitted` is not the absence of data — it is the expected record for that control/reporting-period combination, created before any evidence exists, with `submitted_at` and `evidence_reference` still null. This record is what allows an overdue check to be performed: without it, there would be nothing to compare against `due_date` when a control owner has not submitted anything.
+This means:
+
+```text
+status = Not Submitted
+```
+
+is an explicit expected process state, not an absence of data. Pre-existing expected records make overdue detection possible.
 
 | Field | Description |
 | --- | --- |
-| submission_id | Unique submission identifier |
-| control_id | Reference to the related control |
-| reporting_period | Reporting period being assessed |
-| due_date | Submission deadline |
-| status | Submission assessment status |
-| evidence_reference | Reference to supporting evidence |
-| submitted_at | Submission date |
-| submitted_by | Synthetic submitter identity |
-| comment | Short contextual note |
+| `submission_id` | Unique technical Submission identifier |
+| `control_id` | Reference to related Control |
+| `reporting_period` | Period being assessed |
+| `due_date` | Submission deadline |
+| `status` | Submission assessment/workflow status |
+| `evidence_reference` | Reference to supporting evidence |
+| `submitted_at` | Submission date |
+| `submitted_by` | Synthetic repository submitter identity |
+| `comment` | Short contextual note |
 
-No submission data file is created by this document. This section defines the structure only.
-
-## Action
-
-An Action is a follow-up work item related to exactly one Submission. Through that Submission, the Action is also related to exactly one Control. There is no direct Action-to-Control relationship independent of a Submission.
-
-| Field | Description |
-| --- | --- |
-| action_id | Unique action identifier |
-| control_id | Related control |
-| submission_id | Related submission |
-| owner_email | Responsible action owner |
-| created_at | Action creation date |
-| due_date | Action deadline |
-| status | Open, In Progress, or Completed |
-| reminder_count | Number of reminders sent |
-| last_reminder_at | Date of last reminder |
-| description | Short action description |
-
-`control_id` is retained on Action as a denormalized convenience field for simple reporting and Excel-based workflows, even though it is reachable via `submission_id`. The following consistency rule applies:
-
-```text
-action.control_id
-must equal
-submission.control_id
-for the Action's submission_id
-```
-
-This is a business/data consistency constraint. It is documented here but not yet implemented in validation code.
-
-### Action Data Constraints
-
-The following invariants apply to synthetic Action data and when Action validation is implemented later:
-
-* `action_id` is required and unique.
-* `submission_id` is required.
-* `control_id` is required.
-* `action.control_id` must equal the `control_id` of the referenced Submission.
-* `owner_email` is required and must contain `@` as a simple plausibility check.
-* `reminder_count` must be an integer greater than or equal to zero.
-* If `reminder_count = 0`, `last_reminder_at` may be null.
-* If `reminder_count > 0`, `last_reminder_at` must be present.
-* `created_at` is required.
-* `due_date` is required.
-* `due_date` must equal `created_at + 7 calendar days` under the synthetic proof-of-concept rule.
-* `status` must be one of `Open`, `In Progress`, or `Completed`.
-* A Submission may have at most one non-completed Action (`Open` or `In Progress`) for proof-of-concept reminder tracking.
-
-These constraints do not introduce Action-specific Data Quality rule IDs at this stage.
-
-## Data Quality Issue
-
-| Field | Description |
-| --- | --- |
-| issue_id | Unique DQ issue identifier |
-| submission_id | Related submission; nullable if the source Submission row has no submission_id |
-| control_id | Related control; nullable if the source Submission row has no control_id |
-| source_row_number | 1-based row number in the raw Submission dataset |
-| rule | Triggered data-quality rule |
-| severity | High, Medium, or Low |
-| field | Field associated with the issue |
-| message | Human-readable issue description |
-
-The full rule catalog is documented in [data_quality.md](data_quality.md).
-
-`source_row_number` is technical traceability metadata for the flat-file proof of concept. It allows a finding to be traced to its source record even when `submission_id` or `control_id` is unavailable. It does not create a fifth business entity.
-
-## Derived Metrics
-
-```text
-evidence_present
-overdue_flag
-submission_late
-days_overdue
-days_late
-data_quality_status
-```
-
-These fields are derived values, not source-of-truth inputs. They are computed from source data and validation outputs using the business rules defined in [business_process.md](business_process.md) and the data-quality rules defined in [data_quality.md](data_quality.md), not entered directly.
-
-```text
-Source Data
-    |
-    v
-Business Logic
-    |
-    v
-Derived Metrics
-```
-
-All date differences below are calendar-day differences. `as_of_date` is the reference date used for overdue evaluation: the current processing date in normal execution, or an explicitly supplied fixed date in tests and synthetic scenarios. It is an execution parameter and is not a Submission source field.
-
-### evidence_present
-
-```text
-IF evidence_reference is not null
-AND evidence_reference is not empty
-THEN evidence_present = true
-ELSE evidence_present = false
-```
-
-### overdue_flag
-
-```text
-IF submitted_at IS NULL
-AND as_of_date > due_date
-THEN overdue_flag = true
-ELSE overdue_flag = false
-```
-
-### submission_late
-
-```text
-IF submitted_at IS NOT NULL
-AND submitted_at > due_date
-THEN submission_late = true
-ELSE submission_late = false
-```
-
-### days_overdue
-
-```text
-IF overdue_flag = true
-THEN days_overdue = as_of_date - due_date in calendar days
-ELSE days_overdue = 0
-```
-
-### days_late
-
-```text
-IF submission_late = true
-THEN days_late = submitted_at - due_date in calendar days
-ELSE days_late = 0
-```
-
-### data_quality_status
-
-`data_quality_status` is a derived reporting field on Submission with exactly two allowed values:
-
-```text
-Valid
-Invalid
-```
-
-Derivation:
-
-```text
-0 Data Quality Issues
--> Valid
-
-1 or more Data Quality Issues
--> Invalid
-```
-
-`data_quality_status` is not manually entered and is not added to raw Submission source data — it is computed from the associated Data Quality Issue records. `Invalid` means the Submission has at least one Data Quality Issue; it does not represent security control compliance and does not automatically make the related Control Non-Compliant. Compliance, timeliness, and data quality remain separate concepts, as described in [data_quality.md](data_quality.md#out-of-scope).
-
-All six derived values are computed downstream and are not stored in the raw source CSV.
-
-## Relationships
-
-```mermaid
-erDiagram
-    CONTROL ||--o{ SUBMISSION : has
-    SUBMISSION o|--o{ DATA_QUALITY_ISSUE : may_generate
-    SUBMISSION ||--o{ ACTION : may_generate
-```
-
-No additional entities are introduced beyond Control, Submission, Action, and Data Quality Issue.
-
-The optional Submission side of the Data Quality Issue relationship reflects malformed raw input: a Data Quality Issue may not resolve to a Submission when `submission_id` is missing. Every issue still belongs to exactly one raw source row through `source_row_number`. An identifiable Submission may generate zero or many Data Quality Issues.
-
-## Business Keys
-
-The business key for Submission is:
+### Submission business key
 
 ```text
 control_id + reporting_period
 ```
 
-It is not:
+The business key is not extended with `business_unit`, because business unit is already a Control attribute.
+
+### Submission technical key
 
 ```text
-control_id + reporting_period + business_unit
+submission_id
 ```
 
-`business_unit` is already a property of the control and is not part of the submission's identity. Including it in the key would allow the same control/period combination to be duplicated under different business units, which is not a valid state in this model.
+## 5. Action
 
-## Enumerations
+An Action is a follow-up work item related to exactly one Submission. Through that Submission, it is also related to one Control.
+
+| Field | Description |
+| --- | --- |
+| `action_id` | Unique Action identifier |
+| `control_id` | Denormalized related Control identifier |
+| `submission_id` | Related Submission |
+| `owner_email` | Responsible Action owner |
+| `created_at` | Action creation date |
+| `due_date` | Action deadline |
+| `status` | Open, In Progress, or Completed |
+| `reminder_count` | Number of confirmed reminders sent |
+| `last_reminder_at` | Date of latest confirmed reminder |
+| `description` | Short follow-up description |
+
+`control_id` is retained as a denormalized convenience field for flat-file reporting and Excel-based workflows. It does not create an independent Action-to-Control relationship.
+
+Consistency rule:
+
+```text
+action.control_id
+=
+submission.control_id
+for action.submission_id
+```
+
+### Action Data Constraints
+
+The following invariants apply to canonical Action data and the operational `ActionRegister`:
+
+- `action_id` is required and unique,
+- `submission_id` is required,
+- `control_id` is required,
+- Action `control_id` must match the referenced Submission,
+- `owner_email` is required and must contain `@` as a simple plausibility check,
+- `reminder_count` is a non-negative integer,
+- `reminder_count = 0` permits empty `last_reminder_at`,
+- `reminder_count > 0` requires `last_reminder_at`,
+- `created_at` is required,
+- `due_date` is required,
+- synthetic PoC rule: `due_date = created_at + 7 calendar days`,
+- `status` is one of `Open`, `In Progress`, `Completed`,
+- a Submission may have at most one non-completed Action (`Open` or `In Progress`) for missing-submission reminder tracking.
+
+The deterministic Python pipeline does not currently implement Action-specific DQ rule IDs. Phase 6 enforces active-Action cardinality operationally and fails safely with `DUPLICATE_ACTIVE_ACTION` when more than one active Action exists for an overdue Submission.
+
+## 6. Data Quality Issue
+
+| Field | Description |
+| --- | --- |
+| `issue_id` | Unique DQ issue identifier |
+| `submission_id` | Related Submission; nullable when source ID is missing |
+| `control_id` | Related Control; nullable when source ID is missing |
+| `source_row_number` | 1-based raw Submission row number |
+| `rule` | Triggered DQ rule label |
+| `severity` | High, Medium, or Low |
+| `field` | Field(s) associated with the finding |
+| `message` | Human-readable issue description |
+
+`source_row_number` is technical lineage metadata, not a fifth entity. It preserves traceability even for malformed source rows whose business identifiers are missing or duplicated.
+
+The canonical rule catalog is defined in [data_quality.md](data_quality.md).
+
+## 7. Relationships
+
+```mermaid
+erDiagram
+    CONTROL ||--o{ SUBMISSION : has
+    SUBMISSION ||--o{ ACTION : may_generate
+    SUBMISSION o|--o{ DATA_QUALITY_ISSUE : may_generate
+```
+
+The optional identifiable-Submission side of the Data Quality Issue relationship reflects malformed raw input. Every DQ issue still maps to a raw source row through `source_row_number`.
+
+## 8. Status and Enumeration Contracts
 
 ### Submission status
 
@@ -300,7 +220,7 @@ High
 Critical
 ```
 
-### Data quality severity
+### Data Quality severity
 
 ```text
 High
@@ -316,6 +236,121 @@ Finance
 Retail Banking
 ```
 
-## Production Considerations
+## 9. Derived Metrics
 
-This model is deliberately minimal for a portfolio proof of concept. A production system could reasonably extend it with: multiple business units and shared ownership per control, historical/versioned control definitions, a formal evidence storage integration instead of a reference string, multi-approver review workflows, and a relational database or Dataverse implementation instead of flat files. None of these extensions are implemented here.
+The following are derived values, not raw Submission source fields:
+
+```text
+evidence_present
+overdue_flag
+submission_late
+days_overdue
+days_late
+data_quality_status
+```
+
+`as_of_date` is an execution parameter used for overdue evaluation. It is not persisted as a Submission source field.
+
+### `evidence_present`
+
+```text
+IF evidence_reference is present and non-empty
+THEN evidence_present = true
+ELSE evidence_present = false
+```
+
+### `overdue_flag`
+
+```text
+IF submitted_at IS NULL
+AND as_of_date > due_date
+THEN overdue_flag = true
+ELSE overdue_flag = false
+```
+
+Equality is not overdue:
+
+```text
+as_of_date == due_date
+→ overdue_flag = false
+```
+
+### `submission_late`
+
+```text
+IF submitted_at IS NOT NULL
+AND submitted_at > due_date
+THEN submission_late = true
+ELSE submission_late = false
+```
+
+### `days_overdue`
+
+```text
+IF overdue_flag = true
+THEN days_overdue = as_of_date - due_date in calendar days
+ELSE days_overdue = 0
+```
+
+### `days_late`
+
+```text
+IF submission_late = true
+THEN days_late = submitted_at - due_date in calendar days
+ELSE days_late = 0
+```
+
+### `data_quality_status`
+
+Allowed derived values:
+
+```text
+Valid
+Invalid
+```
+
+Derivation:
+
+```text
+0 DQ issues  → Valid
+1+ DQ issues → Invalid
+```
+
+`Invalid` is a Data Quality result, not a compliance outcome.
+
+## 10. Critical Semantic Separations
+
+```text
+Evidence Present != Compliant
+Not Submitted != Non-Compliant
+Non-Compliant != Overdue
+Compliance != Timeliness
+Compliance != Data Quality
+Submission Status != Action Status
+Unknown != False
+Not Evaluated != Failed
+Action completion != Submission compliance
+```
+
+These distinctions are contractual across documentation, Python derivation, and Power Automate workflows.
+
+## 11. Operational Mapping
+
+Phase 5–6 map the existing logical entities into physical Excel tables:
+
+```text
+Control    → ControlCatalog
+Submission → SubmissionRegister
+Action     → ActionRegister
+```
+
+This operational representation does not replace the canonical repository fixtures and does not add new logical entities.
+
+See:
+
+- [phase5_evidence_intake.md](phase5_evidence_intake.md)
+- [phase6_reminder_automation.md](phase6_reminder_automation.md)
+
+## 12. Production Considerations
+
+This model is intentionally minimal for a portfolio proof of concept. A production system could reasonably add versioned Control definitions, shared/delegated ownership, formal evidence storage, richer review/approval workflows, Action validation and telemetry, and a transactional datastore such as Dataverse or a relational database. None of those extensions are claimed as implemented here.

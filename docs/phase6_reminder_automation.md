@@ -4,24 +4,25 @@
 
 **IMPLEMENTED AND ACCEPTANCE-TESTED**
 
-Phase 6 extends the operational Microsoft 365 proof of concept with a scheduled reminder workflow for expected security-control submissions that are still missing after their due date.
+Phase 6 extends the operational Microsoft 365 proof of concept with a scheduled reminder workflow for expected security-control Submissions that are still missing after their due date.
 
 The workflow was implemented and manually acceptance-tested on 2026-08-22. It is intentionally a small Power Automate + Excel Online proof of concept rather than a production workflow engine.
 
 ## 1. Purpose
 
-Phase 6 automates follow-up for overdue expected Submissions without changing Submission compliance state.
+Phase 6 automates follow-up for currently overdue expected Submissions without changing Submission compliance state.
 
 The workflow:
 
-1. runs on a schedule,
+1. runs on a daily schedule,
 2. reads operational Submissions, Controls, and Actions,
 3. identifies currently overdue Submissions,
 4. resolves the accountable Control Owner,
 5. creates or reuses one active follow-up Action,
-6. sends a reminder,
-7. updates reminder tracking only after a successful send,
-8. fails safely when Control or Action state is ambiguous.
+6. prevents duplicate same-day reminders,
+7. sends the reminder,
+8. updates reminder tracking only after a successful send,
+9. fails safely when Control or Action state is ambiguous.
 
 Core governance principle:
 
@@ -34,21 +35,21 @@ The flow does **not** convert an overdue Submission into `Non-Compliant`, does n
 
 ## 2. Operational Data Model
 
-Phase 6 uses the existing operational workbook:
+Phase 6 uses the operational workbook:
 
 ```text
 Cyber_Governance_Control_Register.xlsx
 ```
 
-The workbook contains three physical Excel tables:
+Physical Excel tables:
 
 | Worksheet | Excel table | Purpose |
 | --- | --- | --- |
-| `Submissions` | `SubmissionRegister` | Expected and submitted control-evidence records |
+| `Submissions` | `SubmissionRegister` | Expected and submitted evidence records |
 | `Controls` | `ControlCatalog` | Operational Control metadata and owner resolution |
 | `Actions` | `ActionRegister` | Follow-up Actions and reminder tracking |
 
-These tables are physical representations of the existing logical entities. Phase 6 does not introduce a fifth core business entity.
+These are physical representations of existing logical entities. Phase 6 does not introduce a fifth core entity.
 
 ### `SubmissionRegister`
 
@@ -66,11 +67,9 @@ submitted_by
 comment
 ```
 
-Reminder fields are deliberately **not** added to the Submission source record.
+Reminder state is deliberately not stored on the Submission source record.
 
 ### `ControlCatalog`
-
-The operational Control table contains:
 
 ```text
 control_id
@@ -83,13 +82,9 @@ frequency
 risk_level
 ```
 
-`owner_email` is resolved from the Control rather than denormalized into the Submission contract.
-
-Repository identities remain synthetic. Reachable test recipients used during Microsoft 365 acceptance are operational test data and are not committed to the repository.
+The reminder flow resolves `owner_email` from the Control rather than adding owner fields to the Submission contract.
 
 ### `ActionRegister`
-
-The operational Action table uses the existing Action contract:
 
 ```text
 action_id
@@ -104,7 +99,7 @@ last_reminder_at
 description
 ```
 
-Allowed Action statuses remain:
+Allowed Action statuses:
 
 ```text
 Open
@@ -112,7 +107,7 @@ In Progress
 Completed
 ```
 
-Action due-date rule:
+Synthetic Action due-date rule:
 
 ```text
 Action due_date = created_at + 7 calendar days
@@ -137,20 +132,21 @@ data/raw/evidence_submissions.csv
 data/raw/actions.csv
 ```
 
-Those repository files remain the deterministic Phase 2–4 acceptance fixtures used by the Python pipeline and automated tests.
+Those repository files remain deterministic Phase 2–4 acceptance fixtures used by the Python pipeline and automated tests.
 
-Operational acceptance rows and Actions created during Phase 6 therefore do not change the canonical repository counts:
+Therefore Phase 6 operational acceptance rows and Actions do not change the canonical repository inventory:
 
 ```text
-Canonical synthetic Submissions = 15
-Canonical raw Actions           = 5
+Controls       = 5
+Submissions    = 15
+Actions        = 5
 ```
 
-Phase 7 is responsible for the planned reporting snapshot/export bridge between the operational workbook and downstream reporting.
+Phase 7 remains responsible for the planned reporting snapshot/export bridge between the operational workbook and downstream reporting.
 
 ## 4. Schedule
 
-The Power Automate flow is named:
+Flow name:
 
 ```text
 Cyber Governance - Overdue Submission Reminder
@@ -164,16 +160,16 @@ Local time: 08:00
 Time zone: W. Europe Standard Time
 ```
 
-Using the Windows time-zone identifier keeps the schedule aligned with Central European daylight-saving changes instead of hard-coding a UTC offset.
+Using the Windows time-zone identifier avoids a hard-coded UTC offset and follows Central European daylight-saving changes.
 
-## 5. Implemented Flow Architecture
+## 5. Implemented Workflow
 
 ```mermaid
 flowchart TD
-    A[Recurrence<br/>Daily 08:00 Europe/Vienna] --> B[List Submissions]
+    A[Recurrence<br/>Daily 08:00 local] --> B[List Submissions]
     B --> C[List Controls]
     C --> D[List Actions]
-    D --> E[Resolve Local Processing Date]
+    D --> E[Resolve local processing date]
     E --> F[Filter Overdue Submissions]
     F --> G[For Each Overdue Submission]
 
@@ -201,11 +197,11 @@ flowchart TD
     X --> Y[Increment reminder_count + set last_reminder_at]
 ```
 
-The flow processes overdue Submissions independently. A malformed individual business object does not require a global `Terminate` that aborts unrelated overdue records in the same batch.
+The flow processes each overdue Submission independently. A malformed individual business object does not require a global `Terminate` that aborts unrelated overdue records in the same batch.
 
 ## 6. Overdue Rule
 
-The canonical project rule remains:
+Canonical rule:
 
 ```text
 submitted_at IS NULL
@@ -215,40 +211,38 @@ as_of_date > due_date
 
 Phase 6 evaluates `as_of_date` as the current local processing date.
 
-The Power Automate implementation also requires:
+The operational implementation additionally requires:
 
 ```text
 status = Not Submitted
 ```
 
-as an operational guardrail. This does not redefine overdue. It protects against sending a missing-submission reminder for an internally inconsistent live record.
+as a consistency guard. This does not redefine overdue; it prevents a missing-submission reminder from being sent for an internally inconsistent live record.
 
-The implementation deliberately does **not** use:
+The workflow deliberately does **not** use:
 
 ```text
 status != Compliant
 ```
 
-because that would incorrectly conflate missing evidence, compliance outcome, and timeliness.
+because that would conflate timeliness, evidence state, and compliance outcome.
 
-Boundary behavior remains:
+Boundary behavior:
 
 ```text
 as_of_date == due_date → not overdue
-as_of_date >  due_date → overdue when submitted_at is empty
+as_of_date > due_date  → overdue when submitted_at is empty
 ```
 
 ## 7. Date Handling
 
-Excel list actions use ISO 8601 date/time output.
-
-Example connector value:
+Excel list actions use ISO 8601 output where configured. Example connector value:
 
 ```text
 2026-05-10T00:00:00.000Z
 ```
 
-The local processing date is derived with:
+Local processing date:
 
 ```text
 formatDateTime(
@@ -257,17 +251,17 @@ formatDateTime(
 )
 ```
 
-Reminder e-mails display the Submission due date as:
+The reminder message formats the Submission due date as:
 
 ```text
 yyyy-MM-dd
 ```
 
-rather than exposing the raw Excel connector timestamp.
+rather than exposing the raw connector timestamp.
 
 ## 8. Control Resolution Guardrails
 
-For each overdue Submission, the flow filters `ControlCatalog` by `control_id` and evaluates match cardinality.
+For each overdue Submission, `ControlCatalog` is filtered by `control_id` and match cardinality is evaluated:
 
 ```text
 0 matches → CONTROL_NOT_FOUND
@@ -277,7 +271,7 @@ For each overdue Submission, the flow filters `ControlCatalog` by `control_id` a
 
 The flow does not guess a recipient when Control reference data is missing or ambiguous.
 
-The successful resolution path exposes:
+Successful resolution exposes:
 
 ```text
 Resolved Control
@@ -288,7 +282,7 @@ for downstream Action and reminder processing.
 
 ## 9. Active Action Resolution
 
-An Action is considered active when:
+An Action is active when:
 
 ```text
 status = Open
@@ -304,13 +298,13 @@ The flow filters active Actions for the current `submission_id` and evaluates ca
 >1 active Actions → DUPLICATE_ACTIVE_ACTION
 ```
 
-This implements the project invariant that at most one non-completed Action should represent the active missing-submission follow-up for one Submission.
+This operationally enforces the project invariant that at most one non-completed Action should represent the active missing-submission follow-up for one Submission.
 
-The workflow deliberately does not call `first()` when multiple active Actions exist.
+The workflow does not select an arbitrary Action when multiple active candidates exist.
 
 ## 10. New Action Creation
 
-When no active Action exists, the flow creates an Action with:
+When no active Action exists, the flow creates:
 
 ```text
 action_id        = ACT-<GUID>
@@ -325,16 +319,14 @@ last_reminder_at = empty
 description      = Missing submission follow-up reminder.
 ```
 
-The Action is created **before** the e-mail is sent.
-
-This means a failed e-mail send can leave a valid open follow-up Action with:
+The Action is created **before** the e-mail is sent. If delivery fails, the open Action can remain with:
 
 ```text
 reminder_count = 0
 last_reminder_at = empty
 ```
 
-which accurately records that the follow-up exists but no reminder has yet been confirmed as sent.
+which accurately records that follow-up exists but no reminder has been confirmed as sent.
 
 ## 11. Reminder Delivery and Tracking
 
@@ -355,48 +347,48 @@ reminder_count = 1
 last_reminder_at = local processing date
 ```
 
-Tracking is updated only after the send action succeeds.
-
 ### Existing Action path
 
-When exactly one active Action already exists, the flow reuses that Action rather than creating another one.
+When exactly one active Action exists, the same Action is reused.
 
-After a successful later reminder:
+After a later successful reminder:
 
 ```text
 reminder_count = previous reminder_count + 1
 last_reminder_at = local processing date
 ```
 
-The counter expression is dynamic rather than hard-coded to a fixed second reminder.
+The counter is incremented dynamically rather than hard-coded to a fixed second-reminder value.
+
+Tracking is updated only after the corresponding send action succeeds.
 
 ## 12. Same-Day Idempotency Guard
 
-The existing Action path normalizes `last_reminder_at` to `yyyy-MM-dd` and compares it with the current local processing date.
+The existing-Action path normalizes `last_reminder_at` to `yyyy-MM-dd` and compares it with the current local processing date.
 
 ```text
 last_reminder_at == today
 → SAME_DAY_REMINDER_SKIPPED
 ```
 
-In that case:
+In this branch:
 
-- no reminder e-mail is sent,
-- `reminder_count` is not incremented,
-- `last_reminder_at` is not changed,
+- no e-mail is sent,
+- `reminder_count` is unchanged,
+- `last_reminder_at` is unchanged,
 - no new Action is created.
 
-This protects against duplicate reminder delivery caused by manual reruns or repeated execution on the same day.
+This protects against duplicate delivery caused by manual reruns or repeated execution on the same day.
 
 ## 13. Reminder Message Contract
 
-The final reminder subject is contextual rather than generic:
+Subject:
 
 ```text
 Cyber Governance Reminder - <control_id> - <reporting_period>
 ```
 
-The e-mail body contains:
+Body contains:
 
 - Control ID,
 - Control Name,
@@ -404,26 +396,24 @@ The e-mail body contains:
 - formatted Submission due date,
 - request to submit the required evidence.
 
-The Create path sends to the currently resolved Control Owner. The existing-Action path sends to the `owner_email` stored on the persistent Action.
+The Create path sends to the currently resolved Control Owner. The existing-Action path sends to the `owner_email` persisted on the active Action.
 
 No compliance decision or sensitive evidence content is included in the reminder.
 
 ## 14. Controlled Outcomes
 
-Phase 6 uses explicit operational outcome codes:
-
 | Outcome | Condition | Effect |
 | --- | --- | --- |
 | `CONTROL_NOT_FOUND` | Control match count = 0 | No Action / no reminder |
-| `DUPLICATE_CONTROL` | Control match count > 1 | No Action / no reminder |
-| `DUPLICATE_ACTIVE_ACTION` | Active Action count > 1 | No arbitrary Action selection / no reminder |
-| `SAME_DAY_REMINDER_SKIPPED` | Existing Action already reminded on local processing date | No duplicate e-mail / no counter update |
+| `DUPLICATE_CONTROL` | Control match count > 1 | No arbitrary owner / no reminder |
+| `DUPLICATE_ACTIVE_ACTION` | Active Action count > 1 | No arbitrary Action / no reminder |
+| `SAME_DAY_REMINDER_SKIPPED` | Existing Action already reminded today | No duplicate e-mail / no counter update |
 
-These are workflow control outcomes, not new Submission Data Quality rule IDs. The canonical DQ catalogue remains DQ-001 through DQ-010.
+These are workflow guard outcomes, not new Submission DQ rule IDs. The canonical DQ catalog remains DQ-001 through DQ-010.
 
 ## 15. Acceptance Tests
 
-Phase 6 was manually acceptance-tested in the operational Microsoft 365 environment.
+Phase 6 was manually acceptance-tested in the operational Microsoft 365 environment on 2026-08-22.
 
 ### 15.1 Overdue detection
 
@@ -438,14 +428,13 @@ status           = Not Submitted
 submitted_at     = empty
 ```
 
-Observed on 2026-08-22:
+Observed:
 
 ```text
-Filter Overdue Submissions
-→ SUB-016
+SUB-016 included in overdue set
+future-due Not Submitted records excluded
+past-due but already submitted In Review record excluded
 ```
-
-Future-due `Not Submitted` records were excluded, and an already submitted `In Review` record with a past due date was also excluded.
 
 Result: **PASS**
 
@@ -457,11 +446,11 @@ For an overdue Submission with no active Action:
 Active Action Count = 0
 ```
 
-Observed result:
+Observed:
 
 ```text
 new Open Action created
-reminder e-mail delivered
+reminder delivered
 reminder_count = 1
 last_reminder_at = 2026-08-22
 ```
@@ -470,7 +459,7 @@ Result: **PASS**
 
 ### 15.3 Independent second create-path test
 
-A second overdue operational fixture was added:
+Second operational fixture:
 
 ```text
 SUB-017
@@ -481,38 +470,32 @@ status           = Not Submitted
 submitted_at     = empty
 ```
 
-A second reachable acceptance-test recipient was used in the private operational workbook. The flow created a second independent Action and delivered the reminder without creating another Action for `SUB-016`.
+The flow created an independent Action for `SUB-017` and delivered the reminder without creating another Action for `SUB-016`.
 
 Result: **PASS**
 
 ### 15.4 Same-day idempotency
 
-Both existing Actions had:
+With existing Actions already carrying:
 
 ```text
 last_reminder_at = 2026-08-22
 ```
 
-A same-day rerun produced:
+a same-day rerun produced:
 
 ```text
 Already Reminded Today = true
 SAME_DAY_REMINDER_SKIPPED
 ```
 
-Observed:
-
-```text
-no additional e-mail
-no additional Action
-reminder_count unchanged
-```
+No additional e-mail, Action, or counter increment occurred.
 
 Result: **PASS**
 
 ### 15.5 Existing Action reuse and counter increment
 
-For `SUB-017`, the acceptance state was temporarily adjusted to simulate a prior-day reminder while preserving:
+For `SUB-017`, acceptance state was temporarily adjusted to simulate a prior-day reminder while preserving:
 
 ```text
 status = Open
@@ -526,12 +509,12 @@ Active Action Count = 1
 Exactly One Active Action = true
 Already Reminded Today = false
 existing Action reused
-reminder e-mail delivered
+reminder delivered
 reminder_count: 1 → 2
-last_reminder_at: → 2026-08-22
+last_reminder_at = 2026-08-22
 ```
 
-The Action table remained at two real acceptance Actions; no third Action was created.
+No third real acceptance Action was created.
 
 Result: **PASS**
 
@@ -545,12 +528,10 @@ Observed:
 Filter Active Actions → 2 records
 Active Action Count   → 2
 Exactly One Active Action → false
-Duplicate Active Action Conflict → DUPLICATE_ACTIVE_ACTION
+DUPLICATE_ACTIVE_ACTION
 ```
 
-No Action was selected arbitrarily and no reminder was sent through the reuse path.
-
-The temporary duplicate Action was removed after the test.
+No Action was selected arbitrarily and no reminder was sent through the reuse path. The temporary duplicate was removed after the test.
 
 Result: **PASS**
 
@@ -564,10 +545,10 @@ Observed:
 Control Match Count = 0
 Control Exactly One = false
 No Control Match = true
-Control Not Found = CONTROL_NOT_FOUND
+CONTROL_NOT_FOUND
 ```
 
-No owner, Action, or reminder was produced. The temporary Submission was removed after the test.
+No owner, Action, or reminder was produced. The temporary fixture was removed.
 
 Result: **PASS**
 
@@ -581,10 +562,10 @@ Observed:
 Control Match Count = 2
 Control Exactly One = false
 No Control Match = false
-Duplicate Control Conflict = DUPLICATE_CONTROL
+DUPLICATE_CONTROL
 ```
 
-No owner was selected arbitrarily and the normal Action/reminder branch was skipped. The temporary duplicate Control row was removed after the test.
+No owner was selected arbitrarily and the normal Action/reminder branch was skipped. The temporary duplicate Control was removed.
 
 Result: **PASS**
 
@@ -602,20 +583,20 @@ Result: **PASS**
 | One active Action | Reuse existing Action | PASS |
 | Multiple active Actions | `DUPLICATE_ACTIVE_ACTION` | PASS |
 | First successful reminder | `reminder_count = 1` | PASS |
-| Later successful reminder | increment existing count | PASS |
+| Later successful reminder | Increment existing count | PASS |
 | Same-day rerun | `SAME_DAY_REMINDER_SKIPPED` | PASS |
-| Reminder tracking | updated only after successful send | PASS |
+| Reminder tracking | Update only after successful send | PASS |
 
 ## 17. Process Impact Metrics Enabled by Phase 6
 
-Phase 6 operationalizes the Action reminder fields required for later process-impact reporting:
+Phase 6 operationalizes:
 
 ```text
 reminder_count
 last_reminder_at
 ```
 
-These support later Phase 8 measures such as:
+These support later reporting measures such as:
 
 ```text
 Total Automated Reminders
@@ -624,24 +605,22 @@ Average Reminder Count
 Open Actions
 ```
 
-The project does not invent labour-savings or ROI figures that have not been measured.
+No unmeasured labour-savings or ROI claims are made.
 
-Phase 7 must carry operational Action reminder data into the reporting snapshot if downstream Power BI metrics are to represent live reminder execution rather than only the deterministic repository fixture.
+Phase 7 must carry operational Action/reminder state into the reporting snapshot before Phase 8 Power BI measures can represent live reminder execution.
 
 ## 18. Security and Privacy Boundary
 
-- Repository identities remain synthetic.
-- Reachable acceptance-test recipients are operational/private data.
-- Real e-mail addresses must not be published in repository screenshots or documentation.
-- Reminder messages contain governance metadata only, not evidence contents.
-- The workbook remains outside the repository.
-- No credentials, connection tokens, or tenant identifiers are committed.
+- repository identities remain synthetic,
+- reachable acceptance-test recipients remain operational/private data,
+- real e-mail addresses are not published in repository documentation or evidence,
+- reminder messages contain governance metadata only, not evidence contents,
+- the operational workbook remains outside the repository,
+- credentials, connection tokens, tenant identifiers, and secrets are not committed.
 
 ## 19. Limitations
 
-Phase 6 remains a proof of concept.
-
-Current limitations include:
+Phase 6 remains a proof of concept. Current limitations include:
 
 - Excel Online / OneDrive rather than a transactional workflow datastore,
 - no production-grade locking or concurrency-control service,
@@ -649,19 +628,19 @@ Current limitations include:
 - no enterprise notification preferences,
 - no dedicated operational error/telemetry datastore,
 - no automatic completion of missing-submission Actions when Phase 5 later receives evidence,
-- no automatic operational workbook → repository/reporting synchronization until Phase 7,
+- no operational workbook → repository/reporting synchronization until Phase 7,
 - no claim of production IAM/RBAC, audit, retention, or compliance certification.
 
-The flow is intentionally processed sequentially for the small PoC dataset to reduce Excel write/concurrency risk.
+The flow is processed sequentially for the small PoC dataset to reduce Excel write/concurrency risk.
 
 ## 20. Definition of Done
 
-Phase 6 is considered complete because the implemented workflow demonstrates and acceptance-tests:
+Phase 6 is complete because the implemented workflow demonstrates and acceptance-tests:
 
 - scheduled execution,
 - canonical overdue detection,
 - local-date handling,
-- operational Control owner resolution,
+- Control owner resolution,
 - Action creation,
 - Action reuse,
 - duplicate Action protection,
@@ -670,24 +649,42 @@ Phase 6 is considered complete because the implemented workflow demonstrates and
 - reminder counter updates,
 - same-day idempotency,
 - preserved Submission/compliance separation,
-- preserved repository deterministic baseline.
+- preserved deterministic repository baseline.
 
-No Python source changes or new Python dependencies are required for Phase 6. The existing Python regression suite remains the repository engineering baseline.
+No Python source changes or new Python dependencies were required for Phase 6. The existing Python regression suite remains the repository engineering baseline.
 
 ## 21. Evidence Screenshots
 
-Phase 6 acceptance evidence should be committed only after sanitizing authenticated recipient identities and tenant-specific information.
+All committed Phase 6 screenshots are sanitized public evidence. Authenticated recipient identities and tenant-specific information are not published.
 
-Recommended public evidence set:
+### Flow overview
 
-```text
-phase6_flow_overview.webp
-phase6_overdue_detection.webp
-phase6_action_register.webp
-phase6_reminder_email.webp
-phase6_same_day_skip.webp
-phase6_duplicate_active_action.webp
-phase6_control_lookup_guard.webp
-```
+![Phase 6 flow overview](screenshots/phase-6-reminder-automation/phase6_flow_overview.webp)
 
-The screenshots are supporting evidence; the workflow contract and acceptance results in this document define the documented Phase 6 behavior.
+### Control and Action decision tree
+
+![Phase 6 decision tree](screenshots/phase-6-reminder-automation/phase6_decision_tree.webp)
+
+### Create and reuse paths
+
+![Phase 6 create and reuse paths](screenshots/phase-6-reminder-automation/phase6_create_reuse_paths.webp)
+
+### Overdue detection
+
+![Phase 6 overdue detection](screenshots/phase-6-reminder-automation/phase6_overdue_detection.webp)
+
+### Operational Action Register
+
+The public screenshot redacts operational recipient addresses.
+
+![Phase 6 Action Register](screenshots/phase-6-reminder-automation/phase6_action_register.webp)
+
+### Same-day idempotency path
+
+![Phase 6 same-day skip](screenshots/phase-6-reminder-automation/phase6_same_day_skip.webp)
+
+### Control lookup guard branches
+
+![Phase 6 Control lookup guards](screenshots/phase-6-reminder-automation/phase6_control_lookup_guard.webp)
+
+The duplicate-active-Action acceptance outcome is documented in Section 15.6 and represented structurally in the decision-tree evidence. A separate sanitized run screenshot is not required to establish the documented workflow contract.
