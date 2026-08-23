@@ -4,11 +4,11 @@
 
 This document describes the **current architecture** of the Cyber Governance Automation Lab.
 
-The project is a simplified cybersecurity-control evidence process built as a portfolio proof of concept. It is not production-ready. The architecture emphasizes explicit business semantics, traceable state transitions, deterministic Data Quality, controlled workflow automation, reproducible acceptance, and strict separation between operational Microsoft 365 state and canonical repository fixtures.
+The project is a simplified cybersecurity-control evidence process built as a portfolio proof of concept. It is not production-ready. The architecture emphasizes explicit business semantics, traceable state transitions, deterministic Data Quality, controlled workflow automation, reproducible acceptance, and strict separation between operational Microsoft 365 state, canonical repository fixtures, curated reporting outputs, and later AI processing.
 
 ## 1. Architectural Overview
 
-The project contains two distinct data planes connected by a controlled Phase 7 reporting bridge.
+The project contains two data planes connected by a controlled Phase 7 reporting bridge and consumed by a Phase 8 Power BI reporting layer.
 
 ### Operational Microsoft 365 plane
 
@@ -33,11 +33,11 @@ Power Automate Weekly Reporting Snapshot
 Private snapshot package
 ```
 
-Phase 5 implements authenticated evidence intake. Phase 6 implements scheduled overdue follow-up and reminder tracking. Phase 7.2 exports the current operational source facts into a private reporting snapshot.
+Phase 5 implements authenticated evidence intake. Phase 6 implements scheduled overdue follow-up and reminder tracking. Phase 7 exports current operational source facts into a private snapshot package.
 
-### Deterministic Python/repository plane
+### Deterministic Python / repository plane
 
-Canonical default inputs:
+Canonical inputs:
 
 ```text
 data/reference/control_catalog.json
@@ -53,7 +53,7 @@ security_submission_snapshot_<snapshot_id>.csv
 security_action_snapshot_<snapshot_id>.csv
 ```
 
-Both modes use the same processing semantics:
+Both modes use the same deterministic processing semantics:
 
 ```text
 EXTRACT
@@ -79,13 +79,34 @@ ai_review_queue.json
 
 The repository CSV/JSON datasets remain canonical synthetic acceptance fixtures. Operational snapshot processing does not overwrite them.
 
-Phase 8.2 adds a source-controlled Power BI project scaffold under:
+### Power BI reporting plane
+
+Phase 8 uses the source-controlled project:
 
 ```text
 powerbi/CyberGovernanceDashboard/
+├── CyberGovernanceDashboard.pbip
+├── CyberGovernanceDashboard.Report/
+└── CyberGovernanceDashboard.SemanticModel/
 ```
 
-The scaffold uses PBIP for the project entry point, PBIR for report metadata, and TMDL for the semantic-model definition. At the Phase 8.2 boundary it contains no reporting data, model relationship, DAX measures, or final visuals.
+The project uses:
+
+```text
+PBIP → project container
+PBIR → report metadata
+TMDL → semantic-model source representation
+```
+
+Phase 8.3 loads exactly the two curated reporting outputs through a configurable `DataRoot` parameter:
+
+```text
+DataRoot
+   ├─ curated_control_status.csv → ControlStatus
+   └─ data_quality_issues.csv    → DataQualityIssues
+```
+
+No semantic-model relationship or DAX measure is implemented yet. Those belong to Phase 8.4 and Phase 8.5.
 
 ## 2. High-Level Architecture
 
@@ -111,17 +132,25 @@ flowchart TD
         I[Canonical Control JSON] --> K
         J[Canonical Action CSV] --> K
         S -. explicit coherent source paths .-> K
-        K --> L[Curated Control Status]
-        K --> M[Data Quality Issues]
+        K --> L[curated_control_status.csv]
+        K --> M[data_quality_issues.csv]
         K --> N[AI Review Queue]
     end
 
-    L --> P[Power BI — Phase 8.2 project scaffold complete / data loading next]
+    subgraph BI[Power BI Reporting Plane]
+        DR[DataRoot parameter] --> CS[ControlStatus]
+        DR --> DQ[DataQualityIssues]
+        L --> CS
+        M --> DQ
+        CS --> SM[Semantic Model — relationship next]
+        DQ --> SM
+    end
+
     N --> Q[Controlled AI Runtime — Phase 9 Planned]
     Q --> R[Human Governance Review]
 ```
 
-The Phase 7 bridge is deliberately **explicit rather than automatically synchronized**. Power Automate creates a private source snapshot; a caller explicitly supplies all three snapshot paths and the matching manifest `as_of_date` to Python.
+The Phase 7 bridge is deliberately explicit rather than automatically synchronized. Power Automate creates a private source snapshot; a caller explicitly supplies all three snapshot paths and the matching manifest `as_of_date` to Python. Power BI consumes Python-curated outputs rather than operational source tables.
 
 ## 3. Core Domain Model
 
@@ -136,7 +165,7 @@ SUBMISSION
    └──────────────► DATA QUALITY ISSUE
 ```
 
-Technical runtime metadata such as `snapshot_id`, `as_of_date`, `source_row_number`, manifests, or workflow branches do not create additional business entities.
+Technical runtime metadata such as `snapshot_id`, `as_of_date`, `source_row_number`, manifests, Power Query parameters, or workflow branches do not create additional business entities.
 
 Critical semantic separations:
 
@@ -150,9 +179,10 @@ Submission Status != Action Status
 Unknown != False
 Not Evaluated != Failed
 Action completion != Submission compliance
+Control risk != DQ severity
 ```
 
-## 4. Why Operational State Does Not Replace Canonical Fixtures
+## 4. Canonical vs Operational State
 
 The canonical files:
 
@@ -168,13 +198,7 @@ represent a deterministic synthetic acceptance scenario evaluated at:
 as_of_date = 2026-08-15
 ```
 
-Operational Microsoft 365 state evolved later during Phase 5–7 acceptance. For example:
-
-- Phase 5 moved an operational expected Submission to `In Review` during evidence-intake acceptance.
-- Phase 6 introduced operational overdue reminder fixtures and live Actions.
-- Phase 7 exported and processed an operational snapshot containing 17 Submissions and 2 Actions.
-
-Changing canonical fixtures merely to resemble later live PoC state would destroy the reproducible Phase 2–4 acceptance baseline.
+Operational Microsoft 365 state evolved later during Phase 5–7 acceptance. Changing canonical fixtures merely to resemble later live PoC state would destroy reproducible regression evidence.
 
 Therefore:
 
@@ -184,7 +208,7 @@ Operational Microsoft 365 state
 Canonical repository fixtures
 ```
 
-Phase 7 connects the planes through explicit external files, not through destructive synchronization.
+Phase 7 connects the planes through explicit external files, not destructive synchronization.
 
 ## 5. Expected Submission Initialization
 
@@ -193,8 +217,6 @@ Expected Submission records exist before evidence arrives and start with:
 ```text
 status = Not Submitted
 ```
-
-This makes missing process events observable.
 
 Submission business key:
 
@@ -208,35 +230,26 @@ Technical key:
 submission_id
 ```
 
-```mermaid
-flowchart TD
-    A[Control Catalog] --> C[Seed Expected Submissions]
-    B[Reporting Periods] --> C
-    C --> D[SubmissionRegister<br/>Not Submitted]
-```
-
-Automatic generation of future expected reporting-period instances is not implemented in the current PoC.
+Automatic future reporting-period generation is not implemented in the current PoC.
 
 ## 6. Phase 5 Evidence Intake
 
 Implemented path:
 
-```mermaid
-flowchart TD
-    A[Microsoft Forms] --> B[Get response details]
-    B --> C[Read SubmissionRegister]
-    C --> D[Filter by control_id]
-    D --> E[Filter by reporting_period]
-    E --> F{Exactly one match?}
-
-    F -->|Yes| G{status = Not Submitted?}
-    G -->|Yes| H[Update existing row by submission_id]
-    H --> I[status = In Review]
-    G -->|No| J[INVALID_SUBMISSION_STATE]
-
-    F -->|No| K{Match count = 0?}
-    K -->|Yes| L[NO_MATCH]
-    K -->|No| M[DUPLICATE_BUSINESS_KEY]
+```text
+Microsoft Forms
+      ↓
+Read SubmissionRegister
+      ↓
+Resolve control_id + reporting_period
+      ↓
+Require exactly one match
+      ↓
+Require status = Not Submitted
+      ↓
+Update existing row by submission_id
+      ↓
+status = In Review
 ```
 
 Evidence intake performs **UPDATE, not APPEND** and permits only:
@@ -247,15 +260,17 @@ Not Submitted → In Review
 
 It does not assign `Compliant` or `Non-Compliant`.
 
+Controlled outcomes:
+
+```text
+NO_MATCH
+DUPLICATE_BUSINESS_KEY
+INVALID_SUBMISSION_STATE
+```
+
 See [phase5_evidence_intake.md](phase5_evidence_intake.md).
 
 ## 7. Phase 6 Scheduled Reminder Automation
-
-Flow:
-
-```text
-Cyber Governance - Overdue Submission Reminder
-```
 
 Schedule:
 
@@ -297,34 +312,16 @@ last_reminder_at == today
 → SAME_DAY_REMINDER_SKIPPED
 ```
 
-A confirmed reminder updates Action state:
+A confirmed reminder updates:
 
 ```text
 reminder_count
 last_reminder_at
 ```
 
-### Lifecycle limitation
-
-The desired business lifecycle is that a missing-submission follow-up Action can be completed once the missing evidence has been received. The current Phase 5/6 PoC does **not** automate this later Action transition. An existing Action can therefore remain `Open` after the related Submission has moved to `In Review`.
-
-Phase 7 deliberately exports the stored operational state and does not infer or repair Action lifecycle state.
-
-See [phase6_reminder_automation.md](phase6_reminder_automation.md).
+Known lifecycle limitation: the current Phase 5/6 PoC does not automatically complete a missing-submission Action after later evidence intake moves the related Submission to `In Review`.
 
 ## 8. Phase 7 Reporting Snapshot Bridge
-
-Phase 7 is complete and consists of four implementation/acceptance steps:
-
-```text
-Phase 7.0 → reporting export contract
-Phase 7.1 → implementation preparation
-Phase 7.2 → Power Automate reporting snapshot runtime
-Phase 7.3 → explicit Python external-input boundary
-WP3       → real private snapshot end-to-end acceptance
-```
-
-### Snapshot package
 
 A successful run creates:
 
@@ -335,24 +332,9 @@ security_action_snapshot_<snapshot_id>.csv
 security_snapshot_manifest_<snapshot_id>.json
 ```
 
-The manifest is written only after all three source artifacts succeed and contains:
+The manifest is written only after all three source artifacts succeed and acts as the completion marker.
 
-```text
-snapshot_id
-as_of_date
-generated_at_local
-control_file
-submission_file
-action_file
-control_rows
-submission_rows
-action_rows
-status
-```
-
-A partial package without the completion manifest is not a valid snapshot.
-
-### Runtime schedule
+Runtime schedule:
 
 ```text
 Weekly
@@ -361,35 +343,9 @@ Monday
 W. Europe Standard Time
 ```
 
-The schedule follows the daily Phase 6 reminder flow at 08:00 so Monday snapshot state can include the latest confirmed reminder tracking.
+Power Automate exports source facts only. It does not calculate compliance, apply DQ-001 through DQ-010, calculate overdue/lateness metrics, aggregate Actions, or repair source records.
 
-### Responsibility boundary
-
-Power Automate:
-
-- reads `ControlCatalog`, `SubmissionRegister`, and `ActionRegister`,
-- selects exact source fields,
-- normalizes technical date representation for export,
-- creates private source artifacts,
-- records source row counts,
-- writes the completion manifest last,
-- follows an explicit TRY/CATCH failure path.
-
-Power Automate does **not**:
-
-- assign compliance,
-- apply DQ-001 through DQ-010,
-- calculate overdue/lateness metrics,
-- aggregate Actions,
-- deduplicate or repair source rows.
-
-Python:
-
-- accepts either canonical defaults or one explicit all-or-none source set,
-- applies the existing deterministic pipeline,
-- writes the existing contractual outputs.
-
-CLI source overrides:
+Python external source overrides are all-or-none:
 
 ```text
 --controls-path
@@ -397,69 +353,25 @@ CLI source overrides:
 --actions-path
 ```
 
-Output override:
+The manifest is not automatically ingested; the caller supplies its matching `as_of_date` explicitly.
 
-```text
---output-directory
-```
-
-The three source overrides are all-or-none. The manifest is not automatically ingested; the caller passes the matching `as_of_date` explicitly.
-
-See:
-
-- [phase7_reporting_export.md](phase7_reporting_export.md)
-- [phase7_power_automate_acceptance.md](phase7_power_automate_acceptance.md)
-- [phase7_python_external_input.md](phase7_python_external_input.md)
-- [phase7_end_to_end_acceptance.md](phase7_end_to_end_acceptance.md)
-
-## 9. Phase 7 End-to-End Acceptance
-
-The accepted private operational snapshot used:
+Accepted operational snapshot observation:
 
 ```text
 snapshot_id = 20260823_112030
 as_of_date  = 2026-08-23
-status      = complete
+Controls    = 5
+Submissions = 17
+Actions     = 2
+DQ issues   = 5
+Valid       = 12
+Invalid     = 5
+AI queue    = 3
 ```
 
-Manifest and Python source counts matched exactly:
+The canonical acceptance baseline remained unchanged and the complete Python suite remained 53 passing tests.
 
-```text
-Controls     5 → 5
-Submissions 17 → 17
-Actions      2 → 2
-```
-
-Observed Python result:
-
-```text
-DQ issues: 5
-Valid submissions: 12
-Invalid submissions: 5
-AI review queue items: 3
-```
-
-Submission grain remained `17 → 17`. Operational reminder state crossed the bridge for the two Phase 6 acceptance fixtures, including `reminder_count` and `last_reminder_at`.
-
-After the operational run, the canonical acceptance result remained:
-
-```text
-5 Controls
-15 Submissions
-5 Actions
-5 DQ issues
-10 Valid
-5 Invalid
-2 AI queue items
-```
-
-and the complete automated suite remained:
-
-```text
-53 passed
-```
-
-## 10. Operational Workbook Contract
+## 9. Operational Workbook Contract
 
 ### `ControlCatalog`
 
@@ -503,9 +415,9 @@ last_reminder_at
 description
 ```
 
-The operational workbook is private and is not committed because authenticated identities and reachable operational recipients can be written during live testing.
+The operational workbook remains private.
 
-## 11. Python Reporting Contract
+## 10. Python Reporting Contract
 
 Submission remains the primary reporting grain.
 
@@ -523,8 +435,6 @@ reminder_count   = SUM(Action.reminder_count)
 last_reminder_at = MAX(Action.last_reminder_at)
 ```
 
-Active Action status is sourced from `Open` or `In Progress` Actions without multiplying Submission rows.
-
 Derived fields include:
 
 ```text
@@ -541,33 +451,68 @@ reminder_count
 last_reminder_at
 ```
 
-Action-specific DQ rule IDs are not introduced by Phase 7. The Python pipeline continues to apply DQ-001 through DQ-010 to Submission data.
+Action-specific DQ rule IDs are not introduced by Phase 7. Python continues to apply DQ-001 through DQ-010 to Submission data.
 
-## 12. Phase 8 Reporting Boundary
+## 11. Phase 8 Reporting Boundary
 
-Phase 8 consumes exactly the two curated reporting outputs:
+Power BI consumes exactly:
 
 ```text
 curated_control_status.csv
 data_quality_issues.csv
 ```
 
-It does not read the operational Excel workbook or raw Phase 7 snapshots directly.
+It does not read the operational Excel workbook, raw Phase 7 snapshots, canonical raw inputs, or `ai_review_queue.json` directly.
 
-Phase 8.0 freezes the semantic/KPI contract. Phase 8.1 freezes the canonical acceptance baseline. Phase 8.2 establishes the source-controlled PBIP/PBIR/TMDL scaffold.
-
-Current project structure:
+Dependency chain:
 
 ```text
-powerbi/CyberGovernanceDashboard/
-├── CyberGovernanceDashboard.pbip
-├── CyberGovernanceDashboard.Report/
-└── CyberGovernanceDashboard.SemanticModel/
+Phase 8.0 → reporting/KPI contract
+Phase 8.1 → canonical acceptance baseline
+Phase 8.2 → PBIP/PBIR/TMDL scaffold
+Phase 8.3 → curated CSV loading and technical typing
+Phase 8.4 → semantic-model relationship
+Phase 8.5 → DAX measures
 ```
 
-The report resolves the semantic model through a repository-relative path. The TMDL semantic model currently contains only initial model/culture metadata. Phase 8.3 will add the technical loading and typing of the two curated sources.
+### Phase 8.3 model state
 
-The reporting relationship remains contractually fixed as:
+The semantic model contains a required text parameter:
+
+```text
+DataRoot
+```
+
+and exactly two reporting tables:
+
+```text
+ControlStatus
+DataQualityIssues
+```
+
+Canonical Power BI acceptance:
+
+```text
+ControlStatus       = 15 rows / 25 columns
+DataQualityIssues   = 5 rows / 8 columns
+Model tables        = exactly 2
+Relationships       = 0
+```
+
+The two Power Query partitions perform only:
+
+```text
+CSV load
+→ promote headers
+→ empty string to null
+→ technical type assignment
+```
+
+They do not implement compliance, timing, DQ, Action, or AI business rules.
+
+Automatic time intelligence is disabled.
+
+The next relationship remains contractually fixed as:
 
 ```text
 ControlStatus[source_row_number]
@@ -577,15 +522,23 @@ ControlStatus[source_row_number]
 DataQualityIssues[source_row_number]
 ```
 
-No Phase 8.3+ model logic is claimed by the Phase 8.2 scaffold.
+Required Phase 8.4 behavior:
+
+```text
+Cardinality      = one-to-many
+Filter direction = ControlStatus → DataQualityIssues
+```
+
+The relationship must not use `submission_id`, because missing or duplicate Submission identifiers are valid Data Quality scenarios.
 
 See:
 
 - [phase8_power_bi_contract.md](phase8_power_bi_contract.md)
 - [phase8_canonical_baseline.md](phase8_canonical_baseline.md)
 - [phase8_power_bi_project.md](phase8_power_bi_project.md)
+- [phase8_curated_loading.md](phase8_curated_loading.md)
 
-## 13. Controlled AI Boundary
+## 12. Controlled AI Boundary
 
 AI queue eligibility remains:
 
@@ -599,13 +552,11 @@ AND
 )
 ```
 
-The queue is a minimized review-preparation artifact, not a compliance engine or DQ repair mechanism.
+The queue is a minimized review-preparation artifact, not a compliance engine or DQ repair mechanism. Final compliance authority remains human.
 
-Final compliance authority remains human.
+## 13. Storage and Privacy Boundary
 
-## 14. Storage and Privacy Boundary
-
-Operational snapshots remain private because they may contain:
+Operational snapshots may contain:
 
 ```text
 owner_email
@@ -614,40 +565,40 @@ comments
 operational acceptance state
 ```
 
-The public repository may contain only sanitized screenshots, sanitized Power Automate source, synthetic examples, non-sensitive acceptance observations, and source-controlled Power BI project metadata that contains no reporting data or private connection state.
+and therefore remain private.
 
-The public workflow representation under:
+The public repository may contain only sanitized screenshots, sanitized Power Automate source, synthetic examples, non-sensitive acceptance observations, and source-controlled Power BI project/query/model metadata that contains no embedded reporting rows or private connection state.
 
-```text
-power_automate/solutions/cyber_governance_automation/
-```
-
-uses placeholders for environment-specific bindings.
-
-For the Power BI project, machine-local model/cache state remains outside Git through:
+Power BI machine-local files remain outside Git through:
 
 ```text
 **/.pbi/localSettings.json
 **/.pbi/cache.abf
 ```
 
-## 15. Consistency and Concurrency Boundary
+Generated Python curated runtime outputs remain ignored under:
 
-Excel Online / OneDrive does not provide a transactional three-table snapshot for this PoC.
+```text
+data/curated/
+```
 
-The tables are read sequentially. A concurrent Phase 5/6 write could theoretically occur between reads.
+The TMDL `DataRoot` parameter stores an authoring path that can be changed for another clone or later operational processed-output directory.
+
+## 14. Consistency and Concurrency Boundary
+
+Excel Online / OneDrive does not provide a transactional three-table snapshot for this PoC. Tables are read sequentially, so a concurrent Phase 5/6 write can theoretically occur between reads.
 
 Mitigations are:
 
 - one shared `snapshot_id`,
 - short sequential reads,
-- scheduled execution after the normal reminder run,
+- scheduled execution after the reminder run,
 - manifest created only after all source artifacts succeed,
 - explicit documentation of the limitation.
 
 Phase 7 does not claim ACID or point-in-time transactional semantics.
 
-## 16. Component Responsibilities
+## 15. Component Responsibilities
 
 ### Microsoft Forms
 
@@ -684,25 +635,29 @@ Phase 7 does not claim ACID or point-in-time transactional semantics.
 
 - deterministic extract/normalize/validate/transform/derive/load,
 - canonical and explicit external source modes,
-- DQ, enrichment, Action aggregation, derived reporting metrics.
+- DQ, Control enrichment, Action aggregation, and derived reporting metrics.
 
 ### Power BI
 
-Phase 8.2 has implemented the version-controlled PBIP/PBIR/TMDL project scaffold. The scaffold currently contains no curated source queries, model relationship, DAX measures, or final report visuals. Those are implemented in later Phase 8 work packages.
+- PBIP/PBIR/TMDL project is source-controlled,
+- `DataRoot` resolves the curated reporting directory,
+- `ControlStatus` and `DataQualityIssues` are technically loaded and typed,
+- no model relationship or DAX measure exists yet,
+- later Phase 8 work packages own the semantic relationship, KPI measures, and report pages.
 
 ### Controlled AI Runtime
 
 Planned for Phase 9 and not yet implemented.
 
-## 17. Repository Governance Boundary
+## 16. Repository Governance Boundary
 
 GitHub Actions runs the complete Python test suite for pull requests targeting `main` and pushes to `main`.
 
 Current CI is active, but the Python check is not enforced as a required merge gate by repository rules.
 
-Operational snapshot artifacts, private workbook data, credentials, tokens, tenant identifiers, Connection bindings, local Power BI cache/state, and private deployment packages do not belong in version control.
+Operational snapshot artifacts, private workbook data, credentials, tokens, tenant identifiers, connection bindings, local Power BI cache/state, generated curated outputs, and private deployment packages do not belong in version control.
 
-## 18. Architecture Principles
+## 17. Architecture Principles
 
 - Expected state exists before observed evidence.
 - Evidence submission is not a compliance decision.
@@ -718,12 +673,14 @@ Operational snapshot artifacts, private workbook data, credentials, tokens, tena
 - A completion manifest distinguishes valid snapshots from partial artifacts.
 - Python semantics are reused for both canonical and operational source sets.
 - Power BI consumes curated outputs rather than duplicating upstream business logic.
-- Power BI project/report/model definitions are version-controlled separately from machine-local cache and settings.
+- Power Query performs technical ingestion only.
+- Null/non-evaluable timing state remains null rather than becoming false/zero.
+- Power BI project/report/model definitions are version-controlled separately from machine-local cache and generated reporting data.
 - AI processing remains downstream of deterministic validation.
 - Final compliance authority remains human.
 - Excel/OneDrive is a PoC boundary, not an enterprise architecture claim.
 
-## 19. Current Limitations
+## 18. Current Limitations
 
 - no automatic expected-Submission generation,
 - no automatic completion of missing-submission Actions after later evidence intake,
@@ -732,11 +689,12 @@ Operational snapshot artifacts, private workbook data, credentials, tokens, tena
 - no scheduled Python snapshot-processing service,
 - no Action-specific DQ rule catalog,
 - no production-grade IAM/RBAC, DLP, audit, monitoring, retention, or telemetry architecture,
-- Power BI project scaffold exists, but curated data ingestion, semantic relationship, DAX measures, and final visuals are not implemented yet,
+- Power BI curated-source loading exists, but the semantic relationship, DAX measures, and final visuals are not implemented yet,
+- `DataRoot` must be configured for the relevant local clone or processed-output directory,
 - no external AI invocation,
 - no REST API implementation.
 
-## 20. References
+## 19. References
 
 Current-state foundation:
 
@@ -758,5 +716,6 @@ Phase-specific evidence:
 - [phase8_power_bi_contract.md](phase8_power_bi_contract.md)
 - [phase8_canonical_baseline.md](phase8_canonical_baseline.md)
 - [phase8_power_bi_project.md](phase8_power_bi_project.md)
+- [phase8_curated_loading.md](phase8_curated_loading.md)
 
-Historical phase-specific documents remain valid for the phase they describe. Current-state foundation documents and final acceptance evidence define the present architecture.
+Historical phase-specific documents remain valid for the phase they describe. Current-state foundation documents, implementation code, and final acceptance evidence define the present architecture.
