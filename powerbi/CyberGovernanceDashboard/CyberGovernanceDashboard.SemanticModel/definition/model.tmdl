@@ -6,9 +6,14 @@ model Model
 		legacyRedirects
 		returnErrorValuesAsNull
 
-annotation __PBI_TimeIntelligenceEnabled = 1
+annotation __PBI_TimeIntelligenceEnabled = 0
 
 annotation PBI_ProTooling = ["DevMode"]
+
+annotation PBI_QueryOrder = ["DataRoot","ControlStatus","DataQualityIssues"]
+
+ref table ControlStatus
+ref table DataQualityIssues
 
 ref cultureInfo de-DE
 

@@ -1,0 +1,119 @@
+table DataQualityIssues
+	lineageTag: fc6fdf21-cf7e-4455-a158-4fe416730352
+
+	column issue_id
+		dataType: string
+		lineageTag: 44fa79d1-2a92-436a-8832-4e94f91a7cd8
+		summarizeBy: none
+		sourceColumn: issue_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column submission_id
+		dataType: string
+		lineageTag: 950d6cbc-9163-444a-9832-521da505e954
+		summarizeBy: none
+		sourceColumn: submission_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column control_id
+		dataType: string
+		lineageTag: 2bb1fb29-d38f-4178-9353-cac61a795191
+		summarizeBy: none
+		sourceColumn: control_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column source_row_number
+		dataType: int64
+		formatString: 0
+		lineageTag: ed8c74b8-538e-4670-b11c-3a9e9c49a58c
+		summarizeBy: sum
+		sourceColumn: source_row_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column rule
+		dataType: string
+		lineageTag: d247a4ed-2262-4090-afdc-6cc4c8b98815
+		summarizeBy: none
+		sourceColumn: rule
+
+		annotation SummarizationSetBy = Automatic
+
+	column severity
+		dataType: string
+		lineageTag: 9f2c4164-c07e-40ea-92f9-c76ce27e037d
+		summarizeBy: none
+		sourceColumn: severity
+
+		annotation SummarizationSetBy = Automatic
+
+	column field
+		dataType: string
+		lineageTag: 803f2e5e-6b35-43d1-9f2b-6df901bb2bcc
+		summarizeBy: none
+		sourceColumn: field
+
+		annotation SummarizationSetBy = Automatic
+
+	column message
+		dataType: string
+		lineageTag: b6fc70d6-7e3a-4583-9e1d-7281c5652964
+		summarizeBy: none
+		sourceColumn: message
+
+		annotation SummarizationSetBy = Automatic
+
+	partition DataQualityIssues = m
+		mode: import
+		source =
+				let
+				    Source =
+				        Csv.Document(
+				            File.Contents(DataRoot & "\data_quality_issues.csv"),
+				            [
+				                Delimiter = ",",
+				                Encoding = 65001,
+				                QuoteStyle = QuoteStyle.Csv
+				            ]
+				        ),
+				
+				    PromotedHeaders =
+				        Table.PromoteHeaders(
+				            Source,
+				            [PromoteAllScalars = true]
+				        ),
+				
+				    BlankToNull =
+				        Table.ReplaceValue(
+				            PromotedHeaders,
+				            "",
+				            null,
+				            Replacer.ReplaceValue,
+				            Table.ColumnNames(PromotedHeaders)
+				        ),
+				
+				    Typed =
+				        Table.TransformColumnTypes(
+				            BlankToNull,
+				            {
+				                {"issue_id", type text},
+				                {"submission_id", type text},
+				                {"control_id", type text},
+				                {"source_row_number", Int64.Type},
+				                {"rule", type text},
+				                {"severity", type text},
+				                {"field", type text},
+				                {"message", type text}
+				            },
+				            "en-US"
+				        )
+				in
+				    Typed
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

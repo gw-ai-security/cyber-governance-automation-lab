@@ -1,0 +1,290 @@
+table ControlStatus
+	lineageTag: 5c2a3387-50bb-4a0c-9066-0304d6cbf128
+
+	column source_row_number
+		dataType: int64
+		formatString: 0
+		lineageTag: 4a522986-903f-4097-a0af-858270a47b83
+		summarizeBy: sum
+		sourceColumn: source_row_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column submission_id
+		dataType: string
+		lineageTag: 9ad05adc-6841-4703-8ecc-93a6eb0d75e1
+		summarizeBy: none
+		sourceColumn: submission_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column control_id
+		dataType: string
+		lineageTag: af4f7da4-9b3d-48b0-bce2-9c86951cd3d2
+		summarizeBy: none
+		sourceColumn: control_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column control_name
+		dataType: string
+		lineageTag: 8c62c23f-2e97-4f77-aaf5-688f25962e2a
+		summarizeBy: none
+		sourceColumn: control_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column business_unit
+		dataType: string
+		lineageTag: e44581ac-1623-4b4a-8134-e5d95b335b5e
+		summarizeBy: none
+		sourceColumn: business_unit
+
+		annotation SummarizationSetBy = Automatic
+
+	column owner_role
+		dataType: string
+		lineageTag: 430a3328-4c4e-4be5-a642-dd0f687ad188
+		summarizeBy: none
+		sourceColumn: owner_role
+
+		annotation SummarizationSetBy = Automatic
+
+	column owner_email
+		dataType: string
+		lineageTag: 2d54367e-23f1-4fe5-bb10-a04eacc92440
+		summarizeBy: none
+		sourceColumn: owner_email
+
+		annotation SummarizationSetBy = Automatic
+
+	column frequency
+		dataType: string
+		lineageTag: a3c4d398-4b70-428a-a8af-397721fb6368
+		summarizeBy: none
+		sourceColumn: frequency
+
+		annotation SummarizationSetBy = Automatic
+
+	column risk_level
+		dataType: string
+		lineageTag: b712de61-61ea-4bb0-9d40-ce51a730d6a8
+		summarizeBy: none
+		sourceColumn: risk_level
+
+		annotation SummarizationSetBy = Automatic
+
+	column reporting_period
+		dataType: string
+		lineageTag: d022f879-62bd-40cd-a90f-5a7a355fad72
+		summarizeBy: none
+		sourceColumn: reporting_period
+
+		annotation SummarizationSetBy = Automatic
+
+	column due_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 9242c819-e29b-437d-b3f9-2be98157366f
+		summarizeBy: none
+		sourceColumn: due_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column submission_status
+		dataType: string
+		lineageTag: 14e78d26-c925-424d-91e4-ea82a17bc92b
+		summarizeBy: none
+		sourceColumn: submission_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column evidence_present
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: ce8b3ba3-aa24-4a74-b68a-6795082088c7
+		summarizeBy: none
+		sourceColumn: evidence_present
+
+		annotation SummarizationSetBy = Automatic
+
+	column submitted_at
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: c6c8da2b-9b5f-4dcb-be00-cfe7bfcffda8
+		summarizeBy: none
+		sourceColumn: submitted_at
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column comment
+		dataType: string
+		lineageTag: 9f50bd28-c7ca-4819-892d-fd47710ce018
+		summarizeBy: none
+		sourceColumn: comment
+
+		annotation SummarizationSetBy = Automatic
+
+	column overdue_flag
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: af379737-bcd4-4b8a-a8fa-79cae370e028
+		summarizeBy: none
+		sourceColumn: overdue_flag
+
+		annotation SummarizationSetBy = Automatic
+
+	column submission_late
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 34633ee1-ae0c-4d3a-bfa1-c5060bde7ff9
+		summarizeBy: none
+		sourceColumn: submission_late
+
+		annotation SummarizationSetBy = Automatic
+
+	column days_overdue
+		dataType: int64
+		formatString: 0
+		lineageTag: 2b947889-d3b1-4ef4-bc01-1f1938aaf442
+		summarizeBy: sum
+		sourceColumn: days_overdue
+
+		annotation SummarizationSetBy = Automatic
+
+	column days_late
+		dataType: int64
+		formatString: 0
+		lineageTag: 2633e549-31da-4019-b29b-97decd662fd5
+		summarizeBy: sum
+		sourceColumn: days_late
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_quality_status
+		dataType: string
+		lineageTag: 460effb7-bd05-410e-8039-b3225f33c561
+		summarizeBy: none
+		sourceColumn: data_quality_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column active_action_id
+		dataType: string
+		lineageTag: 5c5ea3e3-0ddd-4706-ad2d-121064a3653a
+		summarizeBy: none
+		sourceColumn: active_action_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column active_action_status
+		dataType: string
+		lineageTag: bd71a48b-f916-4f4a-9000-13b651c9dfff
+		summarizeBy: none
+		sourceColumn: active_action_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column active_action_due_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 8c034904-635c-492f-b64a-d6c346722128
+		summarizeBy: none
+		sourceColumn: active_action_due_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column reminder_count
+		dataType: int64
+		formatString: 0
+		lineageTag: f73c7e7a-090d-472b-998f-2521cbc2323d
+		summarizeBy: sum
+		sourceColumn: reminder_count
+
+		annotation SummarizationSetBy = Automatic
+
+	column last_reminder_at
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: b5f93935-9957-4140-bbe3-f22e7a3b3d8e
+		summarizeBy: none
+		sourceColumn: last_reminder_at
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition ControlStatus = m
+		mode: import
+		source =
+				let
+				    Source =
+				        Csv.Document(
+				            File.Contents(DataRoot & "\curated_control_status.csv"),
+				            [
+				                Delimiter = ",",
+				                Encoding = 65001,
+				                QuoteStyle = QuoteStyle.Csv
+				            ]
+				        ),
+				
+				    PromotedHeaders =
+				        Table.PromoteHeaders(
+				            Source,
+				            [PromoteAllScalars = true]
+				        ),
+				
+				    BlankToNull =
+				        Table.ReplaceValue(
+				            PromotedHeaders,
+				            "",
+				            null,
+				            Replacer.ReplaceValue,
+				            Table.ColumnNames(PromotedHeaders)
+				        ),
+				
+				    Typed =
+				        Table.TransformColumnTypes(
+				            BlankToNull,
+				            {
+				                {"source_row_number", Int64.Type},
+				                {"submission_id", type text},
+				                {"control_id", type text},
+				                {"control_name", type text},
+				                {"business_unit", type text},
+				                {"owner_role", type text},
+				                {"owner_email", type text},
+				                {"frequency", type text},
+				                {"risk_level", type text},
+				                {"reporting_period", type text},
+				                {"due_date", type date},
+				                {"submission_status", type text},
+				                {"evidence_present", type logical},
+				                {"submitted_at", type date},
+				                {"comment", type text},
+				                {"overdue_flag", type logical},
+				                {"submission_late", type logical},
+				                {"days_overdue", Int64.Type},
+				                {"days_late", Int64.Type},
+				                {"data_quality_status", type text},
+				                {"active_action_id", type text},
+				                {"active_action_status", type text},
+				                {"active_action_due_date", type date},
+				                {"reminder_count", Int64.Type},
+				                {"last_reminder_at", type date}
+				            },
+				            "en-US"
+				        )
+				in
+				    Typed
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
