@@ -18,6 +18,7 @@ The project is intentionally small and explicit. It demonstrates how operational
 - **Deterministic Data Quality** — DQ-001 through DQ-010 validate Submission data without silent semantic correction.
 - **Controlled reporting boundary** — live Microsoft 365 Control, Submission, and Action state is exported as a private four-file snapshot package and processed through the existing Python semantics via explicit paths.
 - **Deterministic regression baseline** — canonical repository fixtures remain unchanged while operational snapshots evolve independently.
+- **Source-controlled Power BI foundation** — the dashboard is stored as PBIP with PBIR report metadata and a TMDL semantic-model scaffold before data/model logic is added.
 - **Controlled AI boundary** — only Data-Quality-valid Non-Compliant or overdue Submissions enter the minimized AI review queue; final compliance authority remains human.
 - **Reproducible engineering** — GitHub Actions executes the Python regression suite on pushes and pull requests targeting `main`.
 
@@ -38,6 +39,8 @@ The project is intentionally small and explicit. It demonstrates how operational
 | Phase 6 reminder workflow | ✅ Implemented and acceptance-tested |
 | Phase 7 reporting snapshot bridge | ✅ Implemented and end-to-end accepted |
 | Phase 8.0 Power BI reporting/KPI contract | ✅ Complete |
+| Phase 8.1 canonical reporting baseline | ✅ Complete and CI-verified |
+| Phase 8.2 PBIP/PBIR/TMDL project scaffold | ✅ Complete |
 | Continuous Integration | ✅ GitHub Actions |
 | Required CI merge gate | ⚠ Not currently enforced |
 
@@ -144,12 +147,12 @@ flowchart TD
         K --> N[AI Review Queue]
     end
 
-    L --> P[Power BI — Phase 8 contract complete / runtime not started]
+    L --> P[Power BI — Phase 8.2 project scaffold complete / data loading next]
     N --> Q[Controlled AI Runtime — Phase 9 Planned]
     Q --> R[Human Governance Review]
 ```
 
-See [Architecture](docs/architecture.md), [Phase 7 End-to-End Acceptance](docs/phase7_end_to_end_acceptance.md), and [Phase 8.0 Power BI Contract](docs/phase8_power_bi_contract.md).
+See [Architecture](docs/architecture.md), [Phase 7 End-to-End Acceptance](docs/phase7_end_to_end_acceptance.md), [Phase 8.0 Power BI Contract](docs/phase8_power_bi_contract.md), [Phase 8.1 Canonical Baseline](docs/phase8_canonical_baseline.md), and [Phase 8.2 Power BI Project Scaffold](docs/phase8_power_bi_project.md).
 
 ## Implementation Status
 
@@ -169,7 +172,9 @@ See [Architecture](docs/architecture.md), [Phase 7 End-to-End Acceptance](docs/p
 | Phase 7 WP3 | Private snapshot → Python end-to-end acceptance | ✅ Complete |
 | **Phase 7** | **Reporting Snapshot Bridge** | **✅ Complete** |
 | Phase 8.0 | Power BI Reporting & KPI Contract | ✅ Complete |
-| **Phase 8** | **Power BI Dashboard** | **◐ In progress — runtime not started** |
+| Phase 8.1 | Canonical Curated Reporting Baseline | ✅ Complete and CI-verified |
+| Phase 8.2 | PBIP/PBIR/TMDL Power BI Project Scaffold | ✅ Complete |
+| **Phase 8** | **Power BI Dashboard** | **◐ In progress — project scaffold complete; data loading next** |
 | Phase 9 | Controlled AI Workflow | ○ Planned |
 | Phase 10 | REST API | ○ Planned |
 | Phase 11 | Documentation & Handover | ○ Planned |
@@ -349,7 +354,18 @@ See:
 
 ## Phase 8 — Power BI Dashboard
 
-Phase 8.0 has frozen the reporting and KPI semantics before report implementation.
+Phase 8.0 froze the reporting and KPI semantics before report implementation. Phase 8.1 fixed the deterministic canonical reporting baseline. Phase 8.2 created the version-controlled Power BI project scaffold using PBIP, PBIR, and TMDL.
+
+The current source-controlled artifact is:
+
+```text
+powerbi/CyberGovernanceDashboard/
+├── CyberGovernanceDashboard.pbip
+├── CyberGovernanceDashboard.Report/
+└── CyberGovernanceDashboard.SemanticModel/
+```
+
+The PBIR report references the semantic model by repository-relative path. The semantic model is stored as TMDL and currently contains only initial model/culture metadata. Local Power BI settings and model cache remain ignored; source-control-safe editor settings remain versioned.
 
 Power BI will consume exactly:
 
@@ -357,6 +373,8 @@ Power BI will consume exactly:
 curated_control_status.csv
 data_quality_issues.csv
 ```
+
+Those data sources are **not loaded in Phase 8.2**. Their ingestion and technical typing begin in Phase 8.3.
 
 Submission remains the primary reporting grain. Data Quality Issues relate back to raw Submission lineage through:
 
@@ -370,7 +388,7 @@ DataQualityIssues[source_row_number]
 
 The relationship is deliberately not based on `submission_id`, because missing or duplicate Submission identifiers are Data Quality scenarios. Power Query is restricted to technical loading and typing; Python remains the owner of DQ, Control enrichment, Action aggregation, and derived metrics.
 
-The Phase 8 contract also fixes the business definitions for governance, timeliness, Data Quality, and reminder/process-impact KPIs and defines three target report pages:
+The Phase 8 contract fixes the business definitions for governance, timeliness, Data Quality, and reminder/process-impact KPIs and defines three target report pages:
 
 ```text
 Management Overview
@@ -378,9 +396,13 @@ Control Monitoring
 Process & Data Quality
 ```
 
-No Power BI runtime artifact, DAX implementation, or visual is claimed as implemented by Phase 8.0.
+At the Phase 8.2 boundary, no curated data queries, semantic-model relationship, DAX measures, or final report visuals are claimed as implemented.
 
-See [Phase 8.0 Power BI Reporting and KPI Contract](docs/phase8_power_bi_contract.md).
+See:
+
+- [Phase 8.0 Power BI Reporting and KPI Contract](docs/phase8_power_bi_contract.md)
+- [Phase 8.1 Canonical Curated Reporting Baseline](docs/phase8_canonical_baseline.md)
+- [Phase 8.2 Power BI Project Scaffold](docs/phase8_power_bi_project.md)
 
 ## Python Pipeline
 
@@ -472,6 +494,8 @@ For the accepted private operational snapshot at `as_of_date = 2026-08-23`, the 
 | pandas | Transformation and enrichment |
 | pytest | Automated testing |
 | CSV / JSON | Canonical and snapshot data contracts |
+| Power BI Desktop | Phase 8 report authoring and local project validation |
+| PBIP / PBIR / TMDL | Source-controlled Power BI project, report, and semantic-model definitions |
 | GitHub Actions | Continuous Integration |
 | Git / GitHub | Version control and review workflow |
 
@@ -519,6 +543,8 @@ The three source overrides must be supplied together. No OneDrive, Graph, manife
 | [docs/phase7_python_external_input.md](docs/phase7_python_external_input.md) | Phase 7.3 CLI/input-boundary acceptance |
 | [docs/phase7_end_to_end_acceptance.md](docs/phase7_end_to_end_acceptance.md) | Final Phase 7 WP3 acceptance and regression proof |
 | [docs/phase8_power_bi_contract.md](docs/phase8_power_bi_contract.md) | Phase 8.0 reporting, semantic-model, KPI, page, and acceptance contract |
+| [docs/phase8_canonical_baseline.md](docs/phase8_canonical_baseline.md) | Phase 8.1 deterministic canonical reporting baseline and acceptance values |
+| [docs/phase8_power_bi_project.md](docs/phase8_power_bi_project.md) | Phase 8.2 PBIP/PBIR/TMDL project scaffold and Git boundary |
 | [docs/repository_conventions.md](docs/repository_conventions.md) | Documentation and naming conventions |
 
 ## Security and Governance Boundaries
@@ -529,6 +555,7 @@ The three source overrides must be supplied together. No OneDrive, Graph, manife
 - reachable acceptance-test recipients are not published,
 - tenant identifiers, connection identifiers, credentials, tokens, and private deployment ZIPs are not committed,
 - public Power Automate source is sanitized and uses deployment placeholders,
+- the Phase 8.2 Power BI scaffold contains no reporting or operational data,
 - evidence intake cannot assign compliance,
 - reminder automation cannot assign compliance,
 - reporting export cannot repair or reinterpret source state,
@@ -550,7 +577,7 @@ Current limitations include:
 - no custom Phase 5 confirmation e-mail,
 - no production escalation hierarchy or SLA engine,
 - no production-grade IAM/RBAC, audit trail, monitoring, or telemetry datastore,
-- no Power BI runtime artifact yet,
+- Power BI project scaffold exists, but curated data ingestion, semantic relationship, DAX measures, and final visuals are not implemented yet,
 - no external AI model invocation,
 - no REST API implementation,
 - no enforced required CI status check before merge.
