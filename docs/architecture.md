@@ -42,9 +42,9 @@ data/raw/actions.csv                ┘
 
 The repository CSV/JSON files are canonical synthetic acceptance fixtures. They are **not** generated automatically from the live Microsoft 365 workbook.
 
-### Planned Phase 7 bridge
+### Phase 7 reporting bridge
 
-Phase 7.0 now fixes the contract for a private operational snapshot package containing:
+Phase 7.0 fixes the contract for a private operational snapshot package containing:
 
 ```text
 Control snapshot JSON
@@ -53,7 +53,7 @@ Action snapshot CSV
 Completion manifest JSON
 ```
 
-The runtime Power Automate export and Python external-input path are still **not implemented**. The contract is defined in [phase7_reporting_export.md](phase7_reporting_export.md).
+Phase 7.2 implements and acceptance-tests the Power Automate export. Phase 7.3 implements an explicit all-or-none Python input-path boundary. WP3 private operational snapshot → Python acceptance remains pending. The contract is defined in [phase7_reporting_export.md](phase7_reporting_export.md).
 
 ## 2. High-Level Architecture
 
@@ -82,14 +82,14 @@ flowchart TD
     C -. Phase 7 Submission export .-> S[Operational Snapshot Package]
     E -. Phase 7 Control export .-> S
     F -. Phase 7 Action/reminder export .-> S
-    S -. planned explicit external-input path .-> K
+    S -. explicit Phase 7.3 source paths .-> K
 
     L --> P[Power BI — Planned]
     N --> Q[Controlled AI Runtime — Planned]
     Q --> R[Human Governance Review]
 ```
 
-Phase 7.0 defines this bridge but does not yet implement the runtime synchronization.
+The bridge is deliberately caller-controlled rather than automatically synchronized. Power Automate creates private snapshots, and Python processes only an explicitly supplied coherent source set. Full Phase 7 still requires WP3 end-to-end acceptance with one private operational package.
 
 ## 3. Why Operational State Does Not Replace Canonical Fixtures
 
@@ -263,11 +263,11 @@ See [phase6_reminder_automation.md](phase6_reminder_automation.md).
 
 ## 7. Phase 7 Reporting Snapshot Boundary
 
-Phase 7.0 defines the planned bridge from operational Microsoft 365 state to downstream Python/reporting integration.
+Phase 7.2 and Phase 7.3 implement the controlled bridge from operational Microsoft 365 source facts to explicit downstream Python processing.
 
 The snapshot includes all three operational source tables because mixing live Submissions/Actions with only the synthetic repository Control reference would create a mixed-state reporting run.
 
-Planned logical package:
+Logical package:
 
 ```text
 ControlCatalog
@@ -367,9 +367,9 @@ The operational workbook is not committed because authenticated identities and r
 
 ### Power Automate — Reporting Snapshot
 
-Phase 7.0 contract only; runtime implementation remains planned.
+Phase 7.2 runtime implemented and acceptance-tested.
 
-The planned flow may:
+The implemented flow:
 
 - read `ControlCatalog`, `SubmissionRegister`, and `ActionRegister`,
 - create one shared snapshot identity,
@@ -386,7 +386,7 @@ It must not implement compliance, Data Quality rules, Action aggregation, or sil
 - provides low-complexity Microsoft 365 integration for the PoC,
 - is not presented as a production transactional datastore,
 - remains separate from canonical repository raw/reference data,
-- will host private Phase 7 reporting snapshots once the export flow is implemented.
+- hosts private Phase 7 reporting snapshots.
 
 For production, Dataverse, SharePoint Lists, or a relational database would generally be preferable where stronger concurrency, auditability, transactional behavior, or snapshot consistency are required.
 
@@ -394,7 +394,7 @@ For production, Dataverse, SharePoint Lists, or a relational database would gene
 
 Currently:
 
-- reads canonical repository CSV/JSON inputs,
+- reads canonical repository CSV/JSON inputs or one explicit external source set,
 - normalizes technical representation without semantic repair,
 - applies DQ-001 through DQ-010 to Submission data,
 - enriches Submission data with Control metadata,
@@ -402,7 +402,7 @@ Currently:
 - derives governance/timeliness fields,
 - writes curated reporting and AI-queue outputs.
 
-Phase 7 implementation is planned to add explicit external input paths while preserving canonical paths as defaults. Phase 7.0 does not yet change Python code.
+Phase 7.3 accepts explicit Control, Submission, and Action paths while preserving canonical paths as defaults. The three source overrides are all-or-none, `--output-directory` is independent, and both modes reuse the existing pipeline. The manifest is not consumed automatically; its `as_of_date` must be passed explicitly.
 
 ### Power BI
 
@@ -413,7 +413,7 @@ reminder_count
 last_reminder_at
 ```
 
-Phase 7 must carry those facts across the reporting boundary before live reminder execution can be represented in Phase 8.
+Phase 7.2 exports those facts and Phase 7.3 routes them through Python. WP3 must still prove this handoff with one private operational package before Phase 8 begins.
 
 ### Controlled AI Workflow
 
@@ -440,7 +440,7 @@ Operational snapshot artifacts must remain outside the public repository because
 - Same-day reminder execution is idempotent.
 - The operational workbook and canonical repository fixtures are separate artifacts.
 - Phase 7 snapshots are explicit external artifacts; they do not overwrite canonical fixtures.
-- Phase 7.0 defines the integration contract but does not claim runtime synchronization is implemented.
+- Phase 7.2 exports private source snapshots and Phase 7.3 processes explicit snapshot paths; no automatic synchronization or discovery is claimed.
 - Source facts are exported before Data Quality, aggregation, and derived metrics are applied.
 - AI-assisted processing is downstream of deterministic validation.
 - Actual evidence files are not stored in the repository.
@@ -458,6 +458,8 @@ Operational snapshot artifacts must remain outside the public repository because
 - [phase5_evidence_intake.md](phase5_evidence_intake.md)
 - [phase6_reminder_automation.md](phase6_reminder_automation.md)
 - [phase7_reporting_export.md](phase7_reporting_export.md)
+- [phase7_power_automate_acceptance.md](phase7_power_automate_acceptance.md)
+- [phase7_python_external_input.md](phase7_python_external_input.md)
 
 Historical phase-specific acceptance documents remain valid for the phase they describe and are not rewritten merely to resemble later operational state.
 
