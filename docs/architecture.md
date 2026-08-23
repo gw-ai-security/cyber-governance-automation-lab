@@ -79,6 +79,14 @@ ai_review_queue.json
 
 The repository CSV/JSON datasets remain canonical synthetic acceptance fixtures. Operational snapshot processing does not overwrite them.
 
+Phase 8.2 adds a source-controlled Power BI project scaffold under:
+
+```text
+powerbi/CyberGovernanceDashboard/
+```
+
+The scaffold uses PBIP for the project entry point, PBIR for report metadata, and TMDL for the semantic-model definition. At the Phase 8.2 boundary it contains no reporting data, model relationship, DAX measures, or final visuals.
+
 ## 2. High-Level Architecture
 
 ```mermaid
@@ -108,7 +116,7 @@ flowchart TD
         K --> N[AI Review Queue]
     end
 
-    L --> P[Power BI — Phase 8 Planned]
+    L --> P[Power BI — Phase 8.2 project scaffold complete / data loading next]
     N --> Q[Controlled AI Runtime — Phase 9 Planned]
     Q --> R[Human Governance Review]
 ```
@@ -535,7 +543,49 @@ last_reminder_at
 
 Action-specific DQ rule IDs are not introduced by Phase 7. The Python pipeline continues to apply DQ-001 through DQ-010 to Submission data.
 
-## 12. Controlled AI Boundary
+## 12. Phase 8 Reporting Boundary
+
+Phase 8 consumes exactly the two curated reporting outputs:
+
+```text
+curated_control_status.csv
+data_quality_issues.csv
+```
+
+It does not read the operational Excel workbook or raw Phase 7 snapshots directly.
+
+Phase 8.0 freezes the semantic/KPI contract. Phase 8.1 freezes the canonical acceptance baseline. Phase 8.2 establishes the source-controlled PBIP/PBIR/TMDL scaffold.
+
+Current project structure:
+
+```text
+powerbi/CyberGovernanceDashboard/
+├── CyberGovernanceDashboard.pbip
+├── CyberGovernanceDashboard.Report/
+└── CyberGovernanceDashboard.SemanticModel/
+```
+
+The report resolves the semantic model through a repository-relative path. The TMDL semantic model currently contains only initial model/culture metadata. Phase 8.3 will add the technical loading and typing of the two curated sources.
+
+The reporting relationship remains contractually fixed as:
+
+```text
+ControlStatus[source_row_number]
+          1
+          │
+          *
+DataQualityIssues[source_row_number]
+```
+
+No Phase 8.3+ model logic is claimed by the Phase 8.2 scaffold.
+
+See:
+
+- [phase8_power_bi_contract.md](phase8_power_bi_contract.md)
+- [phase8_canonical_baseline.md](phase8_canonical_baseline.md)
+- [phase8_power_bi_project.md](phase8_power_bi_project.md)
+
+## 13. Controlled AI Boundary
 
 AI queue eligibility remains:
 
@@ -553,7 +603,7 @@ The queue is a minimized review-preparation artifact, not a compliance engine or
 
 Final compliance authority remains human.
 
-## 13. Storage and Privacy Boundary
+## 14. Storage and Privacy Boundary
 
 Operational snapshots remain private because they may contain:
 
@@ -564,7 +614,7 @@ comments
 operational acceptance state
 ```
 
-The public repository may contain only sanitized screenshots, sanitized Power Automate source, synthetic examples, and non-sensitive acceptance observations.
+The public repository may contain only sanitized screenshots, sanitized Power Automate source, synthetic examples, non-sensitive acceptance observations, and source-controlled Power BI project metadata that contains no reporting data or private connection state.
 
 The public workflow representation under:
 
@@ -574,7 +624,14 @@ power_automate/solutions/cyber_governance_automation/
 
 uses placeholders for environment-specific bindings.
 
-## 14. Consistency and Concurrency Boundary
+For the Power BI project, machine-local model/cache state remains outside Git through:
+
+```text
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+```
+
+## 15. Consistency and Concurrency Boundary
 
 Excel Online / OneDrive does not provide a transactional three-table snapshot for this PoC.
 
@@ -590,7 +647,7 @@ Mitigations are:
 
 Phase 7 does not claim ACID or point-in-time transactional semantics.
 
-## 15. Component Responsibilities
+## 16. Component Responsibilities
 
 ### Microsoft Forms
 
@@ -631,21 +688,21 @@ Phase 7 does not claim ACID or point-in-time transactional semantics.
 
 ### Power BI
 
-Planned for Phase 8 and not yet implemented.
+Phase 8.2 has implemented the version-controlled PBIP/PBIR/TMDL project scaffold. The scaffold currently contains no curated source queries, model relationship, DAX measures, or final report visuals. Those are implemented in later Phase 8 work packages.
 
 ### Controlled AI Runtime
 
 Planned for Phase 9 and not yet implemented.
 
-## 16. Repository Governance Boundary
+## 17. Repository Governance Boundary
 
 GitHub Actions runs the complete Python test suite for pull requests targeting `main` and pushes to `main`.
 
 Current CI is active, but the Python check is not enforced as a required merge gate by repository rules.
 
-Operational snapshot artifacts, private workbook data, credentials, tokens, tenant identifiers, Connection bindings, and private deployment packages do not belong in version control.
+Operational snapshot artifacts, private workbook data, credentials, tokens, tenant identifiers, Connection bindings, local Power BI cache/state, and private deployment packages do not belong in version control.
 
-## 17. Architecture Principles
+## 18. Architecture Principles
 
 - Expected state exists before observed evidence.
 - Evidence submission is not a compliance decision.
@@ -660,11 +717,13 @@ Operational snapshot artifacts, private workbook data, credentials, tokens, tena
 - Phase 7 is an explicit reporting bridge, not destructive or automatic synchronization.
 - A completion manifest distinguishes valid snapshots from partial artifacts.
 - Python semantics are reused for both canonical and operational source sets.
+- Power BI consumes curated outputs rather than duplicating upstream business logic.
+- Power BI project/report/model definitions are version-controlled separately from machine-local cache and settings.
 - AI processing remains downstream of deterministic validation.
 - Final compliance authority remains human.
 - Excel/OneDrive is a PoC boundary, not an enterprise architecture claim.
 
-## 18. Current Limitations
+## 19. Current Limitations
 
 - no automatic expected-Submission generation,
 - no automatic completion of missing-submission Actions after later evidence intake,
@@ -673,11 +732,11 @@ Operational snapshot artifacts, private workbook data, credentials, tokens, tena
 - no scheduled Python snapshot-processing service,
 - no Action-specific DQ rule catalog,
 - no production-grade IAM/RBAC, DLP, audit, monitoring, retention, or telemetry architecture,
-- no Power BI report yet,
+- Power BI project scaffold exists, but curated data ingestion, semantic relationship, DAX measures, and final visuals are not implemented yet,
 - no external AI invocation,
 - no REST API implementation.
 
-## 19. References
+## 20. References
 
 Current-state foundation:
 
@@ -696,5 +755,8 @@ Phase-specific evidence:
 - [phase7_power_automate_acceptance.md](phase7_power_automate_acceptance.md)
 - [phase7_python_external_input.md](phase7_python_external_input.md)
 - [phase7_end_to_end_acceptance.md](phase7_end_to_end_acceptance.md)
+- [phase8_power_bi_contract.md](phase8_power_bi_contract.md)
+- [phase8_canonical_baseline.md](phase8_canonical_baseline.md)
+- [phase8_power_bi_project.md](phase8_power_bi_project.md)
 
 Historical phase-specific documents remain valid for the phase they describe. Current-state foundation documents and final acceptance evidence define the present architecture.
