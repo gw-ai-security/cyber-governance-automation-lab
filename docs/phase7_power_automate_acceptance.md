@@ -6,7 +6,7 @@
 
 Phase 7.2 implements the scheduled Power Automate reporting snapshot defined by the Phase 7.0 contract and prepared in Phase 7.1.
 
-This document records the observed runtime evidence for the Power Automate portion only. The Python external-input bridge remains a separate Phase 7 work package.
+This document records the Power Automate-specific acceptance evidence. Subsequent Phase 7.3 Python external-input implementation and WP3 end-to-end acceptance are documented separately and are now complete.
 
 ## Implemented Flow
 
@@ -68,7 +68,7 @@ pagination = enabled
 pagination threshold = 5000
 ```
 
-The final runtime source is the operational workbook with:
+Runtime sources:
 
 ```text
 ControlCatalog
@@ -76,13 +76,11 @@ SubmissionRegister
 ActionRegister
 ```
 
-No test table or failure-injection action remains in the final exported solution.
+The final flow contains no temporary failure-injection action or empty-test Action table.
 
 ## Normal Happy-Path Acceptance
 
-A successful operational run produced one logical package with a shared snapshot ID.
-
-Observed clean acceptance counts:
+After blank Excel table rows discovered during the first run were removed from the source workbook, the clean operational package contained:
 
 ```text
 Controls:     5
@@ -102,34 +100,25 @@ security_snapshot_manifest_<snapshot_id>.json
 
 Validated properties:
 
-- Control snapshot is a JSON top-level array.
-- Control objects contain exactly the eight source fields.
-- Submission CSV contains exactly nine contractual columns.
-- Action CSV contains exactly ten contractual columns.
+- Control snapshot is a top-level JSON array with exactly eight Control fields.
+- Submission CSV contains the exact nine-column contract.
+- Action CSV contains the exact ten-column contract.
 - Dates serialize as `YYYY-MM-DD`.
-- missing optional values remain empty rather than synthetic missing-value tokens.
+- Empty optional values remain empty fields.
 - CSV quoting preserves fields containing commas.
-- Action `reminder_count` and `last_reminder_at` cross the reporting boundary.
-- manifest file names match the three generated source artifacts.
-- manifest row counts match the exported source rows.
+- `reminder_count` and `last_reminder_at` are preserved from Action source state.
+- manifest filenames match the generated source artifacts.
+- manifest row counts match source rows.
 - `status = complete`.
 - CATCH is skipped on a successful run.
 
 ## Source-Data Hygiene Finding
 
-The first happy-path run exposed one fully blank Excel table row in `ControlCatalog` and one fully blank row in `SubmissionRegister`.
+The first happy-path run exposed fully blank Excel table rows in the operational source tables.
 
-The flow correctly exported the source facts; it did not silently filter them.
+Power Automate correctly exported those source facts rather than silently filtering them. The workbook source was corrected and the flow was rerun.
 
-The operational workbook was corrected by removing the blank table rows. A repeat run then produced:
-
-```text
-control_rows = 5
-submission_rows = 17
-action_rows = 2
-```
-
-No filter was added to Power Automate because the project boundary remains:
+No filtering rule was added because the project boundary remains:
 
 ```text
 Power Automate exports source facts.
@@ -138,7 +127,7 @@ Python owns deterministic validation.
 
 ## Failure-Path Acceptance
 
-A temporary deterministic runtime failure was injected inside the TRY scope using a division-by-zero expression.
+A reversible deterministic runtime failure was injected inside TRY using a division-by-zero expression.
 
 Observed behavior:
 
@@ -151,9 +140,9 @@ Terminate Snapshot Flow            → Executed as Failed
 Overall flow run                    → Failed
 ```
 
-The three source artifacts written before the injected failure could exist, but the completion manifest for that snapshot ID did not exist.
+Source files written before the injected failure could remain, but the completion manifest for that run was not created.
 
-This proves the intended completion rule:
+This proves:
 
 ```text
 partial source files
@@ -162,13 +151,13 @@ without completion manifest
 valid snapshot package
 ```
 
-The failure-injection action was removed after acceptance.
+The temporary failure-injection action was removed after acceptance.
 
 ## Empty-Action Acceptance
 
-A temporary header-only Excel table with the Action schema was used to test a source state with zero Actions without deleting operational Action records.
+A temporary Action table with the exact schema and zero data rows was used without deleting the real operational Action records.
 
-Observed manifest:
+Observed manifest state:
 
 ```text
 control_rows = 5
@@ -177,19 +166,19 @@ action_rows = 0
 status = complete
 ```
 
-The Action CSV was successfully generated as a **header-only CSV** with the exact contractual header:
+The generated Action CSV was header-only with the exact contract:
 
 ```csv
 action_id,control_id,submission_id,owner_email,created_at,due_date,status,reminder_count,last_reminder_at,description
 ```
 
-Therefore no special empty-dataset branch is required.
+No special empty-dataset branch was required.
 
-The temporary test table was removed and the final flow was restored to `ActionRegister`.
+The temporary test table was removed and the runtime source restored to `ActionRegister`.
 
 ## Final Smoke Run
 
-After all test-only modifications were removed, a final normal run completed successfully with:
+After all test-only changes were removed, the final normal run again produced:
 
 ```text
 control_rows = 5
@@ -198,35 +187,13 @@ action_rows = 2
 status = complete
 ```
 
-This confirms the final runtime was restored after acceptance testing.
+This confirms the accepted final runtime state rather than a test-modified flow.
 
 ## Flow-as-Code / ALM Evidence
 
-The Phase 7 flow was not built entirely through manual designer clicks.
+The flow was developed using a real unmanaged Solution scaffold and a controlled export/unpack/modify/pack/import loop rather than inventing a tenant package from scratch.
 
-The implementation used this controlled loop:
-
-```text
-real tenant unmanaged Solution scaffold
-        ↓
-export
-        ↓
-inspect workflow JSON and connector bindings
-        ↓
-programmatically extend workflow definition
-        ↓
-pack/import Solution
-        ↓
-bind existing Connection References
-        ↓
-Power Automate designer validation
-        ↓
-runtime acceptance tests
-```
-
-The generated Solution imported successfully and the generated workflow rendered correctly in the Power Automate designer.
-
-Final private unmanaged export inspected for this acceptance:
+Final private unmanaged export inspected during acceptance:
 
 ```text
 Version: 1.0.0.5
@@ -234,25 +201,39 @@ Managed: 0
 SHA-256: ac8cedbea709c7ac06d928ed77de8f685f17b79e0cb20a126263a77efaea4213
 ```
 
-The private deployment ZIP itself is intentionally not committed.
+The tenant deployment ZIP itself is intentionally not committed.
 
-## Public Source-Control Boundary
-
-The repository contains a sanitized workflow representation under:
+The public repository contains a sanitized workflow representation under:
 
 ```text
 power_automate/solutions/cyber_governance_automation/
 ```
 
-The public source removes or replaces:
+Environment-specific values are replaced by explicit placeholders.
 
-- reachable notification recipient,
-- OneDrive drive identifier,
-- workbook file identifier,
-- Excel table identifiers,
-- tenant-specific Connection Reference logical names.
+## Public Screenshot Evidence
 
-Operational snapshot files remain private because they can contain responder identity, Control-owner e-mail, comments, and acceptance-test state.
+The committed Phase 7 screenshots are selected from the actual designer/run acceptance evidence and contain no reachable recipient address, authenticated submitter identity, tenant identifier, connection identifier, or private workbook/table binding.
+
+### Flow overview
+
+![Phase 7 flow overview](screenshots/phase-7-reporting-export/phase7_flow_overview.webp)
+
+### Snapshot context and schedule
+
+![Phase 7 snapshot context](screenshots/phase-7-reporting-export/phase7_snapshot_context.webp)
+
+### Action serialization and snapshot write
+
+![Phase 7 serialization](screenshots/phase-7-reporting-export/phase7_serialization.webp)
+
+### Controlled failure path
+
+![Phase 7 failure path](screenshots/phase-7-reporting-export/phase7_failure_path.webp)
+
+### Successful run skips CATCH
+
+![Phase 7 success CATCH skipped](screenshots/phase-7-reporting-export/phase7_success_catch_skipped.webp)
 
 ## Acceptance Matrix
 
@@ -261,7 +242,7 @@ Operational snapshot files remain private because they can contain responder ide
 | Solution import | PASS |
 | Connection Reference mapping | PASS |
 | Workflow designer rendering | PASS |
-| Weekly schedule | PASS |
+| Weekly Monday 09:00 schedule | PASS |
 | Snapshot context | PASS |
 | ISO-8601 reads | PASS |
 | Pagination | PASS |
@@ -278,19 +259,24 @@ Operational snapshot files remain private because they can contain responder ide
 | No manifest for failed partial package | PASS |
 | Empty ActionRegister | PASS |
 | Header-only Action CSV | PASS |
-| Final cleanup/smoke run | PASS |
+| Final cleanup / smoke run | PASS |
 
-## Remaining Phase 7 Work
+## Subsequent Phase 7 Completion
 
-Phase 7 is not fully complete yet.
+Phase 7.2 itself remains the Power Automate acceptance boundary documented above.
 
-The next work package is the Python external-input boundary:
+After this acceptance:
 
-```text
---controls-path
---submissions-path
---actions-path
---output-directory
-```
+- Phase 7.3 implemented the explicit Python external-input boundary,
+- WP3 processed a real private operational snapshot end to end,
+- manifest source counts matched Python source counts,
+- Phase 6 reminder fields were observed in curated reporting,
+- the canonical regression remained unchanged,
+- the complete suite remained 53 passing tests.
 
-The canonical repository defaults and the deterministic `as_of_date = 2026-08-15` acceptance baseline must remain unchanged.
+Therefore full Phase 7 is now complete.
+
+See:
+
+- [phase7_python_external_input.md](phase7_python_external_input.md)
+- [phase7_end_to_end_acceptance.md](phase7_end_to_end_acceptance.md)
