@@ -2,60 +2,79 @@
 
 ## Purpose
 
-This document defines the simplified, recurring cybersecurity governance process modeled by this project. In this process, control owners periodically provide evidence that a security control is implemented and operating as expected.
+This document defines the **current business-process semantics** modeled by the Cyber Governance Automation Lab.
 
-This is a portfolio proof of concept. The process is intentionally simplified and does not claim to represent the exact governance process of any real organization, bank, or regulated entity.
+The project represents a simplified recurring cybersecurity-governance evidence process. It is a portfolio proof of concept and does not claim to reproduce the exact control-governance process of any real organization, bank, or regulated entity.
 
-## Process Scope
+The process covers expected evidence Submissions, evidence intake, governance assessment, timeliness, deterministic Data Quality, follow-up Actions, reminder tracking, and reporting. It does not model the technical execution of the underlying controls themselves.
 
-The process covers the recurring lifecycle of a security control's evidence submission: from the moment a reporting period becomes active, through evidence submission and review, to status assessment, timeliness evaluation, data quality validation, and downstream reporting/actions.
+## 1. Core Modeling Principles
 
-It does not cover control design, control implementation, or the technical execution of the underlying security measures themselves.
+The process is built around several explicit separations:
 
-## Core Roles
+```text
+Evidence Present != Compliant
+Not Submitted != Non-Compliant
+Non-Compliant != Overdue
+Compliance != Timeliness
+Compliance != Data Quality
+Submission Status != Action Status
+Unknown != False
+Not Evaluated != Failed
+Action completion != Submission compliance
+```
+
+The project also distinguishes:
+
+```text
+Expected state
++
+Observed state
+=
+Detectable process gap
+```
+
+An expected Submission therefore exists before evidence arrives.
+
+## 2. Core Roles
 
 ### Control Owner
 
-The control owner is accountable for a security control from a governance perspective. The control owner is responsible for ensuring that evidence is submitted for each reporting period, even if the underlying technical activity is performed by someone else.
+The Control Owner is accountable for ensuring that evidence is supplied for a Control and reporting period. Accountability does not require the owner to personally execute every underlying technical activity.
 
-`Execution does not necessarily equal accountability.`
+```text
+Execution != Accountability
+```
 
-A control owner does not need to personally execute every technical activity related to the control (for example, running a patch scan or configuring MFA). Their accountability is for ensuring the control is confirmed and evidenced on time, not for performing every underlying technical task themselves.
+The Control Owner can submit or ensure submission of evidence but does not hold final compliance authority.
 
 ### Governance Reviewer
 
-The Governance Reviewer represents the cybersecurity governance function responsible for reviewing submitted evidence and assigning the assessment outcome for a Submission.
+The Governance Reviewer represents the governance function responsible for assessing submitted evidence.
 
-Responsibilities:
+Responsibilities include:
 
-* Review submitted evidence.
-* Determine whether the Submission is `Compliant` or `Non-Compliant`.
-* Review relevant data-quality exceptions where business interpretation is required.
-* Review AI-assisted recommendations.
-* Retain final human decision authority.
+- review submitted evidence,
+- determine `Compliant` or `Non-Compliant`,
+- interpret relevant exceptions where human judgment is required,
+- review AI-assisted recommendations,
+- retain final decision authority.
 
-The Control Owner submits or ensures submission of evidence. The Governance Reviewer performs the governance assessment.
+The project deliberately separates evidence submission from final governance assessment.
 
-For this proof of concept, these responsibilities are deliberately separated to avoid treating control-owner self-attestation as the final compliance decision. This role clarification does not add reviewer fields to the Submission entity.
+## 3. Business Units and Controls
 
-## Business Units
+The synthetic reference model uses three business units:
 
-This project uses exactly three business units:
+```text
+IT Operations
+Finance
+Retail Banking
+```
 
-* IT Operations
-* Finance
-* Retail Banking
+Each Control belongs to one primary business unit and one accountable owner in this PoC.
 
-For this proof of concept, each control belongs to exactly:
-
-* one primary business unit, and
-* one accountable control owner.
-
-This is a deliberate simplification. A production solution could model controls with multiple business units and multiple accountable owners, shared ownership, or delegated ownership. That complexity is out of scope here.
-
-## Security Controls
-
-Five security controls are used as the reference dataset for this project:
+Reference Controls:
 
 | Control ID | Name | Business Unit | Frequency | Risk Level |
 | --- | --- | --- | --- | --- |
@@ -65,27 +84,35 @@ Five security controls are used as the reference dataset for this project:
 | CTRL-004 | Security Awareness Training | Finance | Annual | Medium |
 | CTRL-005 | Critical System Patch Status Review | IT Operations | Monthly | Critical |
 
-Full field-level definitions for each control are documented in [data_model.md](data_model.md).
+Full logical fields are defined in [data_model.md](data_model.md).
 
-## Submission Lifecycle
+## 4. Submission Identity
 
-A submission record exists for every expected control/reporting-period combination from the moment the reporting period becomes active, not only once evidence has been provided. This record starts in `Not Submitted`, then progresses through review and receives a status once evidence has been assessed. The submission lifecycle is described in detail in [Status Model](#status-model).
+A Submission represents one expected or completed evidence-assessment record for one Control and reporting period.
 
-At a high level, for each active reporting period and control:
+Technical key:
 
-1. The reporting period becomes active.
-2. The expected Submission is created with status `Not Submitted`.
-3. The Control Owner prepares and submits evidence.
-4. The Submission moves to `In Review`.
-5. The Governance Reviewer reviews the evidence.
-6. The Governance Reviewer assigns `Compliant` or `Non-Compliant`.
-7. Timeliness is evaluated.
-8. Data Quality is validated.
-9. Exceptions, Actions, reminders, and reporting are generated as appropriate.
+```text
+submission_id
+```
 
-## Status Model
+Business key:
 
-Submissions use exactly the following status values:
+```text
+control_id + reporting_period
+```
+
+The business key identifies the expected business object. The technical key is used for stable physical updates.
+
+## 5. Expected Submission Lifecycle
+
+Expected Submission records exist before evidence is received and begin in:
+
+```text
+Not Submitted
+```
+
+Allowed Submission statuses are exactly:
 
 ```text
 Not Submitted
@@ -93,8 +120,6 @@ In Review
 Compliant
 Non-Compliant
 ```
-
-`Open` is not a valid submission status. `Open` is only used in the [Action Lifecycle](#action-lifecycle).
 
 Lifecycle:
 
@@ -108,46 +133,52 @@ Not Submitted
 Compliant  Non-Compliant
 ```
 
-Important distinctions:
+`Open` is not a Submission status. It belongs to Action.
+
+### Evidence intake transition
+
+Phase 5 operationalizes only:
 
 ```text
-Not Submitted != Non-Compliant
+Not Submitted → In Review
 ```
 
-A missing submission is not the same as a control that was assessed and found non-compliant.
+Evidence submission does not assign compliance.
+
+### Governance assessment
+
+The later governance assessment produces:
 
 ```text
-Non-Compliant != Overdue
+In Review → Compliant
 ```
 
-A submission can be non-compliant and still on time, or compliant and still have been submitted late. Compliance status and timeliness are evaluated independently.
+or:
 
 ```text
-Evidence Present != Compliant
+In Review → Non-Compliant
 ```
 
-Attaching evidence does not by itself make a submission compliant. Compliance is a review outcome, not a byproduct of evidence being present.
+The project models these outcomes in data but does not currently implement a dedicated Governance Reviewer UI for making the decision.
 
-### Evidence-State Semantics
+## 6. Evidence-State Semantics
 
-A Submission enters `In Review` only after evidence has been submitted. A `Non-Compliant` result means the evidence was reviewed and the assessed control outcome failed; it is not the same as missing evidence.
+Expected state relationships are:
 
-| Status | submitted_at | submitted_by | evidence_reference |
+| Submission status | submitted_at | submitted_by | evidence_reference |
 | --- | --- | --- | --- |
-| Not Submitted | null | null | null |
+| Not Submitted | empty | empty | empty |
 | In Review | present | present | present |
 | Compliant | present | present | present |
 | Non-Compliant | present | present | present |
 
-Evidence presence is required for every reviewed Submission state, but it does not imply compliance:
+These are validation semantics, not automatic repair rules.
 
-```text
-Evidence Present != Compliant
-```
+A source row violating them remains visible and can produce a Data Quality Issue.
 
-## Reporting Frequency and Periods
+## 7. Reporting Frequency and Periods
 
-Each control has a fixed `frequency`:
+Control `frequency` values:
 
 ```text
 Monthly
@@ -155,12 +186,12 @@ Quarterly
 Annual
 ```
 
-Each submission has a `reporting_period`, which identifies the specific period being assessed:
+Submission `reporting_period` representations:
 
 ```text
-Monthly   -> YYYY-MM
-Quarterly -> YYYY-QN
-Annual    -> YYYY
+Monthly   → YYYY-MM
+Quarterly → YYYY-QN
+Annual    → YYYY
 ```
 
 Examples:
@@ -171,43 +202,41 @@ Examples:
 2026
 ```
 
-`frequency` belongs to the control (how often it is assessed). `reporting_period` belongs to the individual submission (which specific period it covers).
+## 8. Synthetic Due-Date Rules
 
-## Due-Date Logic
-
-The following due-date rules are synthetic project assumptions used for this proof of concept. They are not derived from any regulatory requirement.
+The following rules are project assumptions for the PoC. They are not regulatory requirements.
 
 ### Monthly
 
-Due date = 10th calendar day of the following month.
+```text
+Due date = 10th calendar day of the following month
+```
+
+Example:
 
 ```text
-Reporting Period: 2026-08
-Due Date: 2026-09-10
+2026-08 → 2026-09-10
 ```
 
 ### Quarterly
 
-Due date = 10th calendar day after quarter end.
-
 ```text
-Reporting Period: 2026-Q3
-Quarter End: 2026-09-30
-Due Date: 2026-10-10
+Q1 → 10 April
+Q2 → 10 July
+Q3 → 10 October
+Q4 → 10 January of the following year
 ```
 
 ### Annual
 
-Due date = January 31 of the following year.
-
 ```text
-Reporting Period: 2026
-Due Date: 2027-01-31
+Reporting year YYYY
+→ 31 January of YYYY+1
 ```
 
-## Overdue and Late Submission Logic
+## 9. Timeliness
 
-### Currently Overdue
+### Currently overdue
 
 ```text
 IF submitted_at IS NULL
@@ -215,32 +244,33 @@ AND as_of_date > due_date
 THEN overdue_flag = true
 ```
 
-A submission is currently overdue when it is still missing after the deadline has passed.
-
-`as_of_date` is the reference date used when evaluating whether an unsubmitted submission is currently overdue.
+Equality is not overdue:
 
 ```text
-Normal execution:
-as_of_date = current processing date
-
-Tests / synthetic scenarios:
-as_of_date may be explicitly supplied as a fixed date for reproducible results
+as_of_date == due_date
+→ overdue_flag = false
 ```
 
-`as_of_date` is not stored as a source field on every submission. It is a parameter of the overdue evaluation, not a persisted attribute of the Submission entity.
+`as_of_date` is an execution/snapshot parameter, not a persisted Submission source field.
 
-### Late Submission
+### Submitted late
 
 ```text
-IF submitted_at > due_date
+IF submitted_at IS NOT NULL
+AND submitted_at > due_date
 THEN submission_late = true
 ```
 
-A late submission is one that was eventually submitted, but after the deadline.
+A Submission can therefore be:
 
-### Derived Fields
+- compliant and late,
+- non-compliant and on time,
+- overdue because no Submission has arrived,
+- in review after a late submission.
 
-The following fields are computed, not manually maintained:
+Compliance and timeliness are independent.
+
+### Derived timing fields
 
 ```text
 overdue_flag
@@ -249,85 +279,26 @@ days_overdue
 days_late
 ```
 
-### Examples
+When required dates are not evaluable, the deterministic pipeline preserves unknown/missing derived state rather than forcing `False` or `0`.
 
-#### On time and compliant
+## 10. Evidence Handling
 
-```text
-due_date: 2026-08-10
-submitted_at: 2026-08-08
-status: Compliant
+Only an `evidence_reference` is modeled. Actual evidence files are not stored in this repository.
 
-overdue_flag: false
-submission_late: false
-days_overdue: 0
-days_late: 0
-```
-
-#### On time but non-compliant
-
-```text
-due_date: 2026-08-10
-submitted_at: 2026-08-09
-status: Non-Compliant
-
-overdue_flag: false
-submission_late: false
-```
-
-#### Missing and overdue
-
-```text
-due_date: 2026-08-10
-submitted_at: null
-as_of_date: 2026-08-15
-status: Not Submitted
-
-overdue_flag: true
-days_overdue: 5
-```
-
-#### Submitted late
-
-```text
-due_date: 2026-08-10
-submitted_at: 2026-08-14
-status: In Review
-
-overdue_flag: false
-submission_late: true
-days_late: 4
-```
-
-## Evidence Handling
-
-Evidence is a traceable record demonstrating that a control has been implemented or reviewed.
-
-| Control | Example Evidence |
-| --- | --- |
-| Privileged Account MFA | MFA configuration report |
-| Privileged Access Review | Access review report |
-| Backup Recovery Testing | Recovery test report |
-| Security Awareness Training | Training completion report |
-| Critical System Patch Status Review | Patch status report |
-
-This project does not store actual evidence files. Only an `evidence_reference` is stored, for example:
+Synthetic examples may resemble:
 
 ```text
 EVID-001
-```
-
-or, synthetically:
-
-```text
 sharepoint://evidence/EVID-001
 ```
 
-No real security reports, credentials, tokens, personal data, internal company data, real system names, or confidential findings are stored in this repository. All evidence references are synthetic.
+A production evidence repository would require access control, classification, retention, auditability, and lifecycle governance beyond this PoC.
 
-## Action Lifecycle
+## 11. Action Lifecycle
 
-Actions are follow-up work items and are tracked separately from submissions. Actions use their own status model:
+Actions are follow-up work items related to exactly one Submission.
+
+Allowed statuses:
 
 ```text
 Open
@@ -335,68 +306,236 @@ In Progress
 Completed
 ```
 
-```text
-Submission Status
-!=
-Action Status
-```
-
-A submission status describes the assessment outcome of a specific reporting period. An action status describes the progress of a follow-up task (for example, remediating a non-compliant finding or chasing a missing submission). The two are related but independent.
-
-### Action Due-Date Rule
-
-For this proof of concept, every Action uses the following synthetic due-date rule:
+Synthetic due-date rule:
 
 ```text
 Action due_date = created_at + 7 calendar days
 ```
 
-Example:
+Reminder tracking belongs to Action:
 
 ```text
-created_at: 2026-08-11
-due_date: 2026-08-18
+reminder_count
+last_reminder_at
 ```
 
-This is a synthetic workflow assumption for the proof of concept, not a regulatory requirement.
+### Missing-submission follow-up
 
-### Missing-Submission Follow-up Completion
+When a Submission is missing and overdue, Phase 6 may create or reuse one active follow-up Action.
 
-If a follow-up Action exists because a Submission was overdue and still `Not Submitted`, and evidence is later received so that the Submission moves to `In Review`, the missing-submission follow-up Action is resolved and moves to `Completed`. This means the task of obtaining the missing submission is complete; the Submission still requires Governance Reviewer assessment.
+Operational invariant:
 
 ```text
-Action completion
+0 active Actions  → create one
+1 active Action   → reuse it
+>1 active Actions → DUPLICATE_ACTIVE_ACTION
+```
+
+The conceptual business completion condition is:
+
+```text
+missing evidence received
+→ missing-submission follow-up task no longer needed
+```
+
+and therefore the **target lifecycle** can resolve that Action to:
+
+```text
+Completed
+```
+
+However, the current PoC does **not automatically implement this transition** when Phase 5 later receives evidence and moves the Submission to `In Review`.
+
+Current implementation boundary:
+
+```text
+Phase 5 evidence intake
+→ updates Submission
+→ does not complete existing Action
+```
+
+Therefore an operational missing-submission Action may remain `Open` until separately resolved.
+
+This distinction is intentional and removes a previous documentation ambiguity:
+
+```text
+Target process semantic
 !=
-Submission compliance
+Implemented automation
 ```
 
-### Non-Compliant Remediation Actions
+Phase 7 exports the Action state exactly as stored and does not infer lifecycle repair.
 
-An Action created because a Submission is `Non-Compliant` represents remediation work. Evidence presence does not automatically complete that Action. It remains `Open` or `In Progress` until the remediation is considered complete.
+### Non-Compliant remediation Actions
 
-### Data Quality Follow-up Actions
+An Action associated with a `Non-Compliant` Submission represents remediation work. Evidence presence does not automatically complete that Action.
 
-For this proof of concept, a Data Quality exception may generate a follow-up Action when human correction is required, for example for a missing evidence reference or an invalid status. The Action represents the follow-up task, not an automatic correction. The raw Submission record remains unchanged so intentional Data Quality scenarios remain available for later validation testing.
+### Data Quality follow-up
 
-## End-to-End Process
+A Data Quality finding may conceptually require human follow-up. The deterministic pipeline surfaces DQ Issues but does not silently mutate source Submissions or invent remediation outcomes.
+
+## 12. Phase 5 Evidence Intake Process
+
+```text
+Authenticated Forms response
+        ↓
+Resolve control_id + reporting_period
+        ↓
+Require exactly one expected Submission
+        ↓
+Require status = Not Submitted
+        ↓
+Update existing row by submission_id
+        ↓
+status = In Review
+```
+
+Controlled outcomes:
+
+```text
+NO_MATCH
+DUPLICATE_BUSINESS_KEY
+INVALID_SUBMISSION_STATE
+```
+
+These are workflow outcomes, not DQ rule IDs.
+
+## 13. Phase 6 Reminder Process
+
+For each operationally overdue missing Submission:
+
+```text
+resolve Control
+    ↓
+resolve accountable owner
+    ↓
+resolve active Action cardinality
+    ↓
+create or reuse Action
+    ↓
+check same-day reminder guard
+    ↓
+send reminder
+    ↓
+update reminder_count + last_reminder_at
+```
+
+Control ambiguity outcomes:
+
+```text
+CONTROL_NOT_FOUND
+DUPLICATE_CONTROL
+```
+
+Action ambiguity/idempotency outcomes:
+
+```text
+DUPLICATE_ACTIVE_ACTION
+SAME_DAY_REMINDER_SKIPPED
+```
+
+Reminder automation never assigns Submission compliance.
+
+## 14. Deterministic Data Quality
+
+The project applies exactly DQ-001 through DQ-010 to Submission source rows.
+
+DQ findings:
+
+- remain separate from compliance status,
+- do not delete invalid rows,
+- do not automatically repair malformed source facts,
+- can coexist with other workflow/business states.
+
+Derived:
+
+```text
+0 DQ issues  → Valid
+1+ DQ issues → Invalid
+```
+
+See [data_quality.md](data_quality.md).
+
+## 15. Reporting Process
+
+Phase 7 connects current operational state to the same deterministic Python reporting semantics.
+
+```text
+Operational ControlCatalog
+Operational SubmissionRegister
+Operational ActionRegister
+        ↓
+Power Automate private snapshot package
+        ↓
+explicit Python source paths
+        ↓
+Data Quality + enrichment + Action aggregation + derivation
+        ↓
+curated reporting outputs
+```
+
+Power Automate exports source facts only. It does not assign compliance, evaluate DQ rules, aggregate Actions, or repair source state.
+
+The accepted Phase 7 bridge has been proven end to end with one private operational snapshot while preserving the canonical repository baseline.
+
+See [phase7_end_to_end_acceptance.md](phase7_end_to_end_acceptance.md).
+
+## 16. AI Review Preparation
+
+The minimized AI queue includes only:
+
+```text
+data_quality_status = Valid
+AND
+(
+    submission_status = Non-Compliant
+    OR
+    overdue_flag = True
+)
+```
+
+AI processing is review preparation. It is not the final compliance decision and it is not a Data Quality repair mechanism.
+
+## 17. End-to-End Process
 
 ```mermaid
 flowchart TD
     A[Governance Defines Controls] --> B[Reporting Period Becomes Active]
-    B --> C[Create Expected Submission: Not Submitted]
-    C --> D[Control Owner Prepares and Submits Evidence]
-    D --> E[Submission Moves to In Review]
-    E --> F[Governance Reviewer Reviews Evidence]
-    F --> G[Governance Reviewer Assigns Compliant or Non-Compliant]
-    G --> H[Timeliness Evaluated]
-    H --> I[Data Quality Validated]
-    I --> J[Exceptions, Actions, Reminders, and Reporting]
+    B --> C[Expected Submission: Not Submitted]
+    C --> D[Control Owner Submits Evidence]
+    D --> E[Submission: In Review]
+    E --> F[Governance Reviewer Assessment]
+    F --> G[Compliant or Non-Compliant]
+
+    C --> H{Missing after due date?}
+    H -->|Yes| I[Follow-up Action + Reminder]
+
+    G --> J[Timeliness + Data Quality]
+    I --> J
+    J --> K[Phase 7 Reporting Snapshot]
+    K --> L[Python Curated Reporting]
+    L --> M[Power BI — Planned]
+    L --> N[Controlled AI Queue]
 ```
 
-## Scope Limitations
+The diagram shows logical process relationships. It does not imply that every conceptual transition is currently automated.
 
-* Only five controls are modeled.
-* Each control has exactly one business unit and one accountable owner.
-* Due-date rules are synthetic PoC assumptions, not regulatory requirements.
-* No real evidence files, credentials, or personal data are stored.
-* This document describes process logic only; it does not describe implementation (Power Automate flows, Python code, or Power BI reports are documented separately as they are built).
+## 18. Scope Limitations
+
+- only five synthetic Controls are modeled,
+- each Control has one primary business unit and accountable owner,
+- due-date rules are synthetic PoC assumptions,
+- no actual evidence repository is implemented,
+- no automatic expected-Submission generation is implemented,
+- no dedicated Governance Reviewer decision UI is implemented,
+- no automatic completion of missing-submission Actions after later evidence intake is implemented,
+- no production escalation/SLA process is implemented,
+- no production datastore, IAM/RBAC, audit, telemetry, or retention architecture is implemented,
+- Phase 8 Power BI has not started,
+- AI runtime and REST API remain later phases.
+
+## 19. Source of Truth
+
+This document defines current process semantics. Phase-specific acceptance documents define what was actually implemented and tested in each phase.
+
+When target process behavior and current PoC automation differ, the implementation limitation must be explicit rather than silently treating the target behavior as already automated.
