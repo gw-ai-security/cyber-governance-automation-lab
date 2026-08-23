@@ -1,0 +1,4 @@
+relationship b5ff9ab8-4234-b67c-493b-2806e3f7541d
+	fromColumn: DataQualityIssues.source_row_number
+	toColumn: ControlStatus.source_row_number
+

@@ -3,10 +3,13 @@ table ControlStatus
 
 	column source_row_number
 		dataType: int64
+		isHidden
 		formatString: 0
 		lineageTag: 4a522986-903f-4097-a0af-858270a47b83
-		summarizeBy: sum
+		summarizeBy: none
 		sourceColumn: source_row_number
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
@@ -287,4 +290,3 @@ table ControlStatus
 	annotation PBI_NavigationStepName = Navigation
 
 	annotation PBI_ResultType = Table
-

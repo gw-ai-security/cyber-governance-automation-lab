@@ -27,10 +27,13 @@ table DataQualityIssues
 
 	column source_row_number
 		dataType: int64
+		isHidden
 		formatString: 0
 		lineageTag: ed8c74b8-538e-4670-b11c-3a9e9c49a58c
-		summarizeBy: sum
+		summarizeBy: none
 		sourceColumn: source_row_number
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
