@@ -1,0 +1,434 @@
+{
+  "schemaVersion": "1.0.0.0",
+  "properties": {
+    "templateName": "",
+    "connectionReferences": {
+      "shared_excelonlinebusiness": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gw_sharedexcelonlinebusiness_reporting"
+        },
+        "api": {
+          "name": "shared_excelonlinebusiness"
+        }
+      },
+      "shared_onedriveforbusiness": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gw_sharedonedriveforbusiness_reporting"
+        },
+        "api": {
+          "name": "shared_onedriveforbusiness"
+        }
+      },
+      "shared_office365": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "gw_sharedoffice365_reporting"
+        },
+        "api": {
+          "name": "shared_office365"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "Recurrence": {
+          "type": "Recurrence",
+          "recurrence": {
+            "frequency": "Week",
+            "interval": 1,
+            "timeZone": "W. Europe Standard Time",
+            "startTime": "2026-08-24T07:00:00Z",
+            "schedule": {
+              "weekDays": ["Monday"],
+              "hours": ["9"],
+              "minutes": [0]
+            }
+          }
+        }
+      },
+      "actions": {
+        "Resolve_Snapshot_ID": {
+          "runAfter": {},
+          "type": "Compose",
+          "inputs": "@formatDateTime(convertTimeZone(utcNow(),'UTC','W. Europe Standard Time'),'yyyyMMdd_HHmmss')"
+        },
+        "Resolve_As_Of_Date": {
+          "runAfter": {
+            "Resolve_Snapshot_ID": ["Succeeded"]
+          },
+          "type": "Compose",
+          "inputs": "@formatDateTime(convertTimeZone(utcNow(),'UTC','W. Europe Standard Time'),'yyyy-MM-dd')"
+        },
+        "Resolve_Generated_At_Local": {
+          "runAfter": {
+            "Resolve_As_Of_Date": ["Succeeded"]
+          },
+          "type": "Compose",
+          "inputs": "@formatDateTime(convertTimeZone(utcNow(),'UTC','W. Europe Standard Time'),'yyyy-MM-ddTHH:mm:ss')"
+        },
+        "TRY_Build_Reporting_Snapshot": {
+          "runAfter": {
+            "Resolve_Generated_At_Local": ["Succeeded"]
+          },
+          "type": "Scope",
+          "actions": {
+            "List_Control_Catalog": {
+              "runAfter": {},
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_excelonlinebusiness",
+                  "operationId": "GetItems",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness"
+                },
+                "parameters": {
+                  "source": "me",
+                  "drive": "<ENV_DRIVE_ID>",
+                  "file": "<ENV_WORKBOOK_FILE_ID>",
+                  "table": "<ENV_CONTROL_TABLE_ID>",
+                  "dateTimeFormat": "ISO 8601"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "List_Submission_Register": {
+              "runAfter": {
+                "List_Control_Catalog": ["Succeeded"]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_excelonlinebusiness",
+                  "operationId": "GetItems",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness"
+                },
+                "parameters": {
+                  "source": "me",
+                  "drive": "<ENV_DRIVE_ID>",
+                  "file": "<ENV_WORKBOOK_FILE_ID>",
+                  "table": "<ENV_SUBMISSION_TABLE_ID>",
+                  "dateTimeFormat": "ISO 8601"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "List_Action_Register": {
+              "runAfter": {
+                "List_Submission_Register": ["Succeeded"]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_excelonlinebusiness",
+                  "operationId": "GetItems",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness"
+                },
+                "parameters": {
+                  "source": "me",
+                  "drive": "<ENV_DRIVE_ID>",
+                  "file": "<ENV_WORKBOOK_FILE_ID>",
+                  "table": "<ENV_ACTION_TABLE_ID>",
+                  "dateTimeFormat": "ISO 8601"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "Select_Control_Fields": {
+              "runAfter": {
+                "List_Action_Register": ["Succeeded"]
+              },
+              "type": "Select",
+              "inputs": {
+                "from": "@body('List_Control_Catalog')?['value']",
+                "select": {
+                  "control_id": "@item()?['control_id']",
+                  "control_name": "@item()?['control_name']",
+                  "control_statement": "@item()?['control_statement']",
+                  "business_unit": "@item()?['business_unit']",
+                  "owner_role": "@item()?['owner_role']",
+                  "owner_email": "@item()?['owner_email']",
+                  "frequency": "@item()?['frequency']",
+                  "risk_level": "@item()?['risk_level']"
+                }
+              }
+            },
+            "Select_Submission_Fields": {
+              "runAfter": {
+                "Select_Control_Fields": ["Succeeded"]
+              },
+              "type": "Select",
+              "inputs": {
+                "from": "@body('List_Submission_Register')?['value']",
+                "select": {
+                  "submission_id": "@item()?['submission_id']",
+                  "control_id": "@item()?['control_id']",
+                  "reporting_period": "@item()?['reporting_period']",
+                  "due_date": "@if(empty(item()?['due_date']),'',formatDateTime(item()?['due_date'],'yyyy-MM-dd'))",
+                  "status": "@item()?['status']",
+                  "evidence_reference": "@item()?['evidence_reference']",
+                  "submitted_at": "@if(empty(item()?['submitted_at']),'',formatDateTime(item()?['submitted_at'],'yyyy-MM-dd'))",
+                  "submitted_by": "@item()?['submitted_by']",
+                  "comment": "@item()?['comment']"
+                }
+              }
+            },
+            "Select_Action_Fields": {
+              "runAfter": {
+                "Select_Submission_Fields": ["Succeeded"]
+              },
+              "type": "Select",
+              "inputs": {
+                "from": "@body('List_Action_Register')?['value']",
+                "select": {
+                  "action_id": "@item()?['action_id']",
+                  "control_id": "@item()?['control_id']",
+                  "submission_id": "@item()?['submission_id']",
+                  "owner_email": "@item()?['owner_email']",
+                  "created_at": "@if(empty(item()?['created_at']),'',formatDateTime(item()?['created_at'],'yyyy-MM-dd'))",
+                  "due_date": "@if(empty(item()?['due_date']),'',formatDateTime(item()?['due_date'],'yyyy-MM-dd'))",
+                  "status": "@item()?['status']",
+                  "reminder_count": "@item()?['reminder_count']",
+                  "last_reminder_at": "@if(empty(item()?['last_reminder_at']),'',formatDateTime(item()?['last_reminder_at'],'yyyy-MM-dd'))",
+                  "description": "@item()?['description']"
+                }
+              }
+            },
+            "Create_Control_JSON": {
+              "runAfter": {
+                "Select_Action_Fields": ["Succeeded"]
+              },
+              "type": "Compose",
+              "inputs": "@string(body('Select_Control_Fields'))"
+            },
+            "Create_Submission_CSV": {
+              "runAfter": {
+                "Create_Control_JSON": ["Succeeded"]
+              },
+              "type": "Table",
+              "inputs": {
+                "from": "@body('Select_Submission_Fields')",
+                "format": "CSV",
+                "columns": [
+                  {"header": "submission_id", "value": "@item()?['submission_id']"},
+                  {"header": "control_id", "value": "@item()?['control_id']"},
+                  {"header": "reporting_period", "value": "@item()?['reporting_period']"},
+                  {"header": "due_date", "value": "@item()?['due_date']"},
+                  {"header": "status", "value": "@item()?['status']"},
+                  {"header": "evidence_reference", "value": "@item()?['evidence_reference']"},
+                  {"header": "submitted_at", "value": "@item()?['submitted_at']"},
+                  {"header": "submitted_by", "value": "@item()?['submitted_by']"},
+                  {"header": "comment", "value": "@item()?['comment']"}
+                ]
+              }
+            },
+            "Create_Action_CSV": {
+              "runAfter": {
+                "Create_Submission_CSV": ["Succeeded"]
+              },
+              "type": "Table",
+              "inputs": {
+                "from": "@body('Select_Action_Fields')",
+                "format": "CSV",
+                "columns": [
+                  {"header": "action_id", "value": "@item()?['action_id']"},
+                  {"header": "control_id", "value": "@item()?['control_id']"},
+                  {"header": "submission_id", "value": "@item()?['submission_id']"},
+                  {"header": "owner_email", "value": "@item()?['owner_email']"},
+                  {"header": "created_at", "value": "@item()?['created_at']"},
+                  {"header": "due_date", "value": "@item()?['due_date']"},
+                  {"header": "status", "value": "@item()?['status']"},
+                  {"header": "reminder_count", "value": "@item()?['reminder_count']"},
+                  {"header": "last_reminder_at", "value": "@item()?['last_reminder_at']"},
+                  {"header": "description", "value": "@item()?['description']"}
+                ]
+              }
+            },
+            "Create_Control_Snapshot_File": {
+              "runAfter": {
+                "Create_Action_CSV": ["Succeeded"]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_onedriveforbusiness",
+                  "operationId": "CreateFile",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness"
+                },
+                "parameters": {
+                  "folderPath": "/Cyber Governance/Reporting Snapshots",
+                  "name": "@concat('security_control_snapshot_',outputs('Resolve_Snapshot_ID'),'.json')",
+                  "body": "@outputs('Create_Control_JSON')"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "Create_Submission_Snapshot_File": {
+              "runAfter": {
+                "Create_Control_Snapshot_File": ["Succeeded"]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_onedriveforbusiness",
+                  "operationId": "CreateFile",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness"
+                },
+                "parameters": {
+                  "folderPath": "/Cyber Governance/Reporting Snapshots",
+                  "name": "@concat('security_submission_snapshot_',outputs('Resolve_Snapshot_ID'),'.csv')",
+                  "body": "@body('Create_Submission_CSV')"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "Create_Action_Snapshot_File": {
+              "runAfter": {
+                "Create_Submission_Snapshot_File": ["Succeeded"]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_onedriveforbusiness",
+                  "operationId": "CreateFile",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness"
+                },
+                "parameters": {
+                  "folderPath": "/Cyber Governance/Reporting Snapshots",
+                  "name": "@concat('security_action_snapshot_',outputs('Resolve_Snapshot_ID'),'.csv')",
+                  "body": "@body('Create_Action_CSV')"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "Count_Control_Rows": {
+              "runAfter": {
+                "Create_Action_Snapshot_File": ["Succeeded"]
+              },
+              "type": "Compose",
+              "inputs": "@length(body('List_Control_Catalog')?['value'])"
+            },
+            "Count_Submission_Rows": {
+              "runAfter": {
+                "Count_Control_Rows": ["Succeeded"]
+              },
+              "type": "Compose",
+              "inputs": "@length(body('List_Submission_Register')?['value'])"
+            },
+            "Count_Action_Rows": {
+              "runAfter": {
+                "Count_Submission_Rows": ["Succeeded"]
+              },
+              "type": "Compose",
+              "inputs": "@length(body('List_Action_Register')?['value'])"
+            },
+            "Build_Snapshot_Manifest": {
+              "runAfter": {
+                "Count_Action_Rows": ["Succeeded"]
+              },
+              "type": "Compose",
+              "inputs": {
+                "snapshot_id": "@outputs('Resolve_Snapshot_ID')",
+                "as_of_date": "@outputs('Resolve_As_Of_Date')",
+                "generated_at_local": "@outputs('Resolve_Generated_At_Local')",
+                "control_file": "@concat('security_control_snapshot_',outputs('Resolve_Snapshot_ID'),'.json')",
+                "submission_file": "@concat('security_submission_snapshot_',outputs('Resolve_Snapshot_ID'),'.csv')",
+                "action_file": "@concat('security_action_snapshot_',outputs('Resolve_Snapshot_ID'),'.csv')",
+                "control_rows": "@outputs('Count_Control_Rows')",
+                "submission_rows": "@outputs('Count_Submission_Rows')",
+                "action_rows": "@outputs('Count_Action_Rows')",
+                "status": "complete"
+              }
+            },
+            "Create_Snapshot_Manifest_File": {
+              "runAfter": {
+                "Build_Snapshot_Manifest": ["Succeeded"]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_onedriveforbusiness",
+                  "operationId": "CreateFile",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness"
+                },
+                "parameters": {
+                  "folderPath": "/Cyber Governance/Reporting Snapshots",
+                  "name": "@concat('security_snapshot_manifest_',outputs('Resolve_Snapshot_ID'),'.json')",
+                  "body": "@string(outputs('Build_Snapshot_Manifest'))"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            }
+          }
+        },
+        "CATCH_Reporting_Snapshot_Failure": {
+          "runAfter": {
+            "TRY_Build_Reporting_Snapshot": ["Failed", "TimedOut"]
+          },
+          "type": "Scope",
+          "actions": {
+            "Send_Snapshot_Failure_Notification": {
+              "runAfter": {},
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_office365",
+                  "operationId": "SendEmailV2",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                },
+                "parameters": {
+                  "emailMessage/To": "phase7-alerts@example.com",
+                  "emailMessage/Subject": "@concat('Phase 7 reporting snapshot failed - ',outputs('Resolve_Snapshot_ID'))",
+                  "emailMessage/Body": "@concat('<p>Phase 7 reporting snapshot failed.</p>','<p>Snapshot ID: ',outputs('Resolve_Snapshot_ID'),'</p>','<p>As-of date: ',outputs('Resolve_As_Of_Date'),'</p>','<p>Review the Power Automate run history for technical details.</p>')",
+                  "emailMessage/Importance": "High"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "Terminate_Snapshot_Flow": {
+              "runAfter": {
+                "Send_Snapshot_Failure_Notification": ["Succeeded", "Failed", "TimedOut", "Skipped"]
+              },
+              "type": "Terminate",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "REPORTING_SNAPSHOT_FAILED",
+                  "message": "Phase 7 reporting snapshot failed. Review the Power Automate run history."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
