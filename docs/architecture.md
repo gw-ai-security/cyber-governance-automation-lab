@@ -106,7 +106,17 @@ DataRoot
    └─ data_quality_issues.csv    → DataQualityIssues
 ```
 
-No semantic-model relationship or DAX measure is implemented yet. Those belong to Phase 8.4 and Phase 8.5.
+Phase 8.4 connects the two reporting tables through the technical lineage key:
+
+```text
+ControlStatus[source_row_number]
+          1
+          │
+          *
+DataQualityIssues[source_row_number]
+```
+
+The relationship is active, single-direction, and filters from `ControlStatus` to `DataQualityIssues`. DAX measures begin in Phase 8.5.
 
 ## 2. High-Level Architecture
 
@@ -142,7 +152,8 @@ flowchart TD
         DR --> DQ[DataQualityIssues]
         L --> CS
         M --> DQ
-        CS --> SM[Semantic Model — relationship next]
+        CS -->|1 to many / single direction| DQ
+        CS --> SM[Semantic Model — measures next]
         DQ --> SM
     end
 
@@ -475,7 +486,7 @@ Phase 8.4 → semantic-model relationship
 Phase 8.5 → DAX measures
 ```
 
-### Phase 8.3 model state
+### Current model state after Phase 8.4
 
 The semantic model contains a required text parameter:
 
@@ -490,13 +501,12 @@ ControlStatus
 DataQualityIssues
 ```
 
-Canonical Power BI acceptance:
+Canonical Power BI load acceptance remains:
 
 ```text
 ControlStatus       = 15 rows / 25 columns
 DataQualityIssues   = 5 rows / 8 columns
 Model tables        = exactly 2
-Relationships       = 0
 ```
 
 The two Power Query partitions perform only:
@@ -512,7 +522,7 @@ They do not implement compliance, timing, DQ, Action, or AI business rules.
 
 Automatic time intelligence is disabled.
 
-The next relationship remains contractually fixed as:
+The semantic relationship is now implemented as:
 
 ```text
 ControlStatus[source_row_number]
@@ -522,14 +532,18 @@ ControlStatus[source_row_number]
 DataQualityIssues[source_row_number]
 ```
 
-Required Phase 8.4 behavior:
+Behavior:
 
 ```text
 Cardinality      = one-to-many
 Filter direction = ControlStatus → DataQualityIssues
+Status           = active
+Relationships    = exactly 1
 ```
 
-The relationship must not use `submission_id`, because missing or duplicate Submission identifiers are valid Data Quality scenarios.
+The relationship does not use `submission_id`, because missing or duplicate Submission identifiers are valid Data Quality scenarios. `source_row_number` remains physically present in both tables but is hidden from report consumers.
+
+No DAX measures, calculated columns, calculated tables, or final report visuals are implemented at the Phase 8.4 boundary.
 
 See:
 
@@ -537,6 +551,7 @@ See:
 - [phase8_canonical_baseline.md](phase8_canonical_baseline.md)
 - [phase8_power_bi_project.md](phase8_power_bi_project.md)
 - [phase8_curated_loading.md](phase8_curated_loading.md)
+- [phase8_semantic_model.md](phase8_semantic_model.md)
 
 ## 12. Controlled AI Boundary
 
@@ -642,8 +657,10 @@ Phase 7 does not claim ACID or point-in-time transactional semantics.
 - PBIP/PBIR/TMDL project is source-controlled,
 - `DataRoot` resolves the curated reporting directory,
 - `ControlStatus` and `DataQualityIssues` are technically loaded and typed,
-- no model relationship or DAX measure exists yet,
-- later Phase 8 work packages own the semantic relationship, KPI measures, and report pages.
+- the active one-to-many lineage relationship is implemented on `source_row_number`,
+- technical relationship keys are hidden from report consumers,
+- no DAX measure exists yet,
+- later Phase 8 work packages own KPI measures and report pages.
 
 ### Controlled AI Runtime
 
@@ -674,6 +691,7 @@ Operational snapshot artifacts, private workbook data, credentials, tokens, tena
 - Python semantics are reused for both canonical and operational source sets.
 - Power BI consumes curated outputs rather than duplicating upstream business logic.
 - Power Query performs technical ingestion only.
+- Power BI relates Submission-grain reporting to DQ issue grain through technical raw-row lineage rather than unreliable business identifiers.
 - Null/non-evaluable timing state remains null rather than becoming false/zero.
 - Power BI project/report/model definitions are version-controlled separately from machine-local cache and generated reporting data.
 - AI processing remains downstream of deterministic validation.
@@ -689,7 +707,7 @@ Operational snapshot artifacts, private workbook data, credentials, tokens, tena
 - no scheduled Python snapshot-processing service,
 - no Action-specific DQ rule catalog,
 - no production-grade IAM/RBAC, DLP, audit, monitoring, retention, or telemetry architecture,
-- Power BI curated-source loading exists, but the semantic relationship, DAX measures, and final visuals are not implemented yet,
+- Power BI curated-source loading and the semantic relationship exist, but DAX measures and final visuals are not implemented yet,
 - `DataRoot` must be configured for the relevant local clone or processed-output directory,
 - no external AI invocation,
 - no REST API implementation.
@@ -717,5 +735,6 @@ Phase-specific evidence:
 - [phase8_canonical_baseline.md](phase8_canonical_baseline.md)
 - [phase8_power_bi_project.md](phase8_power_bi_project.md)
 - [phase8_curated_loading.md](phase8_curated_loading.md)
+- [phase8_semantic_model.md](phase8_semantic_model.md)
 
 Historical phase-specific documents remain valid for the phase they describe. Current-state foundation documents, implementation code, and final acceptance evidence define the present architecture.
