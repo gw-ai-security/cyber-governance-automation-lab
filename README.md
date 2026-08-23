@@ -4,22 +4,22 @@
 
 [![Python tests](https://github.com/gw-ai-security/cyber-governance-automation-lab/actions/workflows/tests.yml/badge.svg)](https://github.com/gw-ai-security/cyber-governance-automation-lab/actions/workflows/tests.yml)
 
-A portfolio proof of concept for a recurring cybersecurity-governance process. The project models expected control-evidence Submissions, automates authenticated evidence intake and overdue follow-up, validates Data Quality deterministically, derives governance and timeliness metrics, tracks Actions and reminder history, and prepares selected valid exceptions for controlled AI-assisted review.
+A portfolio proof of concept for a recurring cybersecurity-governance evidence process. The project combines explicit governance modeling, Microsoft Forms and Power Automate workflows, a deterministic Python Data Quality pipeline, operational reminder tracking, a controlled reporting-snapshot bridge, automated tests, and a minimized AI-review queue.
 
-The implementation is intentionally small and explicit. It demonstrates business-process modeling, Power Automate workflow design, deterministic Python processing, testing, governance guardrails, and reproducible engineering practices without presenting a proof of concept as a production platform.
+The project is intentionally small and explicit. It demonstrates how operational automation and deterministic data processing can be connected without conflating evidence, compliance, timeliness, workflow state, or Data Quality, and without presenting a proof of concept as a production platform.
 
 ## What This Project Demonstrates
 
-- **Governance modeling** — Control, Submission, Action, and Data Quality Issue are separate domain concepts.
-- **Expected-state design** — a Submission exists before evidence arrives, making missing submissions observable.
-- **Controlled evidence intake** — Microsoft Forms and Power Automate resolve the expected Submission by business key and perform `Not Submitted → In Review`.
-- **Scheduled overdue follow-up** — a separate Power Automate flow detects missing past-due Submissions, resolves the Control Owner, creates or reuses an Action, and persists reminder history.
-- **Fail-safe workflow behavior** — missing/duplicate business keys, invalid Submission states, missing/duplicate Control mappings, and duplicate active Actions are not guessed or silently repaired.
-- **Same-day idempotency** — repeated reminder-flow execution on the same day does not resend or increment tracking.
-- **Deterministic Data Quality** — DQ-001 through DQ-010 are applied to canonical repository Submission data without silent semantic correction.
-- **Deterministic engineering baseline** — GitHub Actions executes the complete Python test suite on pushes and pull requests targeting `main`.
-- **Controlled reporting boundary** — Phase 7.2 exports live Microsoft 365 Control, Submission, and Action state, and Phase 7.3 routes explicit snapshots through the existing Python pipeline without overwriting deterministic repository fixtures.
-- **Controlled AI boundary** — only Data-Quality-valid governance exceptions enter the AI review queue; final compliance authority remains human.
+- **Governance modeling** — Control, Submission, Action, and Data Quality Issue remain separate domain concepts.
+- **Expected-state design** — expected Submissions exist before evidence arrives, making missing submissions observable.
+- **Controlled evidence intake** — authenticated Forms intake resolves an expected Submission and permits only `Not Submitted → In Review`.
+- **Fail-safe workflow behavior** — ambiguous business keys, invalid states, missing/duplicate Controls, and duplicate active Actions are surfaced rather than guessed or silently repaired.
+- **Scheduled follow-up** — overdue missing Submissions create or reuse an Action, send reminders, and persist reminder history with same-day idempotency.
+- **Deterministic Data Quality** — DQ-001 through DQ-010 validate Submission data without silent semantic correction.
+- **Controlled reporting boundary** — live Microsoft 365 Control, Submission, and Action state is exported as a private four-file snapshot package and processed through the existing Python semantics via explicit paths.
+- **Deterministic regression baseline** — canonical repository fixtures remain unchanged while operational snapshots evolve independently.
+- **Controlled AI boundary** — only Data-Quality-valid Non-Compliant or overdue Submissions enter the minimized AI review queue; final compliance authority remains human.
+- **Reproducible engineering** — GitHub Actions executes the Python regression suite on pushes and pull requests targeting `main`.
 
 ## Current Engineering Evidence
 
@@ -31,21 +31,16 @@ The implementation is intentionally small and explicit. It demonstrates business
 | Explicit Submission DQ rules | 10 |
 | Automated tests | **53 passing** |
 | Canonical DQ findings | 5 |
-| Valid / invalid Submissions | 10 / 5 |
-| Raw / curated Submission rows | 15 / 15 |
-| AI review queue items | 2 |
-| Contractual Python outputs | 3 |
+| Canonical Valid / Invalid Submissions | 10 / 5 |
+| Canonical raw / curated Submission rows | 15 / 15 |
+| Canonical AI review queue items | 2 |
 | Phase 5 evidence-intake workflow | ✅ Implemented and acceptance-tested |
-| Phase 5 controlled failure outcomes | 3 |
 | Phase 6 reminder workflow | ✅ Implemented and acceptance-tested |
-| Phase 6 guard outcomes | 4 |
-| Phase 7.2 reporting snapshot export | ✅ Implemented and acceptance-tested |
-| Phase 7.3 Python external input | ✅ Implemented and automated-tested |
-| Full Phase 7 end-to-end acceptance | ○ WP3 pending |
+| Phase 7 reporting snapshot bridge | ✅ Implemented and end-to-end accepted |
 | Continuous Integration | ✅ GitHub Actions |
 | Required CI merge gate | ⚠ Not currently enforced |
 
-The deterministic Python acceptance baseline uses:
+Canonical deterministic acceptance uses:
 
 ```text
 as_of_date = 2026-08-15
@@ -63,13 +58,25 @@ Invalid submissions: 5
 AI review queue items: 2
 ```
 
-The operational Microsoft 365 workbook evolves independently during Phase 5–6 acceptance testing and does not alter these canonical repository counts.
+Phase 7 additionally processed a private operational snapshot with its manifest date `2026-08-23` and observed:
+
+```text
+Controls loaded: 5
+Submissions loaded: 17
+Actions loaded: 2
+DQ issues: 5
+Valid submissions: 12
+Invalid submissions: 5
+AI review queue items: 3
+```
+
+Those operational counts are acceptance observations, **not new canonical repository fixtures**.
 
 ## Current Architecture
 
-The project deliberately contains two data planes.
+The project deliberately maintains two data planes connected by an explicit Phase 7 bridge.
 
-### Operational Microsoft 365 plane — Phases 5–6
+### Operational Microsoft 365 plane
 
 ```text
 Microsoft Forms
@@ -81,27 +88,39 @@ Excel Online / OneDrive
       ├─ ControlCatalog
       └─ ActionRegister
       ↑
-Scheduled Power Automate Reminder Flow
+Scheduled Reminder Flow
       ↓
 Reminder Email
+
+ControlCatalog + SubmissionRegister + ActionRegister
+      ↓
+Weekly Reporting Snapshot Flow
+      ↓
+Private snapshot package
 ```
 
-### Deterministic repository plane — Phases 2–4
+### Deterministic Python/repository plane
 
 ```text
-data/reference/control_catalog.json
-                    ┐
-data/raw/evidence_submissions.csv ──► Python ETL + Data Quality
-data/raw/actions.csv                ┘
-                                    ↓
-                         data/curated/*
+Canonical defaults                       Explicit operational snapshot
+------------------                       -----------------------------
+data/reference/control_catalog.json      security_control_snapshot_*.json
+data/raw/evidence_submissions.csv   OR   security_submission_snapshot_*.csv
+data/raw/actions.csv                      security_action_snapshot_*.csv
+                    \                     /
+                     \                   /
+                      Python ETL + DQ
+                            ↓
+                  curated_control_status.csv
+                  data_quality_issues.csv
+                  ai_review_queue.json
 ```
 
-These planes are intentionally **not automatically synchronized**. Phase 7.2 creates private operational snapshot packages and Phase 7.3 processes explicitly supplied source paths. The remaining WP3 acceptance must still prove one private operational package end to end.
+The bridge is **caller-controlled, not automatically synchronized**. Power Automate creates private source snapshots; Python processes either all canonical defaults or one complete explicit Control/Submission/Action source set. Phase 7 does not copy operational files over canonical repository data.
 
 ```mermaid
 flowchart TD
-    subgraph OP[Operational Microsoft 365 Plane — Phases 5–6]
+    subgraph OP[Operational Microsoft 365 Plane]
         A[Microsoft Forms] --> B[Evidence Intake Flow]
         B --> C[SubmissionRegister]
         D[Scheduled Reminder Flow] --> C
@@ -109,55 +128,53 @@ flowchart TD
         D --> F[ActionRegister]
         D --> G[Reminder Email]
         G --> F
+        C --> S[Phase 7 Snapshot Package]
+        E --> S
+        F --> S
     end
 
-    subgraph REPO[Deterministic Repository Plane — Phases 2–4]
-        H[Raw Submission CSV] --> K[Python ETL + Data Quality]
-        I[Control Catalog JSON] --> K
-        J[Raw Action CSV] --> K
+    subgraph PY[Deterministic Python Processing]
+        H[Canonical Submission CSV] --> K[Python ETL + Data Quality]
+        I[Canonical Control JSON] --> K
+        J[Canonical Action CSV] --> K
+        S -. explicit coherent source paths .-> K
         K --> L[Curated Control Status]
         K --> M[Data Quality Issues]
         K --> N[AI Review Queue]
     end
 
-    C -. Phase 7 Submission export .-> S[Operational Snapshot Package]
-    E -. Phase 7 Control export .-> S
-    F -. Phase 7 Action/reminder export .-> S
-    S -. explicit Phase 7.3 source paths .-> K
-
-    L --> P[Power BI — Planned]
-    N --> Q[Controlled AI Runtime — Planned]
+    L --> P[Power BI — Phase 8 Planned]
+    N --> Q[Controlled AI Runtime — Phase 9 Planned]
     Q --> R[Human Governance Review]
 ```
 
-See [Architecture](docs/architecture.md), [Phase 5 Evidence Intake](docs/phase5_evidence_intake.md), [Phase 6 Reminder Automation](docs/phase6_reminder_automation.md), and [Phase 7 Reporting Export Contract](docs/phase7_reporting_export.md).
+See [Architecture](docs/architecture.md) and [Phase 7 End-to-End Acceptance](docs/phase7_end_to_end_acceptance.md).
 
-## Current Implementation Status
+## Implementation Status
 
 | Phase | Scope | Status |
 | --- | --- | --- |
 | Phase 0 | Repository & Project Foundation | ✅ Complete |
 | Phase 1 | Business Process & Data Model | ✅ Complete |
-| Phase 2 | Synthetic Dataset | ✅ Complete |
-| Phase 3 | Python Data Quality Pipeline | ✅ Complete |
+| Phase 2 | Canonical Synthetic Dataset | ✅ Complete |
+| Phase 3 | Deterministic Python Data Quality Pipeline | ✅ Complete |
 | Phase 4 | Test Hardening & Acceptance | ✅ Complete |
-| Repository CI | GitHub Actions | ✅ Active |
-| Repository merge gating | Required CI check before merge | ⚠ Not currently enforced |
 | Phase 5 | Power Automate Evidence Intake | ✅ Core DoD complete |
 | Phase 6 | Scheduled Reminder Automation | ✅ Complete and acceptance-tested |
 | Phase 7.0 | Reporting Export Contract | ✅ Complete |
 | Phase 7.1 | Reporting Export Implementation Preparation | ✅ Complete |
 | Phase 7.2 | Power Automate Reporting Snapshot | ✅ Complete and acceptance-tested |
-| Phase 7.3 | Python External Input Boundary | ✅ Complete |
-| Full Phase 7 | Private operational snapshot → Python acceptance (WP3) | ○ Pending |
-| Phase 8 | Power BI Dashboard | ○ Planned |
+| Phase 7.3 | Python External Input Boundary | ✅ Complete and automated-tested |
+| Phase 7 WP3 | Private snapshot → Python end-to-end acceptance | ✅ Complete |
+| **Phase 7** | **Reporting Snapshot Bridge** | **✅ Complete** |
+| Phase 8 | Power BI Dashboard | ○ Planned / not started |
 | Phase 9 | Controlled AI Workflow | ○ Planned |
 | Phase 10 | REST API | ○ Planned |
 | Phase 11 | Documentation & Handover | ○ Planned |
 
 ### Phase 5 roadmap delta
 
-The original roadmap illustrated a custom confirmation e-mail after successful evidence intake. That action is not implemented. This remains explicitly documented rather than being presented as complete. Phase 6 reminder e-mails are a different capability and do not close that Phase 5 delta.
+The original roadmap illustrated a custom confirmation e-mail after successful evidence intake. That action is **not implemented**. Phase 6 reminder e-mails are a separate capability and do not retroactively close that Phase 5 delta.
 
 ## Core Domain Model
 
@@ -184,7 +201,7 @@ Submission business key:
 control_id + reporting_period
 ```
 
-Critical semantics:
+Critical semantic separations:
 
 ```text
 Evidence Present != Compliant
@@ -195,9 +212,10 @@ Compliance != Data Quality
 Submission Status != Action Status
 Unknown != False
 Not Evaluated != Failed
+Action completion != Submission compliance
 ```
 
-## Phase 5: Evidence Intake
+## Phase 5 — Evidence Intake
 
 Implemented path:
 
@@ -227,9 +245,9 @@ DUPLICATE_BUSINESS_KEY
 INVALID_SUBMISSION_STATE
 ```
 
-See [docs/phase5_evidence_intake.md](docs/phase5_evidence_intake.md).
+See [Phase 5 Evidence Intake](docs/phase5_evidence_intake.md).
 
-## Phase 6: Scheduled Reminder Automation
+## Phase 6 — Scheduled Reminder Automation
 
 Schedule:
 
@@ -246,21 +264,21 @@ AND
 as_of_date > due_date
 ```
 
-The live workflow additionally requires `status = Not Submitted` as an operational consistency guard. It does **not** define overdue as `status != Compliant`.
+The live workflow additionally requires `status = Not Submitted` as an operational consistency guard.
 
-Action cardinality behavior:
+Action resolution:
 
 ```text
-0 active Actions → CREATE
-1 active Action  → REUSE
+0 active Actions  → CREATE
+1 active Action   → REUSE
 >1 active Actions → DUPLICATE_ACTIVE_ACTION
 ```
 
-Control lookup behavior:
+Control resolution:
 
 ```text
-0 Control matches → CONTROL_NOT_FOUND
-1 Control match   → resolve owner
+0 Control matches  → CONTROL_NOT_FOUND
+1 Control match    → resolve owner
 >1 Control matches → DUPLICATE_CONTROL
 ```
 
@@ -271,53 +289,65 @@ last_reminder_at == today
 → SAME_DAY_REMINDER_SKIPPED
 ```
 
-A successful first reminder writes:
+Reminder history is persisted on Action via `reminder_count` and `last_reminder_at`.
+
+Known lifecycle limitation: the current PoC does **not** automatically complete an existing missing-submission Action when later Phase 5 evidence moves the Submission to `In Review`. Phase 7 exports the stored state as-is rather than repairing it.
+
+See [Phase 6 Reminder Automation](docs/phase6_reminder_automation.md).
+
+## Phase 7 — Reporting Snapshot Bridge
+
+Phase 7 connects live Microsoft 365 state to the existing Python reporting pipeline without overwriting deterministic fixtures.
+
+Every successful Power Automate snapshot package contains:
 
 ```text
-reminder_count = 1
-last_reminder_at = local processing date
+security_control_snapshot_<snapshot_id>.json
+security_submission_snapshot_<snapshot_id>.csv
+security_action_snapshot_<snapshot_id>.csv
+security_snapshot_manifest_<snapshot_id>.json
 ```
 
-Later reminders reuse the same active Action and increment the existing count dynamically.
+All four artifacts share one `snapshot_id`. The manifest is written last and acts as the completion marker.
 
-See [docs/phase6_reminder_automation.md](docs/phase6_reminder_automation.md).
-
-## Phase 7: Reporting Export Contract
-
-Phase 7.2 implements and acceptance-tests the Power Automate reporting snapshot. Phase 7.3 implements the explicit Python external-input boundary. Full Phase 7 remains incomplete until WP3 processes and reconciles one private operational snapshot end to end.
-
-The snapshot contract carries all three operational source tables:
-
-```text
-ControlCatalog     → Control JSON snapshot
-SubmissionRegister → Submission CSV snapshot
-ActionRegister     → Action CSV snapshot
-```
-
-All artifacts share one `snapshot_id` and are completed by a manifest that records the snapshot `as_of_date`, file names, row counts, and completion state.
-
-Critical boundary:
+Critical responsibility boundary:
 
 ```text
 Power Automate exports source facts.
 Python owns Data Quality, Control enrichment, Action aggregation, and derived metrics.
 ```
 
-The operational snapshot must not overwrite:
+Python external source overrides are all-or-none:
 
 ```text
-data/reference/control_catalog.json
-data/raw/evidence_submissions.csv
-data/raw/actions.csv
+--controls-path
+--submissions-path
+--actions-path
 ```
 
-Those files remain the deterministic acceptance baseline.
+`--output-directory` is independent. The manifest is not automatically parsed; its `as_of_date` is supplied explicitly through `--as-of-date`.
 
-See [docs/phase7_reporting_export.md](docs/phase7_reporting_export.md).
+Phase 7 end-to-end acceptance proved:
+
+- manifest source counts `5 / 17 / 2` matched Python load counts exactly,
+- 5 operational DQ findings remained non-fatal outputs,
+- 17 operational Submissions remained 17 curated rows,
+- `reminder_count` and `last_reminder_at` crossed the bridge for the Phase 6 reminder fixtures,
+- the operational AI queue contained the three expected valid exceptions for the snapshot date,
+- the canonical `2026-08-15` regression remained exactly `5 / 15 / 5 / 5 / 10 / 5 / 2`,
+- the complete suite remained **53 passing tests**,
+- canonical fixtures remained unchanged.
+
+See:
+
+- [Phase 7 Reporting Export Contract](docs/phase7_reporting_export.md)
+- [Phase 7.2 Power Automate Acceptance](docs/phase7_power_automate_acceptance.md)
+- [Phase 7.3 Python External Input](docs/phase7_python_external_input.md)
+- [Phase 7 End-to-End Acceptance](docs/phase7_end_to_end_acceptance.md)
 
 ## Python Pipeline
 
-Phase 3 implements:
+The deterministic processing stages remain:
 
 ```text
 EXTRACT
@@ -333,9 +363,9 @@ DERIVE
 LOAD
 ```
 
-Submission is the primary grain. Control enrichment uses a `LEFT JOIN`, invalid rows remain visible, and Action aggregation does not multiply Submission rows.
+Submission is the primary grain. Control enrichment uses a `LEFT JOIN`; invalid rows remain visible; Action aggregation does not multiply Submission rows.
 
-Derived fields include:
+Derived reporting fields include:
 
 ```text
 evidence_present
@@ -351,13 +381,9 @@ reminder_count
 last_reminder_at
 ```
 
-Phase 7.3 adds explicit external input paths while preserving the current canonical file paths as defaults. Source overrides are all-or-none, preventing canonical and operational source planes from being mixed silently.
-
-See [docs/phase3_pipeline_contract.md](docs/phase3_pipeline_contract.md).
-
 ## Data Quality
 
-The canonical Submission rule catalog is exactly DQ-001 through DQ-010:
+The Submission rule catalog remains exactly DQ-001 through DQ-010:
 
 | Rule | Name | Severity |
 | --- | --- | --- |
@@ -372,31 +398,11 @@ The canonical Submission rule catalog is exactly DQ-001 through DQ-010:
 | DQ-009 | Invalid Evidence State | Medium |
 | DQ-010 | Invalid Submitter Email | Medium |
 
-Phase 6 outcomes such as `DUPLICATE_ACTIVE_ACTION` are operational workflow guards, not additional DQ rule IDs.
-
-Canonical invariant:
-
-```text
-15 raw Submission rows → 15 curated Submission rows
-```
-
-## Testing and Repository Governance
-
-GitHub Actions runs:
-
-```bash
-python -m pytest -q
-```
-
-for pull requests targeting `main` and pushes to `main`.
-
-The current deterministic suite contains **53 passing tests**. Phase 7.3 adds black-box CLI coverage for external routing, all-or-none source selection, output isolation, fatal input contracts, source immutability, DQ behavior, and header-only Action snapshots.
-
-The repository currently does **not** enforce the Python check as a required merge gate. CI is active, but strict merge gating must be configured separately in GitHub repository rules/settings.
+Operational workflow outcomes such as `DUPLICATE_ACTIVE_ACTION` are not additional DQ rule IDs. Phase 7 adds no new business rules.
 
 ## Controlled AI Review Queue
 
-Eligibility:
+Eligibility remains:
 
 ```text
 data_quality_status = Valid
@@ -408,33 +414,35 @@ AND
 )
 ```
 
-For the canonical `as_of_date = 2026-08-15`, the queue contains:
+For canonical `as_of_date = 2026-08-15`:
 
 ```text
 SUB-005
 SUB-014
 ```
 
-AI processing remains downstream of deterministic validation and does not hold final compliance authority.
+For the accepted private operational snapshot at `as_of_date = 2026-08-23`, the queue contained three valid exceptions. AI remains downstream of deterministic validation and does not hold final compliance authority.
 
 ## Tech Stack
 
 | Technology | Role |
 | --- | --- |
 | Microsoft Forms | Authenticated evidence intake |
-| Power Automate | Evidence intake, scheduled reminders, and reporting snapshot orchestration |
-| Excel Online / OneDrive | Operational Submission, Control, and Action tables; private reporting snapshots |
-| Office 365 Outlook | Reminder delivery |
+| Power Automate | Evidence intake, scheduled reminders, reporting snapshot orchestration |
+| Excel Online / OneDrive | Operational Control, Submission, Action state and private snapshots |
+| Office 365 Outlook | Reminder and flow-failure notifications |
 | Python 3.14.5 | Deterministic data pipeline |
 | pandas | Transformation and enrichment |
 | pytest | Automated testing |
-| CSV / JSON | Canonical repository contracts and operational snapshot formats |
+| CSV / JSON | Canonical and snapshot data contracts |
 | GitHub Actions | Continuous Integration |
-| Git / GitHub | Version control and repository workflow |
+| Git / GitHub | Version control and review workflow |
 
-`requests`, `FastAPI`, and `uvicorn` are already present in `requirements.txt` for later integration/API phases; their presence does not mean Phase 10 is implemented.
+`requests`, `FastAPI`, and `uvicorn` are present in `requirements.txt` for later integration/API phases; their presence does not mean Phase 10 is implemented.
 
-## How to Run the Repository Pipeline
+## Running the Pipeline
+
+Install and validate:
 
 ```bash
 python -m pip install -r requirements.txt
@@ -442,7 +450,7 @@ python -m pytest -q
 python src/main.py --as-of-date 2026-08-15
 ```
 
-An explicit private snapshot can use the same pipeline without replacing the canonical fixtures:
+Explicit private snapshot mode:
 
 ```bash
 python src/main.py \
@@ -453,59 +461,41 @@ python src/main.py \
   --output-directory "/private/processed/<id>"
 ```
 
-The three source-path overrides are all-or-none. The Phase 7 manifest is not consumed automatically; callers pass its `as_of_date` explicitly through `--as-of-date`.
-
-Without `--output-directory`, generated runtime outputs are written to `data/curated/` and ignored except for `.gitkeep`.
-
-Power Automate workflows execute in the Microsoft 365 environment and are not executable from the repository CLI. Python processes only files explicitly supplied by the caller; no OneDrive, Graph, or automatic snapshot-discovery integration is implemented.
+The three source overrides must be supplied together. No OneDrive, Graph, manifest-discovery, or automatic latest-snapshot integration is implemented.
 
 ## Repository Guide
 
 | Document | Purpose |
 | --- | --- |
-| [docs/architecture.md](docs/architecture.md) | Current architecture and data-plane boundaries |
-| [docs/business_process.md](docs/business_process.md) | Governance process and role semantics |
+| [docs/architecture.md](docs/architecture.md) | Current architecture and responsibility boundaries |
+| [docs/business_process.md](docs/business_process.md) | Current governance process and implementation-aware lifecycle semantics |
 | [docs/data_model.md](docs/data_model.md) | Logical domain model |
-| [docs/data_contract.md](docs/data_contract.md) | Canonical raw flat-file contract |
+| [docs/data_contract.md](docs/data_contract.md) | Canonical and operational physical data boundaries |
 | [docs/data_quality.md](docs/data_quality.md) | DQ-001 through DQ-010 |
 | [docs/phase2_dataset_coverage.md](docs/phase2_dataset_coverage.md) | Canonical synthetic scenario coverage |
 | [docs/phase3_pipeline_contract.md](docs/phase3_pipeline_contract.md) | Deterministic Python pipeline contract |
-| [docs/phase4_test_acceptance.md](docs/phase4_test_acceptance.md) | Regression hardening and acceptance |
-| [docs/phase5_evidence_intake.md](docs/phase5_evidence_intake.md) | Phase 5 evidence-intake workflow and acceptance |
-| [docs/phase6_reminder_automation.md](docs/phase6_reminder_automation.md) | Phase 6 reminder workflow, guardrails, and acceptance |
-| [docs/phase7_reporting_export.md](docs/phase7_reporting_export.md) | Phase 7 reporting snapshot/export contract and work-package status |
-| [docs/phase7_power_automate_acceptance.md](docs/phase7_power_automate_acceptance.md) | Phase 7.2 Power Automate runtime acceptance |
-| [docs/phase7_python_external_input.md](docs/phase7_python_external_input.md) | Phase 7.3 Python CLI contract and automated acceptance |
+| [docs/phase4_test_acceptance.md](docs/phase4_test_acceptance.md) | Historical Phase 4 regression acceptance |
+| [docs/phase5_evidence_intake.md](docs/phase5_evidence_intake.md) | Phase 5 workflow and acceptance |
+| [docs/phase6_reminder_automation.md](docs/phase6_reminder_automation.md) | Phase 6 workflow and acceptance |
+| [docs/phase7_reporting_export.md](docs/phase7_reporting_export.md) | Final Phase 7 reporting bridge contract |
+| [docs/phase7_power_automate_acceptance.md](docs/phase7_power_automate_acceptance.md) | Phase 7.2 runtime acceptance |
+| [docs/phase7_python_external_input.md](docs/phase7_python_external_input.md) | Phase 7.3 CLI/input-boundary acceptance |
+| [docs/phase7_end_to_end_acceptance.md](docs/phase7_end_to_end_acceptance.md) | Final Phase 7 WP3 acceptance and regression proof |
+| [docs/repository_conventions.md](docs/repository_conventions.md) | Documentation and naming conventions |
 
-## Security and Governance Considerations
+## Security and Governance Boundaries
 
 - canonical repository identities are synthetic,
-- the operational Microsoft 365 workbook is not a canonical repository source artifact,
-- operational Phase 7 snapshots remain private and outside GitHub,
+- the operational workbook and operational snapshot packages remain private,
+- actual evidence files are not stored in this repository,
 - reachable acceptance-test recipients are not published,
-- actual evidence files are not stored in the repository,
-- credentials, connection tokens, keys, tenant identifiers, and secrets must not be committed,
+- tenant identifiers, connection identifiers, credentials, tokens, and private deployment ZIPs are not committed,
+- public Power Automate source is sanitized and uses deployment placeholders,
 - evidence intake cannot assign compliance,
 - reminder automation cannot assign compliance,
-- reporting export cannot assign compliance or silently repair operational state,
-- Submission DQ failures and operational workflow ambiguity are surfaced explicitly,
+- reporting export cannot repair or reinterpret source state,
 - DQ-invalid records do not enter the AI review queue,
 - final governance review remains human-controlled.
-
-Published Phase 5–6 screenshots are sanitized where needed. Future Phase 7 screenshots must follow the same rule.
-
-## Process Impact Boundary
-
-Phase 6 operationalizes:
-
-```text
-reminder_count
-last_reminder_at
-```
-
-Phase 7.2 exports this Action/reminder state and Phase 7.3 carries explicitly supplied snapshots into curated Python outputs. WP3 must still prove the private operational snapshot → Python handoff before Phase 7 is complete or Phase 8 begins.
-
-The project does not invent unmeasured labour-savings or ROI claims.
 
 ## Limitations
 
@@ -514,16 +504,15 @@ This repository is a **portfolio proof of concept**, not a production cybersecur
 Current limitations include:
 
 - Excel/OneDrive rather than a transactional production datastore,
-- no automatic operational snapshot discovery, manifest ingestion, or scheduled Python execution,
-- Phase 7 WP3 private operational snapshot → Python acceptance still pending,
-- no transactional multi-table snapshot guarantee for the Excel-based operational plane,
-- no production IAM/RBAC or audit-trail service,
+- no transactional multi-table snapshot guarantee across the three Excel reads,
+- no automatic snapshot discovery, manifest ingestion, or scheduled Python execution,
+- no automatic completion of an existing missing-submission Action when later evidence is received,
+- no Action-specific DQ rule catalog beyond the existing Phase 6 operational guardrails,
 - no automated reporting-period generation,
 - no custom Phase 5 confirmation e-mail,
 - no production escalation hierarchy or SLA engine,
-- no dedicated Power Automate telemetry/error datastore,
-- no automatic completion of a missing-submission Action when Phase 5 later receives evidence,
-- no Power BI report artifact yet,
+- no production-grade IAM/RBAC, audit trail, monitoring, or telemetry datastore,
+- no Power BI artifact yet,
 - no external AI model invocation,
 - no REST API implementation,
 - no enforced required CI status check before merge.
@@ -532,4 +521,4 @@ For production, Dataverse, SharePoint Lists, or a relational database would gene
 
 ## Source of Truth
 
-Historical phase documents remain valid for the phase they describe. Current repository documentation, canonical datasets, implementation code, automated tests, and acceptance evidence define the current project state. Later phases must not rewrite historical acceptance fixtures merely to make them resemble later operational state.
+Historical phase-specific documents remain valid for the phase they describe. Current-state foundation documents, implementation code, canonical datasets, automated tests, and final acceptance evidence define the present project state. Later phases must not rewrite historical acceptance fixtures or historical test counts merely to make them resemble later operational state.

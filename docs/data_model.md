@@ -4,7 +4,7 @@
 
 This document defines the logical business data model for the Cyber Governance Automation Lab: entities, fields, relationships, keys, enumerations, and derived-state semantics.
 
-Physical CSV serialization is defined separately in [data_contract.md](data_contract.md). Operational Microsoft 365 table mappings are documented in the Phase 5 and Phase 6 workflow contracts.
+Physical CSV/JSON serialization and the Phase 7 snapshot boundary are defined separately in [data_contract.md](data_contract.md). Operational Microsoft 365 table mappings are documented in the Phase 5–7 workflow contracts.
 
 ## 1. Modeling Principles
 
@@ -13,6 +13,7 @@ Physical CSV serialization is defined separately in [data_contract.md](data_cont
 - Business identity and technical identity remain separate.
 - Compliance, timeliness, Data Quality, and workflow state remain separate dimensions.
 - Canonical repository identities and e-mail addresses are synthetic.
+- Operational Microsoft 365 data may contain authenticated/reachable identities and therefore remains private.
 - Operational workbook data may evolve independently from canonical repository fixtures.
 
 ## 2. Entity Overview
@@ -33,7 +34,7 @@ SUBMISSION
    └──────────────► DATA QUALITY ISSUE
 ```
 
-No additional physical table, runtime parameter, screenshot, or workflow branch creates another core business entity.
+No additional physical table, runtime parameter, snapshot manifest, screenshot, or workflow branch creates another core business entity.
 
 ## 3. Control
 
@@ -44,7 +45,7 @@ No additional physical table, runtime parameter, screenshot, or workflow branch 
 | `control_statement` | Testable Control requirement |
 | `business_unit` | Primary responsible business unit |
 | `owner_role` | Accountable organizational role |
-| `owner_email` | Synthetic repository contact address |
+| `owner_email` | Accountable owner contact; synthetic in canonical repository data, potentially reachable in private operational data |
 | `frequency` | Monthly, Quarterly, or Annual |
 | `risk_level` | Low, Medium, High, or Critical |
 
@@ -91,7 +92,7 @@ is an explicit expected process state, not an absence of data. Pre-existing expe
 | `status` | Submission assessment/workflow status |
 | `evidence_reference` | Reference to supporting evidence |
 | `submitted_at` | Submission date |
-| `submitted_by` | Synthetic repository submitter identity |
+| `submitted_by` | Submitter identity; synthetic in canonical repository data, authenticated operational identity may be present in private Microsoft 365 state |
 | `comment` | Short contextual note |
 
 ### Submission business key
@@ -117,7 +118,7 @@ An Action is a follow-up work item related to exactly one Submission. Through th
 | `action_id` | Unique Action identifier |
 | `control_id` | Denormalized related Control identifier |
 | `submission_id` | Related Submission |
-| `owner_email` | Responsible Action owner |
+| `owner_email` | Responsible Action owner; synthetic in canonical repository data, potentially reachable in private operational data |
 | `created_at` | Action creation date |
 | `due_date` | Action deadline |
 | `status` | Open, In Progress, or Completed |
@@ -155,6 +156,8 @@ The following invariants apply to canonical Action data and the operational `Act
 - a Submission may have at most one non-completed Action (`Open` or `In Progress`) for missing-submission reminder tracking.
 
 The deterministic Python pipeline does not currently implement Action-specific DQ rule IDs. Phase 6 enforces active-Action cardinality operationally and fails safely with `DUPLICATE_ACTIVE_ACTION` when more than one active Action exists for an overdue Submission.
+
+The current PoC also does not automatically complete an existing missing-submission Action when later evidence moves the related Submission to `In Review`. That is an implementation/lifecycle limitation, not a change to the Action status model.
 
 ## 6. Data Quality Issue
 
@@ -336,20 +339,24 @@ These distinctions are contractual across documentation, Python derivation, and 
 
 ## 11. Operational Mapping
 
-Phase 5–6 map the existing logical entities into physical Excel tables:
+Phase 5–7 map the existing logical entities into operational Excel tables and reporting snapshots:
 
 ```text
-Control    → ControlCatalog
-Submission → SubmissionRegister
-Action     → ActionRegister
+Control    → ControlCatalog → Control snapshot JSON
+Submission → SubmissionRegister → Submission snapshot CSV
+Action     → ActionRegister → Action snapshot CSV
 ```
 
-This operational representation does not replace the canonical repository fixtures and does not add new logical entities.
+The completion manifest is technical package metadata and does not create a fifth business entity.
+
+This operational representation does not replace the canonical repository fixtures.
 
 See:
 
 - [phase5_evidence_intake.md](phase5_evidence_intake.md)
 - [phase6_reminder_automation.md](phase6_reminder_automation.md)
+- [phase7_reporting_export.md](phase7_reporting_export.md)
+- [phase7_end_to_end_acceptance.md](phase7_end_to_end_acceptance.md)
 
 ## 12. Production Considerations
 

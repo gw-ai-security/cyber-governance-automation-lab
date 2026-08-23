@@ -2,80 +2,83 @@
 
 ## Status
 
-**PHASE 7.0 CONTRACT COMPLETE**
+**PHASE 7 COMPLETE — IMPLEMENTED AND END-TO-END ACCEPTED**
 
-Current work-package status:
+Work-package status:
 
 ```text
+Phase 7.0 Reporting export contract          = COMPLETE
+Phase 7.1 Implementation preparation         = COMPLETE
 Phase 7.2 Power Automate reporting snapshot  = COMPLETE / acceptance-tested
 Phase 7.3 Python external input boundary     = COMPLETE / automated-tested
-Phase 7 WP3 private end-to-end acceptance    = PENDING
-Full Phase 7                                 = NOT YET COMPLETE
+Phase 7 WP3 private end-to-end acceptance    = COMPLETE
+Full Phase 7                                 = COMPLETE
 ```
 
-Phase 7.0 defines the reporting-snapshot boundary between the operational Microsoft 365 data plane established in Phases 5–6 and the deterministic Python/reporting pipeline established in Phases 2–4.
+Phase 7 implements the controlled reporting bridge between the operational Microsoft 365 state established in Phases 5–6 and the deterministic Python/reporting pipeline established in Phases 2–4.
 
-No Power Automate export flow, operational snapshot files, Python input-path extension, or Power BI report is implemented by Phase 7.0 itself.
+Core boundary:
+
+```text
+Power Automate exports source facts.
+Python owns Data Quality, Control enrichment,
+Action aggregation, and derived metrics.
+```
 
 ## 1. Purpose
 
-Phase 7 must create a controlled, reproducible export of the current operational governance state without overwriting the canonical repository acceptance fixtures.
+Phase 7 creates a controlled and reproducible export of current operational governance state without replacing the canonical repository fixtures.
 
-The target flow is:
+Implemented path:
 
 ```text
 Operational Microsoft 365 workbook
         ↓
 Power Automate reporting snapshot
         ↓
-Versioned private snapshot package
+private snapshot package
         ↓
-Python Data Quality / transformation pipeline
+explicit Python source paths
         ↓
-Curated reporting outputs
+existing deterministic pipeline
         ↓
-Phase 8 Power BI
+curated reporting outputs
+        ↓
+Phase 8 Power BI — planned
 ```
 
-Core design rule:
-
-```text
-Power Automate exports source facts.
-Python owns Data Quality, enrichment, Action aggregation, and derived metrics.
-```
-
-Phase 7 therefore does not duplicate the Phase 3 business logic inside Power Automate.
+Phase 7 reuses the existing Python semantics. It does not duplicate Phase 3 business logic inside Power Automate.
 
 ## 2. Scope
 
-Phase 7 is responsible for:
+Phase 7 implements:
 
-- scheduled export of the operational `ControlCatalog`, `SubmissionRegister`, and `ActionRegister`,
-- one shared snapshot identity across all exported artifacts,
-- deterministic field selection and field order,
-- normalization of operational date representations to the existing repository-compatible date contract where applicable,
-- preservation of missing values without semantic substitution,
-- private OneDrive storage of operational snapshot artifacts,
-- explicit snapshot metadata and completion state,
-- a controlled Python input boundary for processing an explicit operational snapshot,
-- end-to-end acceptance proving that the exported snapshot can be processed without altering canonical repository fixtures.
+- weekly export of operational `ControlCatalog`, `SubmissionRegister`, and `ActionRegister`,
+- one shared `snapshot_id` and local `as_of_date`,
+- exact source-field selection and serialization contracts,
+- date normalization to repository-compatible `YYYY-MM-DD` representation,
+- private OneDrive snapshot storage,
+- a completion manifest written after all source artifacts succeed,
+- explicit failure behavior for incomplete snapshot attempts,
+- an explicit all-or-none Python external-input boundary,
+- custom output-directory support,
+- real private operational snapshot → Python end-to-end acceptance,
+- preservation of the deterministic canonical baseline.
 
 Phase 7 does **not** implement:
 
-- Power BI dashboards or DAX measures,
+- Power BI reports or DAX measures,
 - AI model invocation,
 - REST APIs,
 - compliance decisions,
 - automatic remediation or source-data repair,
-- new Submission Data Quality rule IDs,
+- new DQ rule IDs,
 - evidence-file storage,
-- production data warehousing,
 - transactional snapshot guarantees across Excel tables,
+- automatic snapshot discovery or scheduled Python execution,
 - automatic publication of operational data to GitHub.
 
 ## 3. Data-Plane Boundary
-
-The project continues to maintain two distinct data planes.
 
 ### Canonical repository plane
 
@@ -85,7 +88,7 @@ data/raw/evidence_submissions.csv
 data/raw/actions.csv
 ```
 
-These files are deterministic synthetic acceptance fixtures. They remain unchanged by Phase 7 operational runs.
+These are deterministic synthetic acceptance fixtures and remain unchanged by operational Phase 7 processing.
 
 ### Operational Microsoft 365 plane
 
@@ -96,27 +99,11 @@ Cyber_Governance_Control_Register.xlsx
 └── ActionRegister
 ```
 
-These tables contain the current operational proof-of-concept state produced or consumed by the Phase 5 evidence-intake and Phase 6 reminder workflows.
+These tables represent current PoC operational state produced or consumed by the Phase 5 evidence-intake and Phase 6 reminder workflows.
 
-Phase 7 creates an explicit reporting snapshot from this operational state. It does not redefine the canonical fixtures as live data.
+Phase 7 snapshots all three operational tables to avoid mixed-state runs such as live Submissions/Actions enriched against only the synthetic repository Control Catalog.
 
-## 4. Why All Three Operational Tables Are Exported
-
-Phase 5 operationalizes Submission state. Phase 6 operationalizes Action and reminder state. `ControlCatalog` remains the operational reference source used to resolve Control metadata and accountable owners.
-
-A coherent operational reporting snapshot therefore requires:
-
-```text
-Control state
-+
-Submission state
-+
-Action/reminder state
-```
-
-Using live Submissions and Actions while enriching them against only the synthetic repository Control Catalog would mix operational and canonical reference state in one reporting run. Phase 7 avoids that mixed-state boundary by snapshotting all three operational tables.
-
-This does not add a new business entity. The logical model remains exactly:
+This does not create another business entity. The logical model remains exactly:
 
 ```text
 Control
@@ -125,11 +112,9 @@ Action
 Data Quality Issue
 ```
 
-## 5. Snapshot Package
+## 4. Snapshot Package
 
-Every successful Phase 7 run produces one logical snapshot package identified by one shared `snapshot_id`.
-
-Canonical Phase 7 file naming:
+Every successful Phase 7 run creates one logical package with one shared `snapshot_id`:
 
 ```text
 security_control_snapshot_<snapshot_id>.json
@@ -138,56 +123,43 @@ security_action_snapshot_<snapshot_id>.csv
 security_snapshot_manifest_<snapshot_id>.json
 ```
 
-Example:
+`snapshot_id` is technical lineage metadata, not a business entity.
 
-```text
-security_control_snapshot_20260824_090000.json
-security_submission_snapshot_20260824_090000.csv
-security_action_snapshot_20260824_090000.csv
-security_snapshot_manifest_20260824_090000.json
-```
+## 5. Snapshot Time Semantics
 
-The timestamp portion is generated once per flow run and reused for every artifact.
-
-`snapshot_id` is technical lineage metadata. It is not a fifth core business entity and is not added to the Control, Submission, or Action source schema.
-
-## 6. Snapshot Time Semantics
-
-The flow resolves two related values once at the beginning of the run:
+The flow resolves once per run:
 
 ```text
 snapshot_id
 as_of_date
+generated_at_local
 ```
 
-Target representations:
-
-```text
-snapshot_id = yyyyMMdd_HHmmss
-as_of_date  = yyyy-MM-dd
-```
-
-Both values use:
+Time zone:
 
 ```text
 W. Europe Standard Time
 ```
 
-so the operational snapshot follows the same Central European local-date basis used by the Phase 5/6 workflows.
+Representations:
+
+```text
+snapshot_id        = yyyyMMdd_HHmmss
+as_of_date         = yyyy-MM-dd
+generated_at_local = yyyy-MM-ddTHH:mm:ss
+```
 
 Critical rule:
 
 ```text
 Python as_of_date
 =
-manifest as_of_date
+matching manifest as_of_date
 ```
 
-The processing date must represent the snapshot evaluation date, not an unrelated later date on which somebody happens to run Python.
+The Phase 7.3 CLI does not automatically parse the manifest. The caller supplies the manifest date explicitly through `--as-of-date`.
 
-`as_of_date` remains runtime/snapshot metadata. It is **not** added as a source field to every Submission row.
-
-## 7. Control Snapshot Contract
+## 6. Control Snapshot Contract
 
 Source:
 
@@ -204,10 +176,10 @@ security_control_snapshot_<snapshot_id>.json
 Physical representation:
 
 ```text
-UTF-8 JSON array
+UTF-8 JSON top-level array
 ```
 
-Each Control object contains exactly the existing Control source fields:
+Exact Control source fields:
 
 ```text
 control_id
@@ -220,13 +192,9 @@ frequency
 risk_level
 ```
 
-The Control snapshot must preserve source values without semantic correction.
+No derived reporting fields or Power Automate wrapper metadata are added.
 
-No derived reporting fields are added.
-
-The operational `owner_email` may contain a reachable organizational address. Therefore the Control snapshot is private operational data and must not be committed to the public repository.
-
-## 8. Submission Snapshot Contract
+## 7. Submission Snapshot Contract
 
 Source:
 
@@ -266,22 +234,9 @@ Grain:
 one row per operational SubmissionRegister row
 ```
 
-The export includes all operational Submission rows. It must not filter the dataset to only Compliant, Non-Compliant, overdue, valid, or otherwise selected states.
+All source rows are exported. Power Automate does not filter to selected compliance, timeliness, or DQ states.
 
-The snapshot intentionally excludes derived fields such as:
-
-```text
-evidence_present
-overdue_flag
-submission_late
-days_overdue
-days_late
-data_quality_status
-```
-
-Those remain Python responsibilities.
-
-## 9. Action Snapshot Contract
+## 8. Action Snapshot Contract
 
 Source:
 
@@ -322,9 +277,7 @@ Grain:
 one row per operational ActionRegister row
 ```
 
-Phase 7 performs no Action aggregation in Power Automate.
-
-In particular, the following Phase 6 operational fields must be preserved:
+Phase 7 preserves Phase 6 source facts including:
 
 ```text
 status
@@ -332,13 +285,11 @@ reminder_count
 last_reminder_at
 ```
 
-Action aggregation remains a Python transformation responsibility so Submission grain cannot be multiplied accidentally by multiple Action rows.
+Action aggregation remains a Python responsibility.
 
-## 10. Serialization Rules
+## 9. Serialization Rules
 
-### CSV
-
-Submission and Action snapshots use:
+Submission and Action CSV snapshots use:
 
 | Property | Contract |
 | --- | --- |
@@ -349,36 +300,19 @@ Submission and Action snapshots use:
 | Missing values | empty CSV field |
 | Quoting | standard CSV double-quote escaping |
 
-Operational Excel/connector values may be represented as ISO 8601 timestamps. Phase 7 must normalize exported date fields to `YYYY-MM-DD` before creating the CSV artifact.
+The export does not invent literal missing-value tokens such as `NULL`, `None`, or `N/A` for genuinely missing data.
 
-The export must not use literal missing-value tokens such as:
+The Control snapshot is strict JSON with a top-level array.
 
-```text
-NULL
-null
-None
-N/A
-```
+## 10. Completion Manifest
 
-when the underlying value is actually missing.
-
-### Control JSON
-
-The Control snapshot uses strict UTF-8 JSON with a top-level array of Control objects.
-
-The export must not add comments, wrapper objects, tenant identifiers, connection identifiers, or Power Automate-specific metadata to the Control array.
-
-## 11. Snapshot Manifest Contract
-
-A successful snapshot package ends with:
+A successful package ends with:
 
 ```text
 security_snapshot_manifest_<snapshot_id>.json
 ```
 
-The manifest is created **only after** all three source-data artifacts have been written successfully. It acts as the completion marker for the logical package.
-
-Required manifest fields:
+Required fields:
 
 ```text
 snapshot_id
@@ -393,145 +327,174 @@ action_rows
 status
 ```
 
-Required successful status:
+Successful status:
 
 ```text
 complete
 ```
 
-Example shape:
+The manifest is created **after** all three source artifacts succeed and acts as the package completion marker.
 
-```json
-{
-  "snapshot_id": "20260824_090000",
-  "as_of_date": "2026-08-24",
-  "generated_at_local": "2026-08-24T09:00:00",
-  "control_file": "security_control_snapshot_20260824_090000.json",
-  "submission_file": "security_submission_snapshot_20260824_090000.csv",
-  "action_file": "security_action_snapshot_20260824_090000.csv",
-  "control_rows": 5,
-  "submission_rows": 17,
-  "action_rows": 7,
-  "status": "complete"
-}
+```text
+partial source artifacts
+without completion manifest
+!=
+valid snapshot package
 ```
 
-The example row counts above illustrate the schema only and are not contractual acceptance counts for the live workbook.
+## 11. Private Storage Boundary
 
-The manifest is technical provenance metadata, not a business-domain entity.
-
-## 12. Storage Boundary
-
-Operational snapshot artifacts are stored in a private OneDrive reporting location.
-
-Conceptual location:
+Operational snapshots are stored in a private OneDrive reporting location conceptually represented as:
 
 ```text
 Cyber Governance/
 └── Reporting Snapshots/
 ```
 
-The exact tenant-specific path is an implementation detail and must not be hard-coded into public documentation if it exposes sensitive organizational information.
-
-The snapshot files must not be automatically committed to GitHub because they may contain:
+Snapshot files are not committed because they can contain:
 
 ```text
-submitted_by
 owner_email
+submitted_by
 comments
-operational acceptance-test data
+operational acceptance state
 ```
 
-Repository documentation may contain sanitized screenshots and synthetic examples only.
+Public repository evidence uses sanitized screenshots, sanitized workflow source, and non-sensitive acceptance observations.
 
-## 13. Power Automate Responsibility Boundary
+## 12. Implemented Power Automate Runtime
 
-The Phase 7.2 Power Automate flow:
-
-- schedule the export,
-- resolve one local snapshot identity,
-- read the three operational tables,
-- select exact source fields,
-- normalize technical date representation,
-- create source snapshots,
-- calculate row counts for manifest metadata,
-- create the completion manifest,
-- fail explicitly when required export steps fail.
-
-The flow must not:
-
-- determine compliance,
-- derive overdue or lateness metrics,
-- evaluate DQ-001 through DQ-010,
-- aggregate Actions into Submission rows,
-- silently repair missing or malformed source values,
-- deduplicate source rows,
-- overwrite canonical repository fixtures.
-
-## 14. Implemented Flow Structure
-
-Target flow name:
+Flow:
 
 ```text
 Cyber Governance - Weekly Reporting Snapshot
 ```
 
-Target schedule:
+Schedule:
 
 ```text
-Weekly
-W. Europe Standard Time
+Frequency: Weekly
+Interval: 1
+Day: Monday
+Local time: 09:00
+Time zone: W. Europe Standard Time
 ```
 
-The exact weekday is an implementation choice for Phase 7.2.
+The 09:00 Monday schedule follows the Phase 6 daily 08:00 reminder run so the reporting snapshot can include current confirmed reminder tracking.
 
-The flow should execute after the daily 08:00 Phase 6 reminder workflow so the snapshot can include the latest confirmed reminder tracking. A 09:00 local execution is the current preferred PoC default unless implementation constraints require another time.
-
-Logical structure:
+Implemented logical structure:
 
 ```text
 Recurrence
-    ↓
-Resolve snapshot_id + as_of_date
-    ↓
-TRY - Build Reporting Snapshot
-    ├── Read ControlCatalog
-    ├── Read SubmissionRegister
-    ├── Read ActionRegister
-    ├── Build Control JSON
-    ├── Build Submission CSV
-    ├── Build Action CSV
-    ├── Write three source artifacts
-    └── Write completion manifest
-
-CATCH - Reporting Snapshot Failure
-    ↓
-Failure notification / explicit failed run
+↓
+Resolve Snapshot ID
+↓
+Resolve As Of Date
+↓
+Resolve Generated At Local
+↓
+TRY Build Reporting Snapshot
+   ├── List Control Catalog
+   ├── List Submission Register
+   ├── List Action Register
+   ├── Select Control Fields
+   ├── Select Submission Fields
+   ├── Select Action Fields
+   ├── Create Control JSON
+   ├── Create Submission CSV
+   ├── Create Action CSV
+   ├── Create Control Snapshot File
+   ├── Create Submission Snapshot File
+   ├── Create Action Snapshot File
+   ├── Count Control Rows
+   ├── Count Submission Rows
+   ├── Count Action Rows
+   ├── Build Snapshot Manifest
+   └── Create Snapshot Manifest File
+↓
+CATCH Reporting Snapshot Failure
+   ├── Send Snapshot Failure Notification
+   └── Terminate Snapshot Flow as Failed
 ```
 
-The concrete Power Automate implementation should use Scopes and `Configure run after` rather than pretending that a partially written package is complete.
+All three Excel reads use ISO 8601 connector date output and pagination threshold 5000.
 
-## 15. Consistency and Concurrency Boundary
+## 13. Power Automate Responsibility Boundary
 
-Excel Online / OneDrive does not provide a transactional multi-table snapshot for this proof of concept.
+The flow may:
 
-The three source tables are therefore read sequentially within one flow run. A concurrent Phase 5/6 write could theoretically occur between reads.
+- schedule the export,
+- resolve run-level snapshot metadata,
+- read the three operational source tables,
+- select exact source fields,
+- normalize technical date representation,
+- create source artifacts,
+- count source rows for provenance,
+- create the completion manifest,
+- fail explicitly on export failure.
 
-Phase 7 does not claim ACID or point-in-time transactional snapshot semantics.
+The flow must not:
 
-Mitigations for the PoC are:
+- determine compliance,
+- derive overdue or lateness,
+- evaluate DQ-001 through DQ-010,
+- aggregate Actions into Submission rows,
+- repair malformed source values,
+- deduplicate source rows,
+- overwrite canonical repository fixtures.
+
+## 14. Failure Semantics
+
+If a required read, serialization, or write fails:
+
+- TRY fails,
+- CATCH executes,
+- a failure notification is issued,
+- the run is explicitly terminated as Failed,
+- no successful completion manifest is created for that run.
+
+Already written partial files may remain privately for troubleshooting but are not a valid reporting snapshot.
+
+Phase 7.2 acceptance proved this behavior with a reversible deterministic failure injection.
+
+## 15. Empty Action Dataset
+
+Phase 7.2 acceptance verified an `ActionRegister` with zero data rows.
+
+Observed package semantics:
+
+```text
+action_rows = 0
+status      = complete
+```
+
+The Action snapshot was emitted as a header-only CSV with the exact ten-column Action header.
+
+Phase 7.3 automated tests independently proved that this header-only CSV is processed successfully as:
+
+```text
+Actions loaded: 0
+```
+
+## 16. Consistency and Concurrency Boundary
+
+Excel Online / OneDrive does not provide a transactional multi-table snapshot.
+
+The source tables are read sequentially. A concurrent Phase 5/6 write could theoretically occur between reads.
+
+PoC mitigations:
 
 - one shared `snapshot_id`,
-- short sequential read/export execution,
-- scheduled execution after the normal daily reminder run,
-- completion manifest written only after all artifacts exist,
+- short sequential reads,
+- snapshot scheduled after the normal reminder run,
+- completion manifest written only after all source artifacts exist,
 - explicit documentation of the limitation.
 
-A production architecture requiring stronger consistency would normally use a datastore with stronger transactional and snapshot semantics.
+Phase 7 does not claim ACID or point-in-time transactional consistency.
 
-## 16. Implemented Python Integration Boundary
+## 17. Python Integration Boundary
 
-With no source-path overrides, the repository CLI retains the fixed canonical paths:
+Canonical defaults remain:
 
 ```text
 data/reference/control_catalog.json
@@ -539,9 +502,7 @@ data/raw/evidence_submissions.csv
 data/raw/actions.csv
 ```
 
-Phase 7.3 adds explicit external-input paths while preserving those defaults.
-
-Implemented CLI parameters:
+Phase 7.3 adds:
 
 ```text
 --controls-path
@@ -550,48 +511,42 @@ Implemented CLI parameters:
 --output-directory
 ```
 
-Existing behavior must remain valid:
-
-```bash
-python src/main.py --as-of-date 2026-08-15
-```
-
-An operational snapshot run is possible without replacing repository fixtures:
-
-```bash
-python src/main.py \
-  --as-of-date 2026-08-24 \
-  --controls-path <control-snapshot.json> \
-  --submissions-path <submission-snapshot.csv> \
-  --actions-path <action-snapshot.csv> \
-  --output-directory <operational-output-directory>
-```
-
-The external files must pass the same existing Extract contracts. Phase 7 must not create a second set of business semantics for operational data.
-
-The three source-path overrides are all-or-none. Supplying only a subset is rejected before pipeline processing so operational and canonical source planes cannot be mixed silently. `--output-directory` is independent and can also be used in canonical mode.
-
-Phase 7.3 does not consume or discover the completion manifest automatically. The caller must pass the matching manifest `as_of_date` explicitly through `--as-of-date`.
-
-## 17. Python Processing Responsibilities Remain Unchanged
-
-After loading an explicit operational snapshot, Python continues to own:
+Source overrides are all-or-none:
 
 ```text
-NORMALIZE
-    ↓
-VALIDATE DQ-001 ... DQ-010
-    ↓
-CONTROL ENRICHMENT
-    ↓
-ACTION AGGREGATION
-    ↓
-DERIVED TIMING / GOVERNANCE METRICS
-    ↓
-CURATED OUTPUTS
+none supplied      → all canonical defaults
+all three supplied → one explicit coherent source set
+partial set        → rejected
 ```
 
-The existing semantic rules remain unchanged, including:
+An explicitly requested missing or malformed external source fails; it does not fall back to canonical data.
+
+Both modes reuse the existing:
+
+```text
+EXTRACT → NORMALIZE → VALIDATE → TRANSFORM / ENRICH → DERIVE → LOAD
+```
+
+pipeline.
+
+## 18. Python Responsibilities Remain Unchanged
+
+Python continues to own:
+
+```text
+DQ-001 through DQ-010
+Control enrichment
+Action aggregation
+evidence_present
+overdue_flag
+submission_late
+days_overdue
+days_late
+data_quality_status
+AI review queue eligibility
+```
+
+Critical semantic separations remain unchanged:
 
 ```text
 Evidence Present != Compliant
@@ -604,9 +559,9 @@ Unknown != False
 Not Evaluated != Failed
 ```
 
-## 18. Reporting Outputs Produced Downstream
+## 19. Existing Reporting Outputs
 
-When the snapshot is processed by Python, the existing contractual outputs remain:
+Operational and canonical inputs both produce the same contractual outputs:
 
 ```text
 curated_control_status.csv
@@ -614,11 +569,56 @@ data_quality_issues.csv
 ai_review_queue.json
 ```
 
-Phase 7 does not redesign those outputs merely because the source is operational rather than canonical.
+Phase 7 does not add another processing model merely because the source is operational.
 
-Phase 8 may decide whether additional Action-grain reporting output is required for Power BI. That decision is intentionally not pulled forward into Phase 7.0.
+## 20. End-to-End Acceptance Result
 
-## 19. Process-Impact Dependency
+The final WP3 acceptance processed one real private operational snapshot with:
+
+```text
+snapshot_id = 20260823_112030
+as_of_date  = 2026-08-23
+status      = complete
+```
+
+Manifest source counts:
+
+```text
+Controls:    5
+Submissions: 17
+Actions:     2
+```
+
+Python loaded exactly:
+
+```text
+Controls loaded: 5
+Submissions loaded: 17
+Actions loaded: 2
+```
+
+and produced:
+
+```text
+DQ issues: 5
+Valid submissions: 12
+Invalid submissions: 5
+AI review queue items: 3
+```
+
+Acceptance additionally proved:
+
+- 17 operational Submission rows remained 17 curated rows,
+- five DQ findings remained non-fatal outputs,
+- `reminder_count` and `last_reminder_at` crossed the reporting boundary,
+- the operational AI queue followed the existing eligibility policy,
+- the canonical `2026-08-15` regression remained unchanged,
+- the full suite remained 53 passing tests,
+- canonical source fixtures remained unchanged.
+
+See [phase7_end_to_end_acceptance.md](phase7_end_to_end_acceptance.md).
+
+## 21. Process-Impact Dependency
 
 Phase 6 operationalizes:
 
@@ -627,7 +627,7 @@ reminder_count
 last_reminder_at
 ```
 
-Phase 7 must carry those facts into the reporting process so Phase 8 can support evidence-backed measures such as:
+Phase 7 has now proven these facts across the reporting boundary. Phase 8 can therefore base later evidence-backed reporting measures on actual curated reminder state, for example:
 
 ```text
 Total Automated Reminders
@@ -638,115 +638,59 @@ Open Actions
 
 Phase 7 does not invent labour-savings, ROI, or time-saved claims.
 
-## 20. Known Lifecycle Limitation Preserved
+## 22. Lifecycle Limitation Preserved
 
-Phase 6 documents that a missing-submission Action is not yet automatically completed when Phase 5 later receives evidence and the Submission moves to `In Review`.
+The current PoC does not automatically complete a missing-submission Action when later Phase 5 evidence moves the related Submission to `In Review`.
 
-Phase 7 must export that operational state as stored. It must not infer or repair the Action lifecycle during reporting export.
+Phase 7 exports and processes the actual stored Action state.
 
 ```text
-Reporting export
+Reporting bridge
 !=
-Operational state repair
+Operational lifecycle repair
 ```
 
-## 21. Error Handling Contract
+## 23. Privacy and Repository Governance
 
-A snapshot is successful only when all required source artifacts are written and the completion manifest is created.
-
-If a required read, serialization, or file-write step fails:
-
-- the flow run must be marked failed or handled through an explicit failure path,
-- no `complete` manifest may be written,
-- the failure must not be presented as a valid reporting snapshot,
-- already written partial files may remain for troubleshooting but are not a complete package.
-
-The PoC does not require an enterprise telemetry platform.
-
-## 22. Acceptance Contract and Current Progress
-
-Phase 7 is not complete until all of the following are proven. Phase 7.2 and Phase 7.3 satisfy the snapshot-creation and automated Python-boundary portions; WP3 private end-to-end acceptance remains pending.
-
-### Snapshot creation
-
-- one Control JSON exists,
-- one Submission CSV exists,
-- one Action CSV exists,
-- one completion manifest exists,
-- all four artifacts share the same `snapshot_id`.
-
-### Source completeness
-
-- `control_rows` equals the operational `ControlCatalog` row count observed for the run,
-- `submission_rows` equals the operational `SubmissionRegister` row count observed for the run,
-- `action_rows` equals the operational `ActionRegister` row count observed for the run.
-
-No fixed 5 / 15 / 5 live acceptance counts are required because the operational workbook intentionally evolves independently from canonical fixtures.
-
-### Physical contracts
-
-- Control JSON is a top-level array with the exact required Control fields,
-- Submission CSV has the exact required header and order,
-- Action CSV has the exact required header and order,
-- dates are exported as `YYYY-MM-DD`,
-- missing CSV values remain empty fields,
-- CSV quoting handles commas, quotes, and line breaks correctly,
-- `reminder_count` is integer-compatible.
-
-### Phase 6 state propagation
-
-At least one operational Action with reminder history is demonstrated in the Action snapshot so `reminder_count` and `last_reminder_at` are proven to cross the reporting boundary.
-
-### Python integration
-
-- explicit snapshot paths are accepted,
-- the operational snapshot can be processed end to end,
-- fatal input-contract failures still fail explicitly,
-- DQ findings remain business outputs rather than pipeline crashes,
-- canonical default-path execution remains unchanged.
-
-### Regression
-
-The complete existing test suite must remain green and the canonical acceptance run must still produce the documented Phase 2–4 results for:
-
-```text
-as_of_date = 2026-08-15
-```
-
-### Privacy and repository governance
-
-- operational snapshot files are not committed,
+- operational snapshots remain private,
 - public screenshots are sanitized,
-- no credentials, tokens, tenant identifiers, connection identifiers, or reachable private addresses are published.
+- private tenant Solution ZIPs are not committed,
+- credentials, tokens, tenant identifiers, connection identifiers, and reachable private addresses are not published,
+- the public workflow source uses deployment placeholders,
+- canonical repository fixtures remain synthetic.
 
-## 23. Phase 7.0 Definition of Done
+## 24. Phase 7 Definition of Done
 
-Phase 7.0 is complete when the repository contains a reviewed contract that fixes:
+Phase 7 is complete because:
 
-- the Phase 7 purpose and scope,
-- the three operational source tables,
-- the snapshot package and naming convention,
-- the shared snapshot-time semantics,
-- the Control JSON schema,
-- the Submission CSV schema and grain,
-- the Action CSV schema and grain,
-- serialization and missing-value rules,
-- the completion manifest,
-- the private storage boundary,
-- the Power Automate responsibility boundary,
-- the non-transactional Excel consistency limitation,
-- the Python external-input boundary,
-- the preservation of canonical repository fixtures,
-- the later implementation acceptance criteria.
+- [x] the snapshot contract is defined,
+- [x] the Power Automate runtime is implemented,
+- [x] the weekly Monday 09:00 schedule is implemented,
+- [x] all three operational source tables are exported,
+- [x] exact physical contracts are acceptance-tested,
+- [x] completion-manifest semantics are acceptance-tested,
+- [x] failure behavior is acceptance-tested,
+- [x] empty Action behavior is acceptance-tested,
+- [x] public Power Automate source is sanitized,
+- [x] Python accepts explicit coherent source paths,
+- [x] partial source sets are rejected,
+- [x] fatal external input failures do not silently fall back,
+- [x] the real private operational snapshot was processed end to end,
+- [x] manifest counts matched Python load counts,
+- [x] reminder state reached curated reporting,
+- [x] DQ behavior remained unchanged,
+- [x] the canonical regression remained unchanged,
+- [x] all 53 automated tests passed after acceptance,
+- [x] canonical fixtures remained unchanged,
+- [x] private operational data remained outside GitHub.
 
-No runtime implementation is required for Phase 7.0.
+**Final Phase 7 status: COMPLETE**
 
-**Phase 7.0 status: COMPLETE**
+Phase 8 Power BI is the next planned project phase and is not implemented by this contract.
 
-**Phase 7.2 Power Automate runtime status: COMPLETE / ACCEPTANCE-TESTED**
+## References
 
-**Phase 7.3 Python external input status: COMPLETE / AUTOMATED-TESTED**
-
-**Full Phase 7 status: NOT YET COMPLETE — WP3 PRIVATE END-TO-END ACCEPTANCE PENDING**
-
-See [phase7_power_automate_acceptance.md](phase7_power_automate_acceptance.md) and [phase7_python_external_input.md](phase7_python_external_input.md).
+- [phase7_implementation_plan.md](phase7_implementation_plan.md) — historical Phase 7.1 implementation plan
+- [phase7_power_automate_acceptance.md](phase7_power_automate_acceptance.md) — Phase 7.2 runtime acceptance
+- [phase7_python_external_input.md](phase7_python_external_input.md) — Phase 7.3 Python input-boundary acceptance
+- [phase7_end_to_end_acceptance.md](phase7_end_to_end_acceptance.md) — final WP3 acceptance
