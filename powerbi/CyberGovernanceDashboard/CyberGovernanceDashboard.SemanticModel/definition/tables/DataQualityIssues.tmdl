@@ -1,6 +1,45 @@
 table DataQualityIssues
 	lineageTag: fc6fdf21-cf7e-4455-a158-4fe416730352
 
+	measure 'Total DQ Issues' =
+			
+			COUNTROWS(DataQualityIssues)
+		formatString: 0
+		lineageTag: 82ddb086-f78f-4cc3-83f8-a53e82706b0d
+
+	measure 'Submissions with DQ Issues' =
+			
+			DISTINCTCOUNT(DataQualityIssues[source_row_number])
+		formatString: 0
+		lineageTag: 369f6eb1-74ef-400f-b01b-aaa92c612791
+
+	measure 'DQ Issue Rate' =
+			
+			DIVIDE(
+			    [Submissions with DQ Issues],
+			    [Expected Submissions]
+			)
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: c81d8ab8-c996-4aee-af75-d1c4b3d56ce9
+
+	measure 'High-Severity DQ Issues' =
+			
+			CALCULATE(
+			    [Total DQ Issues],
+			    DataQualityIssues[severity] = "High"
+			)
+		formatString: 0
+		lineageTag: fa39af9e-4b18-4987-b1b0-a9386abd5032
+
+	measure 'Missing Evidence Issues' =
+			
+			CALCULATE(
+			    [Total DQ Issues],
+			    DataQualityIssues[rule] = "DQ-004 Missing Evidence"
+			)
+		formatString: 0
+		lineageTag: dc68d1e4-7416-4f4c-b863-4d4321cac471
+
 	column issue_id
 		dataType: string
 		lineageTag: 44fa79d1-2a92-436a-8832-4e94f91a7cd8
