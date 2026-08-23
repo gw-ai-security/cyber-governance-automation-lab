@@ -19,6 +19,7 @@ The project is intentionally small and explicit. It demonstrates how operational
 - **Controlled reporting bridge** — live Microsoft 365 state is exported as a private snapshot package and processed through the same Python semantics as the canonical fixtures.
 - **Source-controlled Power BI** — PBIP, PBIR, and TMDL definitions are versioned while machine-local cache/state remains excluded.
 - **Curated reporting boundary** — Power BI loads only Python-owned curated reporting outputs and does not reimplement upstream business rules.
+- **Explicit semantic modeling** — Data Quality Issues relate to Submission-grain reporting through raw-row lineage rather than unreliable business identifiers.
 - **Controlled AI boundary** — only Data-Quality-valid Non-Compliant or overdue Submissions enter the minimized AI review queue; final compliance authority remains human.
 - **Reproducible engineering** — GitHub Actions executes the Python regression suite on pushes and pull requests targeting `main`.
 
@@ -42,6 +43,7 @@ The project is intentionally small and explicit. It demonstrates how operational
 | Phase 8.1 canonical reporting baseline | ✅ Complete and CI-verified |
 | Phase 8.2 PBIP/PBIR/TMDL project scaffold | ✅ Complete |
 | Phase 8.3 curated Power BI source loading | ✅ Complete |
+| Phase 8.4 semantic-model relationship | ✅ Complete |
 | Continuous Integration | ✅ GitHub Actions |
 | Required CI merge gate | ⚠ Not currently enforced |
 
@@ -70,7 +72,7 @@ ControlStatus       = 15 rows / 25 columns
 DataQualityIssues   = 5 rows / 8 columns
 ```
 
-No semantic-model relationship or DAX measure is implemented yet; those remain Phase 8.4 and Phase 8.5.
+Phase 8.4 adds the single active `1:*` relationship from `ControlStatus[source_row_number]` to `DataQualityIssues[source_row_number]`. DAX measures remain Phase 8.5.
 
 ## Current Architecture
 
@@ -101,7 +103,7 @@ flowchart TD
 
     L --> P[Power BI ControlStatus]
     M --> O[Power BI DataQualityIssues]
-    P --> R[Semantic Model — relationship next]
+    P --> R[Semantic Model — 1:* lineage relationship]
     O --> R
     N --> Q[Controlled AI Runtime — Phase 9 Planned]
     Q --> T[Human Governance Review]
@@ -130,8 +132,9 @@ The Phase 7 bridge is caller-controlled rather than automatically synchronized. 
 | Phase 8.1 | Canonical Curated Reporting Baseline | ✅ Complete and CI-verified |
 | Phase 8.2 | PBIP/PBIR/TMDL Power BI Project Scaffold | ✅ Complete |
 | Phase 8.3 | Curated CSV Loading and Technical Typing | ✅ Complete |
-| Phase 8.4 | Semantic Model Relationship | ○ Next |
-| **Phase 8** | **Power BI Dashboard** | **◐ In progress — curated data loaded; model relationship next** |
+| Phase 8.4 | Semantic Model Relationship | ✅ Complete |
+| Phase 8.5 | Governance, DQ and Process Measures | ○ Next |
+| **Phase 8** | **Power BI Dashboard** | **◐ In progress — semantic relationship complete; measures next** |
 | Phase 9 | Controlled AI Workflow | ○ Planned |
 | Phase 10 | REST API | ○ Planned |
 | Phase 11 | Documentation & Handover | ○ Planned |
@@ -297,9 +300,9 @@ data_quality_issues.csv
 
 It does **not** directly load the operational workbook, raw Phase 7 snapshots, canonical raw files, or `ai_review_queue.json`.
 
-### Phase 8.3 implementation
+### Phase 8.3 — Curated loading
 
-The source-controlled semantic model now contains:
+The source-controlled semantic model contains:
 
 ```text
 DataRoot
@@ -318,18 +321,19 @@ CSV load
 
 They do not calculate compliance, lateness, overdue state, DQ, Action state, or AI eligibility.
 
-Canonical Power BI acceptance:
+Canonical Power BI load acceptance:
 
 ```text
 ControlStatus       = 15 rows / 25 columns
 DataQualityIssues   = 5 rows / 8 columns
 Model tables        = exactly 2
-Relationships       = 0
 ```
 
-Automatic time intelligence is disabled. No DAX measures, calculated columns, or final report visuals are implemented at the Phase 8.3 boundary.
+Automatic time intelligence is disabled.
 
-The next relationship remains contractually fixed as:
+### Phase 8.4 — Semantic relationship
+
+The model now contains exactly one relationship:
 
 ```text
 ControlStatus[source_row_number]
@@ -339,14 +343,17 @@ ControlStatus[source_row_number]
 DataQualityIssues[source_row_number]
 ```
 
-Required behavior in Phase 8.4:
+Its behavior is:
 
 ```text
 Cardinality      = one-to-many
 Filter direction = ControlStatus → DataQualityIssues
+Status           = active
 ```
 
-The relationship must not be built on `submission_id`, because duplicate or missing Submission identifiers are valid Data Quality scenarios.
+The relationship is deliberately not built on `submission_id`, because duplicate or missing Submission identifiers are valid Data Quality scenarios. Both `source_row_number` fields remain in the semantic model but are hidden from report consumers.
+
+No DAX measures, calculated columns, calculated tables, or final report visuals are implemented at the Phase 8.4 boundary.
 
 ## Python Pipeline
 
@@ -489,6 +496,7 @@ The three source overrides must be supplied together. No OneDrive, Graph, manife
 | [docs/phase8_canonical_baseline.md](docs/phase8_canonical_baseline.md) | Phase 8.1 deterministic canonical reporting baseline and acceptance values |
 | [docs/phase8_power_bi_project.md](docs/phase8_power_bi_project.md) | Phase 8.2 PBIP/PBIR/TMDL project scaffold and Git boundary |
 | [docs/phase8_curated_loading.md](docs/phase8_curated_loading.md) | Phase 8.3 curated CSV loading, typing, null semantics, and model-state acceptance |
+| [docs/phase8_semantic_model.md](docs/phase8_semantic_model.md) | Phase 8.4 lineage relationship, cardinality, filter direction, and hidden technical keys |
 | [docs/repository_conventions.md](docs/repository_conventions.md) | Documentation and naming conventions |
 
 ## Security and Governance Boundaries
@@ -501,7 +509,7 @@ The three source overrides must be supplied together. No OneDrive, Graph, manife
 - public Power Automate source is sanitized and uses deployment placeholders,
 - generated `data/curated/` outputs remain outside Git,
 - Power BI local settings/cache remain outside Git,
-- Phase 8.3 TMDL contains query definitions but no embedded reporting rows,
+- Phase 8 TMDL contains source/query/model definitions but no embedded reporting rows,
 - evidence intake cannot assign compliance,
 - reminder automation cannot assign compliance,
 - reporting export cannot repair or reinterpret source state,
@@ -524,7 +532,7 @@ Current limitations include:
 - no custom Phase 5 confirmation e-mail,
 - no production escalation hierarchy or SLA engine,
 - no production-grade IAM/RBAC, audit trail, monitoring, or telemetry datastore,
-- Power BI curated-source loading exists, but semantic relationship, DAX measures, and final visuals are not implemented yet,
+- Power BI curated loading and the semantic relationship exist, but DAX measures and final visuals are not implemented yet,
 - `DataRoot` must be configured for the local clone or target processed-output directory,
 - no external AI model invocation,
 - no REST API implementation,
