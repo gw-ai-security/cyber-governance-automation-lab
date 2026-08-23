@@ -1,0 +1,16 @@
+{
+  "description": "Portfolio-safe placeholder map for the sanitized Phase 7 Power Automate source. Do not commit private tenant values.",
+  "placeholders": {
+    "<ENV_DRIVE_ID>": "OneDrive/Excel drive identifier",
+    "<ENV_WORKBOOK_FILE_ID>": "Operational Cyber_Governance_Control_Register.xlsx file identifier",
+    "<ENV_CONTROL_TABLE_ID>": "ControlCatalog Excel table identifier",
+    "<ENV_SUBMISSION_TABLE_ID>": "SubmissionRegister Excel table identifier",
+    "<ENV_ACTION_TABLE_ID>": "ActionRegister Excel table identifier",
+    "phase7-alerts@example.com": "Environment-specific failure notification recipient"
+  },
+  "connection_references": {
+    "gw_sharedexcelonlinebusiness_reporting": "Excel Online (Business)",
+    "gw_sharedonedriveforbusiness_reporting": "OneDrive for Business",
+    "gw_sharedoffice365_reporting": "Office 365 Outlook"
+  }
+}

@@ -118,19 +118,33 @@ data/curated/*
 Cyber_Governance_Control_Register.xlsx
 
 # -------------------------------------------------------------
-# 9. Project-specific keep-list / do NOT ignore
+# 9. Private Power Automate deployment/runtime artifacts
+# -------------------------------------------------------------
+# Unmanaged tenant exports can contain environment-specific
+# resource identifiers and reachable notification recipients.
+# Only sanitized source templates belong in the public repository.
+power_automate/exports/
+power_automate/private/
+
+# Operational Phase 7 snapshot packages remain private.
+power_automate/snapshots/
+
+# -------------------------------------------------------------
+# 10. Project-specific keep-list / do NOT ignore
 # -------------------------------------------------------------
 # Canonical source/reference data, documentation evidence, future
-# phase directories, requirements, source code, and tests remain
-# versionable. data/curated is the exception documented above:
-# only its .gitkeep is retained until a later phase deliberately
-# introduces a versioned artifact contract.
+# phase directories, requirements, source code, tests, and the
+# sanitized Power Automate source templates remain versionable.
+# data/curated is the exception documented above: only its
+# .gitkeep is retained until a later phase deliberately introduces
+# a versioned artifact contract.
 !data/raw/
 !data/reference/
 !docs/screenshots/
 !ai/prompts/
 !ai/schemas/
 !ai/examples/
+!power_automate/solutions/
 !requirements.txt
 !src/
 !tests/
