@@ -37,6 +37,7 @@ The project is intentionally small and explicit. It demonstrates how operational
 | Phase 5 evidence-intake workflow | ✅ Implemented and acceptance-tested |
 | Phase 6 reminder workflow | ✅ Implemented and acceptance-tested |
 | Phase 7 reporting snapshot bridge | ✅ Implemented and end-to-end accepted |
+| Phase 8.0 Power BI reporting/KPI contract | ✅ Complete |
 | Continuous Integration | ✅ GitHub Actions |
 | Required CI merge gate | ⚠ Not currently enforced |
 
@@ -143,12 +144,12 @@ flowchart TD
         K --> N[AI Review Queue]
     end
 
-    L --> P[Power BI — Phase 8 Planned]
+    L --> P[Power BI — Phase 8 contract complete / runtime not started]
     N --> Q[Controlled AI Runtime — Phase 9 Planned]
     Q --> R[Human Governance Review]
 ```
 
-See [Architecture](docs/architecture.md) and [Phase 7 End-to-End Acceptance](docs/phase7_end_to_end_acceptance.md).
+See [Architecture](docs/architecture.md), [Phase 7 End-to-End Acceptance](docs/phase7_end_to_end_acceptance.md), and [Phase 8.0 Power BI Contract](docs/phase8_power_bi_contract.md).
 
 ## Implementation Status
 
@@ -167,7 +168,8 @@ See [Architecture](docs/architecture.md) and [Phase 7 End-to-End Acceptance](doc
 | Phase 7.3 | Python External Input Boundary | ✅ Complete and automated-tested |
 | Phase 7 WP3 | Private snapshot → Python end-to-end acceptance | ✅ Complete |
 | **Phase 7** | **Reporting Snapshot Bridge** | **✅ Complete** |
-| Phase 8 | Power BI Dashboard | ○ Planned / not started |
+| Phase 8.0 | Power BI Reporting & KPI Contract | ✅ Complete |
+| **Phase 8** | **Power BI Dashboard** | **◐ In progress — runtime not started** |
 | Phase 9 | Controlled AI Workflow | ○ Planned |
 | Phase 10 | REST API | ○ Planned |
 | Phase 11 | Documentation & Handover | ○ Planned |
@@ -345,6 +347,41 @@ See:
 - [Phase 7.3 Python External Input](docs/phase7_python_external_input.md)
 - [Phase 7 End-to-End Acceptance](docs/phase7_end_to_end_acceptance.md)
 
+## Phase 8 — Power BI Dashboard
+
+Phase 8.0 has frozen the reporting and KPI semantics before report implementation.
+
+Power BI will consume exactly:
+
+```text
+curated_control_status.csv
+data_quality_issues.csv
+```
+
+Submission remains the primary reporting grain. Data Quality Issues relate back to raw Submission lineage through:
+
+```text
+ControlStatus[source_row_number]
+          1
+          │
+          *
+DataQualityIssues[source_row_number]
+```
+
+The relationship is deliberately not based on `submission_id`, because missing or duplicate Submission identifiers are Data Quality scenarios. Power Query is restricted to technical loading and typing; Python remains the owner of DQ, Control enrichment, Action aggregation, and derived metrics.
+
+The Phase 8 contract also fixes the business definitions for governance, timeliness, Data Quality, and reminder/process-impact KPIs and defines three target report pages:
+
+```text
+Management Overview
+Control Monitoring
+Process & Data Quality
+```
+
+No Power BI runtime artifact, DAX implementation, or visual is claimed as implemented by Phase 8.0.
+
+See [Phase 8.0 Power BI Reporting and KPI Contract](docs/phase8_power_bi_contract.md).
+
 ## Python Pipeline
 
 The deterministic processing stages remain:
@@ -481,6 +518,7 @@ The three source overrides must be supplied together. No OneDrive, Graph, manife
 | [docs/phase7_power_automate_acceptance.md](docs/phase7_power_automate_acceptance.md) | Phase 7.2 runtime acceptance |
 | [docs/phase7_python_external_input.md](docs/phase7_python_external_input.md) | Phase 7.3 CLI/input-boundary acceptance |
 | [docs/phase7_end_to_end_acceptance.md](docs/phase7_end_to_end_acceptance.md) | Final Phase 7 WP3 acceptance and regression proof |
+| [docs/phase8_power_bi_contract.md](docs/phase8_power_bi_contract.md) | Phase 8.0 reporting, semantic-model, KPI, page, and acceptance contract |
 | [docs/repository_conventions.md](docs/repository_conventions.md) | Documentation and naming conventions |
 
 ## Security and Governance Boundaries
@@ -512,7 +550,7 @@ Current limitations include:
 - no custom Phase 5 confirmation e-mail,
 - no production escalation hierarchy or SLA engine,
 - no production-grade IAM/RBAC, audit trail, monitoring, or telemetry datastore,
-- no Power BI artifact yet,
+- no Power BI runtime artifact yet,
 - no external AI model invocation,
 - no REST API implementation,
 - no enforced required CI status check before merge.
