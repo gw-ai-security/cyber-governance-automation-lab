@@ -116,7 +116,18 @@ ControlStatus[source_row_number]
 DataQualityIssues[source_row_number]
 ```
 
-The relationship is active, single-direction, and filters from `ControlStatus` to `DataQualityIssues`. DAX measures begin in Phase 8.5.
+The relationship is active, single-direction, and filters from `ControlStatus` to `DataQualityIssues`.
+
+Phase 8.5 adds the version-controlled semantic measure layer:
+
+```text
+ControlStatus       16 DAX measures
+DataQualityIssues    5 DAX measures
+-------------------------------
+Total               21 measures
+```
+
+These measures implement the frozen governance, compliance, timeliness, Data Quality, and reminder/process KPI contract. Report-page construction begins in Phase 8.6.
 
 ## 2. High-Level Architecture
 
@@ -153,7 +164,7 @@ flowchart TD
         L --> CS
         M --> DQ
         CS -->|1 to many / single direction| DQ
-        CS --> SM[Semantic Model — measures next]
+        CS --> SM[Semantic Model — 21 contracted DAX measures]
         DQ --> SM
     end
 
@@ -484,9 +495,10 @@ Phase 8.2 → PBIP/PBIR/TMDL scaffold
 Phase 8.3 → curated CSV loading and technical typing
 Phase 8.4 → semantic-model relationship
 Phase 8.5 → DAX measures
+Phase 8.6 → Management Overview page
 ```
 
-### Current model state after Phase 8.4
+### Current model state after Phase 8.5
 
 The semantic model contains a required text parameter:
 
@@ -522,7 +534,7 @@ They do not implement compliance, timing, DQ, Action, or AI business rules.
 
 Automatic time intelligence is disabled.
 
-The semantic relationship is now implemented as:
+The semantic relationship is implemented as:
 
 ```text
 ControlStatus[source_row_number]
@@ -543,7 +555,52 @@ Relationships    = exactly 1
 
 The relationship does not use `submission_id`, because missing or duplicate Submission identifiers are valid Data Quality scenarios. `source_row_number` remains physically present in both tables but is hidden from report consumers.
 
-No DAX measures, calculated columns, calculated tables, or final report visuals are implemented at the Phase 8.4 boundary.
+The model contains exactly 21 DAX measures:
+
+```text
+ControlStatus       16 measures
+DataQualityIssues    5 measures
+Calculated tables    0
+Calculated columns   0
+```
+
+The measure layer preserves the frozen reporting semantics:
+
+- `Expected Submissions` keeps DQ-invalid source rows visible in the denominator,
+- compliance measures operate on DQ-valid assessed records,
+- `Controls in Scope` excludes unresolved Control enrichment such as canonical `CTRL-999`,
+- timeliness measures operate on DQ-valid records,
+- DQ-affected Submission counts use `source_row_number`, not potentially missing or duplicate `submission_id`,
+- reminder/process measures consume Python-owned aggregation rather than reconstructing Action history,
+- `DIVIDE` is used where a zero denominator should yield blank rather than an invented value.
+
+Canonical semantic targets include:
+
+```text
+Controls in Scope                           5
+Expected Submissions                       15
+Valid Submissions                          10
+Invalid Submissions                         5
+Assessed Submissions                        5
+Compliant Submissions                       4
+Non-Compliant Submissions                   1
+Assessed Compliance Rate                 80.0%
+Overdue Submissions                         1
+Late Submissions                            1
+High/Critical Exceptions                    2
+Overdue Submission Rate                  10.0%
+Total Automated Reminders                   4
+Active Follow-up Submissions                4
+Submissions with Reminder History           4
+Average Reminders per Reminded Submission 1.00
+Total DQ Issues                             5
+Submissions with DQ Issues                  5
+DQ Issue Rate                            33.3%
+High-Severity DQ Issues                     5
+Missing Evidence Issues                     1
+```
+
+Formal Power BI runtime acceptance of these values remains Phase 8.9. Final report visuals are not yet implemented at the Phase 8.5 boundary.
 
 See:
 
@@ -552,6 +609,7 @@ See:
 - [phase8_power_bi_project.md](phase8_power_bi_project.md)
 - [phase8_curated_loading.md](phase8_curated_loading.md)
 - [phase8_semantic_model.md](phase8_semantic_model.md)
+- [phase8_measures.md](phase8_measures.md)
 
 ## 12. Controlled AI Boundary
 
@@ -659,8 +717,9 @@ Phase 7 does not claim ACID or point-in-time transactional semantics.
 - `ControlStatus` and `DataQualityIssues` are technically loaded and typed,
 - the active one-to-many lineage relationship is implemented on `source_row_number`,
 - technical relationship keys are hidden from report consumers,
-- no DAX measure exists yet,
-- later Phase 8 work packages own KPI measures and report pages.
+- 21 contracted DAX measures implement governance, compliance, timeliness, DQ, and process reporting semantics,
+- no calculated tables or calculated columns are introduced by Phase 8.5,
+- later Phase 8 work packages own report pages and final runtime acceptance.
 
 ### Controlled AI Runtime
 
@@ -692,6 +751,7 @@ Operational snapshot artifacts, private workbook data, credentials, tokens, tena
 - Power BI consumes curated outputs rather than duplicating upstream business logic.
 - Power Query performs technical ingestion only.
 - Power BI relates Submission-grain reporting to DQ issue grain through technical raw-row lineage rather than unreliable business identifiers.
+- DAX implements contracted reporting measures without inventing a composite overall status or redefining Python-owned business rules.
 - Null/non-evaluable timing state remains null rather than becoming false/zero.
 - Power BI project/report/model definitions are version-controlled separately from machine-local cache and generated reporting data.
 - AI processing remains downstream of deterministic validation.
@@ -707,7 +767,7 @@ Operational snapshot artifacts, private workbook data, credentials, tokens, tena
 - no scheduled Python snapshot-processing service,
 - no Action-specific DQ rule catalog,
 - no production-grade IAM/RBAC, DLP, audit, monitoring, retention, or telemetry architecture,
-- Power BI curated-source loading and the semantic relationship exist, but DAX measures and final visuals are not implemented yet,
+- Power BI curated-source loading, the semantic relationship, and contracted DAX measures exist, but final report pages and runtime acceptance are not implemented yet,
 - `DataRoot` must be configured for the relevant local clone or processed-output directory,
 - no external AI invocation,
 - no REST API implementation.
@@ -736,5 +796,6 @@ Phase-specific evidence:
 - [phase8_power_bi_project.md](phase8_power_bi_project.md)
 - [phase8_curated_loading.md](phase8_curated_loading.md)
 - [phase8_semantic_model.md](phase8_semantic_model.md)
+- [phase8_measures.md](phase8_measures.md)
 
 Historical phase-specific documents remain valid for the phase they describe. Current-state foundation documents, implementation code, and final acceptance evidence define the present architecture.
