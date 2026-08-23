@@ -154,7 +154,7 @@ table ControlStatus
 		dataType: int64
 		formatString: 0
 		lineageTag: 2b947889-d3b1-4ef4-bc01-1f1938aaf442
-		summarizeBy: none
+		summarizeBy: sum
 		sourceColumn: days_overdue
 
 		annotation SummarizationSetBy = Automatic
@@ -163,7 +163,7 @@ table ControlStatus
 		dataType: int64
 		formatString: 0
 		lineageTag: 2633e549-31da-4019-b29b-97decd662fd5
-		summarizeBy: none
+		summarizeBy: sum
 		sourceColumn: days_late
 
 		annotation SummarizationSetBy = Automatic
@@ -207,7 +207,7 @@ table ControlStatus
 		dataType: int64
 		formatString: 0
 		lineageTag: f73c7e7a-090d-472b-998f-2521cbc2323d
-		summarizeBy: none
+		summarizeBy: sum
 		sourceColumn: reminder_count
 
 		annotation SummarizationSetBy = Automatic
@@ -290,4 +290,3 @@ table ControlStatus
 	annotation PBI_NavigationStepName = Navigation
 
 	annotation PBI_ResultType = Table
-
