@@ -97,7 +97,8 @@ logs/
 # Local Power BI Desktop cache/temp files — not the project's
 # .pbip/.pbix/report/semantic-model/documentation files.
 *.pbi.bak
-.pbi/
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
 ~*.pbix
 *.pbix.lock
 

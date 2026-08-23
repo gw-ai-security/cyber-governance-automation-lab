@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "CyberGovernanceDashboard"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "7fafbdd9-5e68-4aba-87a3-d54a07749972"
+  }
+}
