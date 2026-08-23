@@ -59,35 +59,96 @@ def parse_iso_date(value: str) -> date:
 
 
 def parse_arguments(arguments=None):
-    """Parse supported Phase 3 command-line arguments."""
+    """Parse the supported pipeline command-line arguments."""
 
     parser = argparse.ArgumentParser(
-        description="Run the Cyber Governance Phase 3 data pipeline."
+        description="Run the Cyber Governance data pipeline."
     )
     parser.add_argument(
         "--as-of-date",
         type=parse_iso_date,
         help="Processing date in exact YYYY-MM-DD format (default: today).",
     )
-    return parser.parse_args(arguments)
+    parser.add_argument(
+        "--controls-path",
+        type=Path,
+        help="Path to an external Control Catalog JSON snapshot.",
+    )
+    parser.add_argument(
+        "--submissions-path",
+        type=Path,
+        help="Path to an external Submission CSV snapshot.",
+    )
+    parser.add_argument(
+        "--actions-path",
+        type=Path,
+        help="Path to an external Action CSV snapshot.",
+    )
+    parser.add_argument(
+        "--output-directory",
+        type=Path,
+        help="Directory for the three contractual pipeline outputs.",
+    )
+
+    parsed = parser.parse_args(arguments)
+
+    try:
+        validate_source_path_overrides(
+            parsed.controls_path,
+            parsed.submissions_path,
+            parsed.actions_path,
+        )
+    except ValueError as error:
+        parser.error(str(error))
+
+    return parsed
+
+
+def validate_source_path_overrides(
+    controls_path: Path | None,
+    submissions_path: Path | None,
+    actions_path: Path | None,
+) -> None:
+    """Require external Control, Submission, and Action paths as one set."""
+
+    provided_paths = (
+        controls_path is not None,
+        submissions_path is not None,
+        actions_path is not None,
+    )
+
+    if any(provided_paths) and not all(provided_paths):
+        raise ValueError(
+            "all three source paths must be supplied together: "
+            "--controls-path, --submissions-path, and --actions-path"
+        )
 
 
 def run_pipeline(
     as_of_date: date,
     project_root: Path = PROJECT_ROOT,
+    controls_path: Path | None = None,
+    submissions_path: Path | None = None,
+    actions_path: Path | None = None,
+    output_directory: Path | None = None,
 ) -> dict[str, int]:
-    """Run the Phase 3 pipeline and return its contractual summary counts."""
+    """Run the pipeline and return its contractual summary counts."""
 
-    control_catalog_path = (
-        project_root / "data/reference/control_catalog.json"
+    validate_source_path_overrides(
+        controls_path,
+        submissions_path,
+        actions_path,
     )
-    submissions_path = (
-        project_root / "data/raw/evidence_submissions.csv"
-    )
-    actions_path = project_root / "data/raw/actions.csv"
-    output_directory = project_root / "data/curated"
 
-    raw_controls = load_control_catalog(control_catalog_path)
+    if controls_path is None:
+        controls_path = project_root / "data/reference/control_catalog.json"
+        submissions_path = project_root / "data/raw/evidence_submissions.csv"
+        actions_path = project_root / "data/raw/actions.csv"
+
+    if output_directory is None:
+        output_directory = project_root / "data/curated"
+
+    raw_controls = load_control_catalog(controls_path)
     raw_submissions = load_submissions(submissions_path)
     raw_actions = load_actions(actions_path)
 
@@ -157,7 +218,14 @@ def main(arguments=None, project_root: Path = PROJECT_ROOT) -> int:
     as_of_date = parsed.as_of_date or date.today()
 
     try:
-        summary = run_pipeline(as_of_date, project_root)
+        summary = run_pipeline(
+            as_of_date,
+            project_root=project_root,
+            controls_path=parsed.controls_path,
+            submissions_path=parsed.submissions_path,
+            actions_path=parsed.actions_path,
+            output_directory=parsed.output_directory,
+        )
     except (OSError, ValueError) as error:
         print(f"Pipeline failed: {error}", file=sys.stderr)
         return 1

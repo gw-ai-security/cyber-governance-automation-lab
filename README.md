@@ -18,7 +18,7 @@ The implementation is intentionally small and explicit. It demonstrates business
 - **Same-day idempotency** — repeated reminder-flow execution on the same day does not resend or increment tracking.
 - **Deterministic Data Quality** — DQ-001 through DQ-010 are applied to canonical repository Submission data without silent semantic correction.
 - **Deterministic engineering baseline** — GitHub Actions executes the complete Python test suite on pushes and pull requests targeting `main`.
-- **Controlled reporting boundary** — Phase 7.0 fixes how live Microsoft 365 Control, Submission, and Action state will be exported without overwriting deterministic repository fixtures.
+- **Controlled reporting boundary** — Phase 7.2 exports live Microsoft 365 Control, Submission, and Action state, and Phase 7.3 routes explicit snapshots through the existing Python pipeline without overwriting deterministic repository fixtures.
 - **Controlled AI boundary** — only Data-Quality-valid governance exceptions enter the AI review queue; final compliance authority remains human.
 
 ## Current Engineering Evidence
@@ -29,7 +29,7 @@ The implementation is intentionally small and explicit. It demonstrates business
 | Canonical synthetic Submissions | 15 |
 | Canonical raw Actions | 5 |
 | Explicit Submission DQ rules | 10 |
-| Automated tests | **42 passing** |
+| Automated tests | **53 passing** |
 | Canonical DQ findings | 5 |
 | Valid / invalid Submissions | 10 / 5 |
 | Raw / curated Submission rows | 15 / 15 |
@@ -39,8 +39,9 @@ The implementation is intentionally small and explicit. It demonstrates business
 | Phase 5 controlled failure outcomes | 3 |
 | Phase 6 reminder workflow | ✅ Implemented and acceptance-tested |
 | Phase 6 guard outcomes | 4 |
-| Phase 7.0 reporting export contract | ✅ Defined |
-| Phase 7 runtime snapshot export | ○ Not implemented yet |
+| Phase 7.2 reporting snapshot export | ✅ Implemented and acceptance-tested |
+| Phase 7.3 Python external input | ✅ Implemented and automated-tested |
+| Full Phase 7 end-to-end acceptance | ○ WP3 pending |
 | Continuous Integration | ✅ GitHub Actions |
 | Required CI merge gate | ⚠ Not currently enforced |
 
@@ -96,7 +97,7 @@ data/raw/actions.csv                ┘
                          data/curated/*
 ```
 
-These planes are intentionally **not automatically synchronized yet**. Phase 7.0 defines the planned reporting snapshot/export bridge; the runtime export and Python external-input path are not implemented yet.
+These planes are intentionally **not automatically synchronized**. Phase 7.2 creates private operational snapshot packages and Phase 7.3 processes explicitly supplied source paths. The remaining WP3 acceptance must still prove one private operational package end to end.
 
 ```mermaid
 flowchart TD
@@ -122,7 +123,7 @@ flowchart TD
     C -. Phase 7 Submission export .-> S[Operational Snapshot Package]
     E -. Phase 7 Control export .-> S
     F -. Phase 7 Action/reminder export .-> S
-    S -. planned explicit external-input path .-> K
+    S -. explicit Phase 7.3 source paths .-> K
 
     L --> P[Power BI — Planned]
     N --> Q[Controlled AI Runtime — Planned]
@@ -145,7 +146,10 @@ See [Architecture](docs/architecture.md), [Phase 5 Evidence Intake](docs/phase5_
 | Phase 5 | Power Automate Evidence Intake | ✅ Core DoD complete |
 | Phase 6 | Scheduled Reminder Automation | ✅ Complete and acceptance-tested |
 | Phase 7.0 | Reporting Export Contract | ✅ Complete |
-| Phase 7 runtime | Reporting Snapshot Export + Python Bridge | ○ Planned |
+| Phase 7.1 | Reporting Export Implementation Preparation | ✅ Complete |
+| Phase 7.2 | Power Automate Reporting Snapshot | ✅ Complete and acceptance-tested |
+| Phase 7.3 | Python External Input Boundary | ✅ Complete |
+| Full Phase 7 | Private operational snapshot → Python acceptance (WP3) | ○ Pending |
 | Phase 8 | Power BI Dashboard | ○ Planned |
 | Phase 9 | Controlled AI Workflow | ○ Planned |
 | Phase 10 | REST API | ○ Planned |
@@ -280,7 +284,7 @@ See [docs/phase6_reminder_automation.md](docs/phase6_reminder_automation.md).
 
 ## Phase 7: Reporting Export Contract
 
-Phase 7.0 defines the planned operational reporting bridge but does not yet implement it.
+Phase 7.2 implements and acceptance-tests the Power Automate reporting snapshot. Phase 7.3 implements the explicit Python external-input boundary. Full Phase 7 remains incomplete until WP3 processes and reconciles one private operational snapshot end to end.
 
 The snapshot contract carries all three operational source tables:
 
@@ -347,7 +351,7 @@ reminder_count
 last_reminder_at
 ```
 
-Phase 7 runtime implementation is planned to add explicit external input paths while preserving the current canonical file paths as defaults.
+Phase 7.3 adds explicit external input paths while preserving the current canonical file paths as defaults. Source overrides are all-or-none, preventing canonical and operational source planes from being mixed silently.
 
 See [docs/phase3_pipeline_contract.md](docs/phase3_pipeline_contract.md).
 
@@ -386,7 +390,7 @@ python -m pytest -q
 
 for pull requests targeting `main` and pushes to `main`.
 
-The current deterministic suite contains **42 passing tests**. Phase 7.0 is documentation/contract work only and does not change the Python runtime or test count.
+The current deterministic suite contains **53 passing tests**. Phase 7.3 adds black-box CLI coverage for external routing, all-or-none source selection, output isolation, fatal input contracts, source immutability, DQ behavior, and header-only Action snapshots.
 
 The repository currently does **not** enforce the Python check as a required merge gate. CI is active, but strict merge gating must be configured separately in GitHub repository rules/settings.
 
@@ -418,13 +422,13 @@ AI processing remains downstream of deterministic validation and does not hold f
 | Technology | Role |
 | --- | --- |
 | Microsoft Forms | Authenticated evidence intake |
-| Power Automate | Evidence intake, scheduled reminders, planned reporting snapshot orchestration |
-| Excel Online / OneDrive | Operational Submission, Control, and Action tables; planned private snapshots |
+| Power Automate | Evidence intake, scheduled reminders, and reporting snapshot orchestration |
+| Excel Online / OneDrive | Operational Submission, Control, and Action tables; private reporting snapshots |
 | Office 365 Outlook | Reminder delivery |
 | Python 3.14.5 | Deterministic data pipeline |
 | pandas | Transformation and enrichment |
 | pytest | Automated testing |
-| CSV / JSON | Canonical repository contracts and planned operational snapshot formats |
+| CSV / JSON | Canonical repository contracts and operational snapshot formats |
 | GitHub Actions | Continuous Integration |
 | Git / GitHub | Version control and repository workflow |
 
@@ -438,9 +442,22 @@ python -m pytest -q
 python src/main.py --as-of-date 2026-08-15
 ```
 
-Generated runtime outputs are written to `data/curated/` and ignored except for `.gitkeep`.
+An explicit private snapshot can use the same pipeline without replacing the canonical fixtures:
 
-Power Automate workflows execute in the Microsoft 365 environment and are not executable from the repository CLI. The Phase 7 external-snapshot CLI path is still planned rather than implemented.
+```bash
+python src/main.py \
+  --as-of-date 2026-08-23 \
+  --controls-path "/private/snapshots/security_control_snapshot_<id>.json" \
+  --submissions-path "/private/snapshots/security_submission_snapshot_<id>.csv" \
+  --actions-path "/private/snapshots/security_action_snapshot_<id>.csv" \
+  --output-directory "/private/processed/<id>"
+```
+
+The three source-path overrides are all-or-none. The Phase 7 manifest is not consumed automatically; callers pass its `as_of_date` explicitly through `--as-of-date`.
+
+Without `--output-directory`, generated runtime outputs are written to `data/curated/` and ignored except for `.gitkeep`.
+
+Power Automate workflows execute in the Microsoft 365 environment and are not executable from the repository CLI. Python processes only files explicitly supplied by the caller; no OneDrive, Graph, or automatic snapshot-discovery integration is implemented.
 
 ## Repository Guide
 
@@ -456,13 +473,15 @@ Power Automate workflows execute in the Microsoft 365 environment and are not ex
 | [docs/phase4_test_acceptance.md](docs/phase4_test_acceptance.md) | Regression hardening and acceptance |
 | [docs/phase5_evidence_intake.md](docs/phase5_evidence_intake.md) | Phase 5 evidence-intake workflow and acceptance |
 | [docs/phase6_reminder_automation.md](docs/phase6_reminder_automation.md) | Phase 6 reminder workflow, guardrails, and acceptance |
-| [docs/phase7_reporting_export.md](docs/phase7_reporting_export.md) | Phase 7.0 operational snapshot/export contract and later acceptance criteria |
+| [docs/phase7_reporting_export.md](docs/phase7_reporting_export.md) | Phase 7 reporting snapshot/export contract and work-package status |
+| [docs/phase7_power_automate_acceptance.md](docs/phase7_power_automate_acceptance.md) | Phase 7.2 Power Automate runtime acceptance |
+| [docs/phase7_python_external_input.md](docs/phase7_python_external_input.md) | Phase 7.3 Python CLI contract and automated acceptance |
 
 ## Security and Governance Considerations
 
 - canonical repository identities are synthetic,
 - the operational Microsoft 365 workbook is not a canonical repository source artifact,
-- operational Phase 7 snapshots will remain private and outside GitHub,
+- operational Phase 7 snapshots remain private and outside GitHub,
 - reachable acceptance-test recipients are not published,
 - actual evidence files are not stored in the repository,
 - credentials, connection tokens, keys, tenant identifiers, and secrets must not be committed,
@@ -484,7 +503,7 @@ reminder_count
 last_reminder_at
 ```
 
-Phase 7.0 now defines how this Action/reminder state must cross the reporting boundary. The runtime export must still be implemented before Phase 8 Power BI metrics can represent live reminder execution.
+Phase 7.2 exports this Action/reminder state and Phase 7.3 carries explicitly supplied snapshots into curated Python outputs. WP3 must still prove the private operational snapshot → Python handoff before Phase 7 is complete or Phase 8 begins.
 
 The project does not invent unmeasured labour-savings or ROI claims.
 
@@ -495,7 +514,8 @@ This repository is a **portfolio proof of concept**, not a production cybersecur
 Current limitations include:
 
 - Excel/OneDrive rather than a transactional production datastore,
-- Phase 7.0 reporting contract defined but no operational workbook → reporting runtime synchronization yet,
+- no automatic operational snapshot discovery, manifest ingestion, or scheduled Python execution,
+- Phase 7 WP3 private operational snapshot → Python acceptance still pending,
 - no transactional multi-table snapshot guarantee for the Excel-based operational plane,
 - no production IAM/RBAC or audit-trail service,
 - no automated reporting-period generation,

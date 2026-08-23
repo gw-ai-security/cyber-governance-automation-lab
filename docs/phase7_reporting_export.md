@@ -2,7 +2,16 @@
 
 ## Status
 
-**PHASE 7.0 CONTRACT DEFINED — IMPLEMENTATION PLANNED**
+**PHASE 7.0 CONTRACT COMPLETE**
+
+Current work-package status:
+
+```text
+Phase 7.2 Power Automate reporting snapshot  = COMPLETE / acceptance-tested
+Phase 7.3 Python external input boundary     = COMPLETE / automated-tested
+Phase 7 WP3 private end-to-end acceptance    = PENDING
+Full Phase 7                                 = NOT YET COMPLETE
+```
 
 Phase 7.0 defines the reporting-snapshot boundary between the operational Microsoft 365 data plane established in Phases 5–6 and the deterministic Python/reporting pipeline established in Phases 2–4.
 
@@ -437,7 +446,7 @@ Repository documentation may contain sanitized screenshots and synthetic example
 
 ## 13. Power Automate Responsibility Boundary
 
-The planned Phase 7 Power Automate flow may:
+The Phase 7.2 Power Automate flow:
 
 - schedule the export,
 - resolve one local snapshot identity,
@@ -459,7 +468,7 @@ The flow must not:
 - deduplicate source rows,
 - overwrite canonical repository fixtures.
 
-## 14. Planned Flow Structure
+## 14. Implemented Flow Structure
 
 Target flow name:
 
@@ -520,9 +529,9 @@ Mitigations for the PoC are:
 
 A production architecture requiring stronger consistency would normally use a datastore with stronger transactional and snapshot semantics.
 
-## 16. Planned Python Integration Boundary
+## 16. Implemented Python Integration Boundary
 
-The current repository CLI reads fixed canonical paths:
+With no source-path overrides, the repository CLI retains the fixed canonical paths:
 
 ```text
 data/reference/control_catalog.json
@@ -530,9 +539,9 @@ data/raw/evidence_submissions.csv
 data/raw/actions.csv
 ```
 
-Phase 7 implementation must add an explicit external-input path while preserving those defaults.
+Phase 7.3 adds explicit external-input paths while preserving those defaults.
 
-Planned CLI parameters:
+Implemented CLI parameters:
 
 ```text
 --controls-path
@@ -547,7 +556,7 @@ Existing behavior must remain valid:
 python src/main.py --as-of-date 2026-08-15
 ```
 
-An operational snapshot run should become possible without replacing repository fixtures, conceptually:
+An operational snapshot run is possible without replacing repository fixtures:
 
 ```bash
 python src/main.py \
@@ -559,6 +568,10 @@ python src/main.py \
 ```
 
 The external files must pass the same existing Extract contracts. Phase 7 must not create a second set of business semantics for operational data.
+
+The three source-path overrides are all-or-none. Supplying only a subset is rejected before pipeline processing so operational and canonical source planes cannot be mixed silently. `--output-directory` is independent and can also be used in canonical mode.
+
+Phase 7.3 does not consume or discover the completion manifest automatically. The caller must pass the matching manifest `as_of_date` explicitly through `--as-of-date`.
 
 ## 17. Python Processing Responsibilities Remain Unchanged
 
@@ -650,9 +663,9 @@ If a required read, serialization, or file-write step fails:
 
 The PoC does not require an enterprise telemetry platform.
 
-## 22. Acceptance Contract for Later Phase 7 Implementation
+## 22. Acceptance Contract and Current Progress
 
-Phase 7 implementation is not complete until all of the following are proven.
+Phase 7 is not complete until all of the following are proven. Phase 7.2 and Phase 7.3 satisfy the snapshot-creation and automated Python-boundary portions; WP3 private end-to-end acceptance remains pending.
 
 ### Snapshot creation
 
@@ -722,7 +735,7 @@ Phase 7.0 is complete when the repository contains a reviewed contract that fixe
 - the private storage boundary,
 - the Power Automate responsibility boundary,
 - the non-transactional Excel consistency limitation,
-- the planned Python external-input boundary,
+- the Python external-input boundary,
 - the preservation of canonical repository fixtures,
 - the later implementation acceptance criteria.
 
@@ -730,4 +743,10 @@ No runtime implementation is required for Phase 7.0.
 
 **Phase 7.0 status: COMPLETE**
 
-**Phase 7 runtime implementation status: NOT IMPLEMENTED**
+**Phase 7.2 Power Automate runtime status: COMPLETE / ACCEPTANCE-TESTED**
+
+**Phase 7.3 Python external input status: COMPLETE / AUTOMATED-TESTED**
+
+**Full Phase 7 status: NOT YET COMPLETE — WP3 PRIVATE END-TO-END ACCEPTANCE PENDING**
+
+See [phase7_power_automate_acceptance.md](phase7_power_automate_acceptance.md) and [phase7_python_external_input.md](phase7_python_external_input.md).
