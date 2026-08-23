@@ -215,17 +215,9 @@ Environment-specific values are replaced by explicit placeholders.
 
 The committed Phase 7 screenshots are selected from the actual designer/run acceptance evidence and contain no reachable recipient address, authenticated submitter identity, tenant identifier, connection identifier, or private workbook/table binding.
 
-### Flow overview
-
-![Phase 7 flow overview](screenshots/phase-7-reporting-export/phase7_flow_overview.webp)
-
 ### Snapshot context and schedule
 
 ![Phase 7 snapshot context](screenshots/phase-7-reporting-export/phase7_snapshot_context.webp)
-
-### Action serialization and snapshot write
-
-![Phase 7 serialization](screenshots/phase-7-reporting-export/phase7_serialization.webp)
 
 ### Controlled failure path
 
@@ -234,6 +226,8 @@ The committed Phase 7 screenshots are selected from the actual designer/run acce
 ### Successful run skips CATCH
 
 ![Phase 7 success CATCH skipped](screenshots/phase-7-reporting-export/phase7_success_catch_skipped.webp)
+
+The public evidence set is intentionally minimal. Raw acceptance captures that exposed identity or environment/resource metadata were not committed.
 
 ## Acceptance Matrix
 
