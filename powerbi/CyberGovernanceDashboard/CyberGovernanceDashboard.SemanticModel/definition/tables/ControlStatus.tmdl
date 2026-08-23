@@ -1,6 +1,181 @@
 table ControlStatus
 	lineageTag: 5c2a3387-50bb-4a0c-9066-0304d6cbf128
 
+	measure 'Controls in Scope' =
+			
+			CALCULATE(
+			    DISTINCTCOUNT(ControlStatus[control_id]),
+			    FILTER(
+			        ControlStatus,
+			        NOT ISBLANK(ControlStatus[control_name])
+			    )
+			)
+		formatString: 0
+		lineageTag: f6b1b398-2baf-4fdb-b1d2-a885bac81a57
+
+	measure 'Expected Submissions' =
+			
+			COUNTROWS(ControlStatus)
+		formatString: 0
+		lineageTag: 13658fa0-6482-4158-b87a-6fb5930a2b83
+
+	measure 'Valid Submissions' =
+			
+			CALCULATE(
+			    COUNTROWS(ControlStatus),
+			    ControlStatus[data_quality_status] = "Valid"
+			)
+		formatString: 0
+		lineageTag: baa372b7-aaae-4570-a771-afa5dab24445
+
+	measure 'Invalid Submissions' =
+			
+			CALCULATE(
+			    COUNTROWS(ControlStatus),
+			    ControlStatus[data_quality_status] = "Invalid"
+			)
+		formatString: 0
+		lineageTag: 9a0a896e-b2ca-4cc7-8138-6cd7104039eb
+
+	measure 'Assessed Submissions' =
+			
+			CALCULATE(
+			    COUNTROWS(ControlStatus),
+			    FILTER(
+			        ControlStatus,
+			        ControlStatus[data_quality_status] = "Valid"
+			            &&
+			        (
+			            ControlStatus[submission_status] = "Compliant"
+			            ||
+			            ControlStatus[submission_status] = "Non-Compliant"
+			        )
+			    )
+			)
+		formatString: 0
+		lineageTag: 31d696d2-829e-4fc4-91ba-72f307f006e3
+
+	measure 'Compliant Submissions' =
+			
+			CALCULATE(
+			    COUNTROWS(ControlStatus),
+			    ControlStatus[data_quality_status] = "Valid",
+			    ControlStatus[submission_status] = "Compliant"
+			)
+		formatString: 0
+		lineageTag: 93c5bbe1-c40e-4476-943a-6a47d56736fa
+
+	measure 'Non-Compliant Submissions' =
+			
+			CALCULATE(
+			    COUNTROWS(ControlStatus),
+			    ControlStatus[data_quality_status] = "Valid",
+			    ControlStatus[submission_status] = "Non-Compliant"
+			)
+		formatString: 0
+		lineageTag: cb4d9c17-1048-4284-bfe1-1727b2b9d0b0
+
+	measure 'Assessed Compliance Rate' =
+			
+			DIVIDE(
+			    [Compliant Submissions],
+			    [Assessed Submissions]
+			)
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: 3a758ed7-fc7f-4747-84af-089e767fc634
+
+	measure 'Overdue Submissions' =
+			
+			CALCULATE(
+			    COUNTROWS(ControlStatus),
+			    ControlStatus[data_quality_status] = "Valid",
+			    ControlStatus[overdue_flag] = TRUE()
+			)
+		formatString: 0
+		lineageTag: 20fdfd93-c50c-4769-9a97-c41f8d95dc85
+
+	measure 'Late Submissions' =
+			
+			CALCULATE(
+			    COUNTROWS(ControlStatus),
+			    ControlStatus[data_quality_status] = "Valid",
+			    ControlStatus[submission_late] = TRUE()
+			)
+		formatString: 0
+		lineageTag: 9d86a22c-ee90-43ab-8726-c25be7a6c76e
+
+	measure 'High/Critical Exceptions' =
+			
+			CALCULATE(
+			    COUNTROWS(ControlStatus),
+			    FILTER(
+			        ControlStatus,
+			        ControlStatus[data_quality_status] = "Valid"
+			            &&
+			        (
+			            ControlStatus[risk_level] = "High"
+			            ||
+			            ControlStatus[risk_level] = "Critical"
+			        )
+			            &&
+			        (
+			            ControlStatus[submission_status] = "Non-Compliant"
+			            ||
+			            ControlStatus[overdue_flag] = TRUE()
+			        )
+			    )
+			)
+		formatString: 0
+		lineageTag: bb8217a3-4358-47e7-9051-96a9899ecac5
+
+	measure 'Overdue Submission Rate' =
+			
+			DIVIDE(
+			    [Overdue Submissions],
+			    [Valid Submissions]
+			)
+		formatString: 0.0\ %;-0.0\ %;0.0\ %
+		lineageTag: e8c89ec0-0aea-4097-9d74-6ee030d00397
+
+	measure 'Total Automated Reminders' =
+			
+			SUM(ControlStatus[reminder_count])
+		formatString: 0
+		lineageTag: 99d8e19d-7ed0-426f-92e8-04db19db3bea
+
+	measure 'Active Follow-up Submissions' =
+			
+			CALCULATE(
+			    COUNTROWS(ControlStatus),
+			    FILTER(
+			        ControlStatus,
+			        NOT ISBLANK(ControlStatus[active_action_id])
+			    )
+			)
+		formatString: 0
+		lineageTag: 557b6cd2-7122-4a47-9470-9333b6452943
+
+	measure 'Submissions with Reminder History' =
+			
+			CALCULATE(
+			    COUNTROWS(ControlStatus),
+			    FILTER(
+			        ControlStatus,
+			        ControlStatus[reminder_count] > 0
+			    )
+			)
+		formatString: 0
+		lineageTag: 66bfc422-1578-460c-98dc-eb7949fa93fc
+
+	measure 'Average Reminders per Reminded Submission' =
+			
+			DIVIDE(
+			    [Total Automated Reminders],
+			    [Submissions with Reminder History]
+			)
+		formatString: 0.00
+		lineageTag: e30d5ba5-f5b1-421e-bde8-db460bedf439
+
 	column source_row_number
 		dataType: int64
 		isHidden
@@ -290,3 +465,4 @@ table ControlStatus
 	annotation PBI_NavigationStepName = Navigation
 
 	annotation PBI_ResultType = Table
+
