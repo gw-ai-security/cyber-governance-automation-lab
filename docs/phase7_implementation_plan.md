@@ -1,192 +1,79 @@
-# Phase 7.1 Reporting Export Implementation Plan
+# Phase 7.1 — Reporting Export Implementation Plan
 
-## Status
+## Document Role
 
-**PHASE 7.1 IMPLEMENTATION PREPARATION COMPLETE — RUNTIME IMPLEMENTATION NOT STARTED**
+**HISTORICAL IMPLEMENTATION PLAN — PHASE 7.1 COMPLETE**
 
-Phase 7.1 converts the Phase 7.0 reporting-export contract into an executable implementation plan. It fixes the concrete Power Automate build order, action names, schedule, data mappings, failure-path structure, Python handoff sequence, test order, and evidence requirements before runtime implementation begins.
+This document records the implementation plan that was fixed before Phase 7 runtime work began. It is retained as design/engineering evidence rather than rewritten as if it had originally described the completed system.
 
-Phase 7.1 does not itself create the live Power Automate flow, generate operational snapshot files, or change the Python CLI.
+Current outcome:
 
-Canonical upstream contract:
+```text
+Phase 7.1 planning                         = COMPLETE
+Phase 7.2 Power Automate runtime           = COMPLETE / acceptance-tested
+Phase 7.3 Python external input            = COMPLETE / automated-tested
+Phase 7 WP3 private end-to-end acceptance  = COMPLETE
+Full Phase 7                               = COMPLETE
+```
+
+Authoritative current-state evidence:
 
 - [phase7_reporting_export.md](phase7_reporting_export.md)
-- [architecture.md](architecture.md)
-- [data_contract.md](data_contract.md)
-- [phase6_reminder_automation.md](phase6_reminder_automation.md)
+- [phase7_power_automate_acceptance.md](phase7_power_automate_acceptance.md)
+- [phase7_python_external_input.md](phase7_python_external_input.md)
+- [phase7_end_to_end_acceptance.md](phase7_end_to_end_acceptance.md)
 
-If implementation convenience conflicts with those contracts, the implementation must change rather than silently changing the business or data semantics.
+## 1. Planning Objective
 
-## 1. Implementation Objective
+Phase 7.1 converted the Phase 7.0 reporting contract into an executable implementation sequence before any runtime changes were made.
 
-The Phase 7 runtime must implement this boundary:
+The implementation plan fixed:
 
-```text
-Cyber_Governance_Control_Register.xlsx
-├── ControlCatalog
-├── SubmissionRegister
-└── ActionRegister
-        ↓
-Cyber Governance - Weekly Reporting Snapshot
-        ↓
-private OneDrive snapshot package
-        ├── Control JSON
-        ├── Submission CSV
-        ├── Action CSV
-        └── completion manifest
-        ↓
-Python pipeline using explicit snapshot paths
-        ↓
-existing curated outputs
-```
+- flow naming,
+- weekly schedule,
+- snapshot metadata,
+- source read order,
+- exact Control/Submission/Action mappings,
+- date and missing-value representation,
+- source file and manifest write order,
+- failure semantics,
+- empty Action behavior to verify,
+- private storage boundary,
+- Python handoff order,
+- acceptance work packages.
 
-Power Automate exports source facts. Python remains responsible for Data Quality, Control enrichment, Action aggregation, and derived metrics.
+No business semantics were to be moved from Python into Power Automate.
 
-## 2. Fixed Schedule Decision
+## 2. Fixed Runtime Target
 
-Flow name:
+Planned and subsequently implemented flow:
 
 ```text
 Cyber Governance - Weekly Reporting Snapshot
 ```
 
-Schedule:
+Schedule fixed by Phase 7.1 and implemented in Phase 7.2:
 
 ```text
-Frequency: Weekly
-Interval: 1
-Day: Monday
-Local time: 09:00
-Time zone: W. Europe Standard Time
+Weekly
+Monday
+09:00
+W. Europe Standard Time
 ```
 
-Rationale:
-
-- Phase 6 runs daily at 08:00 local time.
-- A 09:00 reporting run allows the normal Monday reminder run to complete first.
-- The snapshot can therefore include current `reminder_count` and `last_reminder_at` values produced by Phase 6.
-- The choice is a PoC operating convention, not a regulatory requirement.
-
-The flow must use the named Windows time-zone identifier rather than a hard-coded UTC offset.
-
-## 3. Private Storage Convention
-
-Target logical private folder:
+Run-level snapshot values:
 
 ```text
-Cyber Governance/
-└── Reporting Snapshots/
+snapshot_id        = yyyyMMdd_HHmmss
+as_of_date         = yyyy-MM-dd
+generated_at_local = yyyy-MM-ddTHH:mm:ss
 ```
 
-The tenant-specific OneDrive path is selected during Phase 7.2 implementation and is not published in repository documentation.
+The schedule intentionally follows the daily Phase 6 08:00 reminder run.
 
-Each run writes four artifacts directly into the reporting-snapshot folder using one shared `snapshot_id`:
+## 3. Planned Source Read Order
 
-```text
-security_control_snapshot_<snapshot_id>.json
-security_submission_snapshot_<snapshot_id>.csv
-security_action_snapshot_<snapshot_id>.csv
-security_snapshot_manifest_<snapshot_id>.json
-```
-
-Operational snapshot files are not committed to GitHub.
-
-## 4. Power Automate Action Naming Contract
-
-The implementation should use stable descriptive display names. Internal Power Automate identifiers may differ, but documentation and screenshots use the following logical names.
-
-```text
-Recurrence
-Resolve Snapshot ID
-Resolve As-Of Date
-Resolve Generated At Local
-
-TRY - Build Reporting Snapshot
-├── List Control Catalog
-├── List Submission Register
-├── List Action Register
-├── Select Control Fields
-├── Select Submission Fields
-├── Select Action Fields
-├── Create Control JSON
-├── Create Submission CSV
-├── Create Action CSV
-├── Create Control Snapshot File
-├── Create Submission Snapshot File
-├── Create Action Snapshot File
-├── Count Control Rows
-├── Count Submission Rows
-├── Count Action Rows
-├── Build Snapshot Manifest
-└── Create Snapshot Manifest File
-
-CATCH - Reporting Snapshot Failure
-├── Send Snapshot Failure Notification
-└── Terminate Snapshot Flow
-```
-
-The names deliberately distinguish `List`, `Select`, `Create`, `Count`, and `Build` responsibilities.
-
-## 5. Snapshot Context Expressions
-
-The three run-level values are resolved once before the TRY scope.
-
-### `Resolve Snapshot ID`
-
-Target value:
-
-```text
-formatDateTime(
-  convertTimeZone(utcNow(),'UTC','W. Europe Standard Time'),
-  'yyyyMMdd_HHmmss'
-)
-```
-
-Example:
-
-```text
-20260824_090000
-```
-
-### `Resolve As-Of Date`
-
-Target value:
-
-```text
-formatDateTime(
-  convertTimeZone(utcNow(),'UTC','W. Europe Standard Time'),
-  'yyyy-MM-dd'
-)
-```
-
-Example:
-
-```text
-2026-08-24
-```
-
-### `Resolve Generated At Local`
-
-Target value:
-
-```text
-formatDateTime(
-  convertTimeZone(utcNow(),'UTC','W. Europe Standard Time'),
-  'yyyy-MM-ddTHH:mm:ss'
-)
-```
-
-Example:
-
-```text
-2026-08-24T09:00:00
-```
-
-Every filename and manifest field must reuse these resolved values. Later actions must not call `utcNow()` again to construct a second snapshot identity.
-
-## 6. Source Read Order
-
-Inside `TRY - Build Reporting Snapshot`, read tables sequentially in this order:
+The runtime was required to read the operational source tables sequentially:
 
 ```text
 1. ControlCatalog
@@ -194,26 +81,13 @@ Inside `TRY - Build Reporting Snapshot`, read tables sequentially in this order:
 3. ActionRegister
 ```
 
-All three tables come from:
+All three sources had to be included to avoid mixed-state reporting where live Submissions or Actions were combined with only canonical synthetic reference data.
 
-```text
-Cyber_Governance_Control_Register.xlsx
-```
+The actual Phase 7.2 implementation follows this order.
 
-The flow must not filter the source rows during the export read.
+## 4. Exact Source Mappings
 
-Expected connector action type:
-
-```text
-Excel Online (Business)
-→ List rows present in a table
-```
-
-The implementation should keep concurrency low/sequential for this small PoC workbook rather than creating parallel Excel reads that complicate the consistency boundary.
-
-## 7. Control Mapping
-
-`Select Control Fields` maps every operational Control row to exactly:
+### Control
 
 ```text
 control_id
@@ -226,26 +100,7 @@ frequency
 risk_level
 ```
 
-No field is derived, renamed, case-corrected, or enriched.
-
-Logical mapping:
-
-| Output field | Source |
-| --- | --- |
-| `control_id` | current Control row `control_id` |
-| `control_name` | current Control row `control_name` |
-| `control_statement` | current Control row `control_statement` |
-| `business_unit` | current Control row `business_unit` |
-| `owner_role` | current Control row `owner_role` |
-| `owner_email` | current Control row `owner_email` |
-| `frequency` | current Control row `frequency` |
-| `risk_level` | current Control row `risk_level` |
-
-`Create Control JSON` serializes the selected array as the top-level JSON array. It must not add a wrapper object or Power Automate metadata.
-
-## 8. Submission Mapping
-
-`Select Submission Fields` maps every operational Submission row to exactly:
+### Submission
 
 ```text
 submission_id
@@ -259,44 +114,7 @@ submitted_by
 comment
 ```
 
-Exact output order is contractual.
-
-### Date normalization
-
-`due_date` is required by the source contract. The export representation is normalized to:
-
-```text
-yyyy-MM-dd
-```
-
-`submitted_at` may be empty. Its mapping must preserve an empty source as an empty output rather than attempting to format an empty value.
-
-Logical expression shape:
-
-```text
-if(
-  empty(item()?['submitted_at']),
-  '',
-  formatDateTime(item()?['submitted_at'],'yyyy-MM-dd')
-)
-```
-
-The equivalent conditional pattern is used anywhere an optional date can be empty.
-
-The flow must not generate:
-
-```text
-NULL
-null
-None
-N/A
-```
-
-for a genuinely missing CSV value.
-
-## 9. Action Mapping
-
-`Select Action Fields` maps every operational Action row to exactly:
+### Action
 
 ```text
 action_id
@@ -311,27 +129,50 @@ last_reminder_at
 description
 ```
 
-Exact output order is contractual.
+The field order and physical serialization were contractual.
 
-Date fields are normalized to `yyyy-MM-dd`.
+## 5. Date and Missing-Value Plan
 
-`last_reminder_at` uses the same empty-value guard as optional `submitted_at`.
-
-`reminder_count` is exported as the source integer-compatible value. Phase 7 does not increment, aggregate, reset, or otherwise modify it.
-
-The flow must preserve Phase 6 reminder facts:
+Submission and Action date fields were to be normalized to:
 
 ```text
-status
-reminder_count
-last_reminder_at
+YYYY-MM-DD
 ```
 
-## 10. CSV Creation Contract
+Optional dates such as `submitted_at` and `last_reminder_at` had to preserve a missing source as an empty CSV value.
 
-`Create Submission CSV` and `Create Action CSV` use the normalized selected arrays as their source.
+The flow was explicitly forbidden from inventing:
 
-The CSV actions must be configured so the generated headers and order match the contracts exactly.
+```text
+NULL
+null
+None
+N/A
+```
+
+for genuinely missing values.
+
+Phase 7.2 acceptance confirmed this behavior.
+
+## 6. Serialization Plan
+
+Control output:
+
+```text
+security_control_snapshot_<snapshot_id>.json
+```
+
+Submission output:
+
+```text
+security_submission_snapshot_<snapshot_id>.csv
+```
+
+Action output:
+
+```text
+security_action_snapshot_<snapshot_id>.csv
+```
 
 Submission header:
 
@@ -345,57 +186,22 @@ Action header:
 action_id,control_id,submission_id,owner_email,created_at,due_date,status,reminder_count,last_reminder_at,description
 ```
 
-Phase 7.2 must verify actual connector output for:
+The plan required physical testing for quoted commas, empty values, dates, and empty Action data.
 
-- commas in `comment` or `description`,
-- embedded double quotes,
-- empty optional values,
-- empty Action dataset behavior.
+## 7. Manifest and File Order
 
-If the connector does not emit a header-only CSV for an empty Action array, Phase 7.2 must add an explicit empty-dataset branch that emits the exact contractual Action header. This is a serialization edge case, not a business-rule change.
-
-## 11. Snapshot File Creation Order
-
-Write the three source artifacts before the completion manifest:
+Required write order:
 
 ```text
-1. Create Control Snapshot File
-2. Create Submission Snapshot File
-3. Create Action Snapshot File
-4. Create Snapshot Manifest File
+1. Control source artifact
+2. Submission source artifact
+3. Action source artifact
+4. Completion manifest
 ```
 
-The manifest is the final completion marker and may only be created after all three source files succeed.
+The manifest had to be the final completion marker.
 
-Filename expressions conceptually concatenate the fixed prefix with the output of `Resolve Snapshot ID`.
-
-Example:
-
-```text
-security_submission_snapshot_<snapshot_id>.csv
-```
-
-No file may overwrite the canonical repository fixtures.
-
-## 12. Row Count Contract
-
-The manifest records the number of rows read from each operational table.
-
-Logical counts:
-
-```text
-control_rows    = length(body('List_Control_Catalog')?['value'])
-submission_rows = length(body('List_Submission_Register')?['value'])
-action_rows     = length(body('List_Action_Register')?['value'])
-```
-
-Actual Power Automate internal action references may differ from the display names and must be inserted using the expression editor rather than manually guessing escaped identifiers.
-
-The counts describe the source rows observed by the flow. They are not fixed to canonical repository counts.
-
-## 13. Snapshot Manifest Build
-
-`Build Snapshot Manifest` creates exactly the required metadata fields:
+Required fields:
 
 ```text
 snapshot_id
@@ -416,46 +222,18 @@ Successful status:
 complete
 ```
 
-Conceptual payload:
+The actual Phase 7.2 implementation follows this contract.
 
-```json
-{
-  "snapshot_id": "<resolved snapshot id>",
-  "as_of_date": "<resolved as-of date>",
-  "generated_at_local": "<resolved local timestamp>",
-  "control_file": "security_control_snapshot_<snapshot_id>.json",
-  "submission_file": "security_submission_snapshot_<snapshot_id>.csv",
-  "action_file": "security_action_snapshot_<snapshot_id>.csv",
-  "control_rows": 0,
-  "submission_rows": 0,
-  "action_rows": 0,
-  "status": "complete"
-}
-```
+## 8. Failure-Path Plan
 
-The zero counts above illustrate field types only. Runtime counts come from the source actions.
-
-The manifest file is created only after all three source snapshot files succeed.
-
-## 14. Failure Path Design
-
-Use two Scopes:
+Planned logical scopes:
 
 ```text
-TRY - Build Reporting Snapshot
-CATCH - Reporting Snapshot Failure
+TRY Build Reporting Snapshot
+CATCH Reporting Snapshot Failure
 ```
 
-`CATCH - Reporting Snapshot Failure` is configured with `Configure run after` so it runs when the TRY scope:
-
-```text
-has failed
-has timed out
-```
-
-A deliberate cancel is not treated as a successful package.
-
-Failure behavior:
+Failure path:
 
 ```text
 TRY fails
@@ -467,155 +245,100 @@ Send Snapshot Failure Notification
 Terminate Snapshot Flow = Failed
 ```
 
-The failure notification should contain only operational metadata needed to identify the failed flow execution. It must not include evidence contents, credentials, tokens, or snapshot file contents.
+A failed run was not allowed to create a successful completion manifest.
 
-No `complete` manifest may be created from the CATCH path.
+Phase 7.2 later proved this behavior with a reversible deterministic failure injection.
 
-Partial source files may remain in private storage for troubleshooting and are not valid snapshots without the completion manifest.
+## 9. Empty Action Test Plan
 
-## 15. Power Automate Build Sequence
-
-Phase 7.2 should be implemented in this exact order:
-
-1. Create scheduled cloud flow with the fixed name.
-2. Configure Monday 09:00 / `W. Europe Standard Time` recurrence.
-3. Add and test the three snapshot-context Compose actions.
-4. Add `TRY - Build Reporting Snapshot` scope.
-5. Add the three sequential Excel table reads.
-6. Inspect actual connector output for date representation before writing formatting expressions.
-7. Add `Select Control Fields` and validate one sample object.
-8. Add `Select Submission Fields` with date/missing-value handling.
-9. Add `Select Action Fields` with date/missing-value handling.
-10. Add Control JSON serialization.
-11. Add Submission CSV serialization with exact header/order.
-12. Add Action CSV serialization with exact header/order.
-13. Add the three source file writes to the private reporting folder.
-14. Add the three row-count Compose actions.
-15. Add manifest construction.
-16. Add manifest file creation last.
-17. Add the CATCH scope and failure notification.
-18. Configure run-after semantics.
-19. Save the flow and resolve any Power Automate template-reference errors before testing.
-20. Execute manual acceptance tests before enabling reliance on the weekly schedule.
-
-No Python modification is required before the Power Automate source export has produced a contract-valid manual snapshot.
-
-## 16. Manual Acceptance Test Sequence
-
-The first Power Automate acceptance run must verify the export independently of Python.
-
-### Test 1 — Snapshot context
-
-Verify:
+The plan explicitly required verifying the connector behavior when:
 
 ```text
-snapshot_id uses yyyyMMdd_HHmmss
-as_of_date uses yyyy-MM-dd
-generated_at_local uses local time
+Action rows = 0
 ```
 
-All four filenames must share the same `snapshot_id`.
-
-### Test 2 — Control snapshot
-
-Verify:
-
-- top-level JSON array,
-- exact eight Control fields,
-- no wrapper metadata,
-- manifest `control_rows` equals rows read from `ControlCatalog`.
-
-### Test 3 — Submission snapshot
-
-Verify:
-
-- exact nine-column header and order,
-- all operational Submission rows are present,
-- dates are `YYYY-MM-DD`,
-- empty `submitted_at` remains empty,
-- a comment containing a comma remains one CSV field.
-
-### Test 4 — Action snapshot
-
-Verify:
-
-- exact ten-column header and order,
-- all operational Action rows are present,
-- `reminder_count` and `last_reminder_at` are preserved,
-- one Phase 6 reminder-history row is visibly propagated,
-- a description containing a comma remains one CSV field.
-
-### Test 5 — Manifest completion semantics
-
-Verify:
-
-- manifest is created after the three source artifacts,
-- filenames match the actual files,
-- row counts match the source reads,
-- `status = complete`.
-
-### Test 6 — Failure path
-
-Create a reversible test failure, for example by temporarily pointing one file-creation action at an invalid test location or another safe implementation-specific method.
-
-Verify:
-
-- TRY fails,
-- CATCH executes,
-- failure notification is produced,
-- flow ends Failed,
-- no `complete` manifest is created for that run.
-
-The failure test must not damage the operational workbook or canonical repository data.
-
-## 17. Evidence Capture Plan
-
-After acceptance, sanitized repository evidence should be stored under:
+Required outcome:
 
 ```text
-docs/screenshots/phase-7-reporting-export/
+header-only Action CSV
 ```
 
-Planned files:
+If the connector had failed to emit a header, an explicit serialization branch would have been required.
+
+Observed Phase 7.2 result:
 
 ```text
-phase7_flow_overview.webp
-phase7_snapshot_context.webp
-phase7_source_reads.webp
-phase7_serialization.webp
-phase7_snapshot_files.webp
-phase7_manifest.webp
-phase7_failure_path.webp
+header-only Action CSV produced correctly
+special branch not required
 ```
 
-Screenshots must redact or exclude:
+## 10. Power Automate Build Sequence
 
-- real `owner_email`,
-- authenticated `submitted_by`,
-- tenant identifiers,
-- connection identifiers,
-- private OneDrive paths when revealing them would expose organizational metadata,
-- secrets or tokens.
+The runtime implementation order was fixed as:
 
-## 18. Python Handoff Sequence
+1. create/configure scheduled flow,
+2. resolve snapshot context,
+3. add TRY scope,
+4. read all three source tables,
+5. inspect connector date representation,
+6. map exact Control fields,
+7. map exact Submission fields,
+8. map exact Action fields,
+9. serialize Control JSON,
+10. serialize Submission CSV,
+11. serialize Action CSV,
+12. create source files,
+13. count source rows,
+14. build manifest,
+15. create manifest last,
+16. add CATCH and notification,
+17. configure run-after semantics,
+18. execute manual acceptance,
+19. remove test-only artifacts,
+20. final smoke run.
 
-Python integration starts only after the Power Automate export passes the physical snapshot acceptance tests.
+Phase 7.2 followed this planned structure.
 
-Planned repository implementation order:
+## 11. Manual Acceptance Plan
+
+The planned Power Automate acceptance included:
+
+- snapshot context,
+- Control JSON structure,
+- Submission CSV contract,
+- Action CSV contract,
+- reminder field propagation,
+- shared snapshot identity,
+- manifest source counts,
+- manifest-last semantics,
+- failure path,
+- empty Action behavior,
+- final restored smoke run.
+
+Results are recorded in [phase7_power_automate_acceptance.md](phase7_power_automate_acceptance.md).
+
+## 12. Python Handoff Plan
+
+Python work was intentionally scheduled after the Power Automate physical export contract had been proven.
+
+Planned sequence:
 
 ```text
 1. Extend CLI argument parsing
-2. Preserve current default paths
-3. Pass explicit paths into run_pipeline(...)
-4. Add explicit output-directory support
-5. Add focused CLI/input-path tests
-6. Run complete regression suite
-7. Process one private operational snapshot locally
-8. Compare manifest/source counts with Python load counts
-9. Preserve canonical acceptance result
+2. Preserve canonical defaults
+3. Add explicit Control path
+4. Add explicit Submission path
+5. Add explicit Action path
+6. Add output-directory override
+7. Add focused tests
+8. Run complete regression suite
+9. Process one private operational snapshot
+10. Reconcile manifest and Python counts
+11. Verify reminder state
+12. Re-run canonical regression
 ```
 
-Planned CLI surface:
+Implemented CLI surface:
 
 ```text
 --controls-path
@@ -624,42 +347,13 @@ Planned CLI surface:
 --output-directory
 ```
 
-The existing command remains valid:
+Phase 7.3 added the all-or-none source rule to strengthen the original plan and prevent accidental canonical/operational source mixing.
 
-```bash
-python src/main.py --as-of-date 2026-08-15
-```
-
-The runtime snapshot `as_of_date` must be taken from the matching manifest and supplied explicitly to Python.
-
-## 19. Repository Change Boundaries for Runtime Implementation
-
-Expected Python-phase files:
-
-```text
-src/main.py
-tests/test_main.py
-```
-
-Additional source modules should not be introduced unless implementation evidence shows that `main.py` cannot remain a thin orchestrator without duplication.
-
-Files that must remain unchanged merely because live operational state differs:
-
-```text
-data/reference/control_catalog.json
-data/raw/evidence_submissions.csv
-data/raw/actions.csv
-```
-
-Generated private operational snapshots are not repository fixtures.
-
-## 20. Work Packages
-
-Phase 7 runtime work is divided into four work packages.
+## 13. Work Packages
 
 ### WP1 — Power Automate Snapshot Flow
 
-Deliver:
+Planned deliverables:
 
 - scheduled flow,
 - snapshot context,
@@ -667,80 +361,66 @@ Deliver:
 - three source serializers,
 - three source files,
 - completion manifest,
-- failure scope.
+- explicit failure scope.
 
-Exit condition:
+Final status:
 
-- manual contract-valid snapshot exists in private OneDrive.
+```text
+COMPLETE / acceptance-tested
+```
 
 ### WP2 — Python External Input Boundary
 
-Deliver:
+Planned deliverables:
 
-- explicit input-path CLI parameters,
-- explicit output-directory parameter,
-- unchanged default behavior,
+- explicit input paths,
+- explicit output directory,
+- unchanged canonical defaults,
 - focused automated tests.
 
-Exit condition:
+Final status:
 
-- both canonical and explicit-path runs work.
+```text
+COMPLETE / automated-tested
+```
 
 ### WP3 — End-to-End Acceptance
 
-Deliver:
+Planned deliverables:
 
-- process one real operational snapshot,
-- verify load counts and DQ behavior,
+- process one real private operational snapshot,
+- verify manifest/load counts,
+- verify DQ remains non-fatal,
 - verify Phase 6 reminder fields reach curated reporting,
-- rerun canonical regression.
+- rerun canonical acceptance.
 
-Exit condition:
+Final status:
 
-- operational snapshot produces existing contractual outputs without mutating canonical fixtures.
+```text
+COMPLETE
+```
 
 ### WP4 — Documentation and Evidence
 
-Deliver:
+Planned deliverables:
 
-- update Phase 7 contract status,
-- update README/current architecture,
-- add sanitized screenshots,
-- document actual acceptance observations and limitations.
+- current-state README/architecture,
+- acceptance observations,
+- sanitized public evidence,
+- explicit limitations.
 
-Exit condition:
+Final status:
 
-- repository claims exactly match implemented evidence.
+```text
+COMPLETE
+```
 
-## 21. Definition of Done — Phase 7.1
+## 14. Definition of Done — Phase 7.1
 
-Phase 7.1 is complete when:
-
-- the weekly schedule is fixed,
-- Power Automate action naming is fixed,
-- snapshot-context expressions are fixed,
-- source read order is fixed,
-- Control/Submission/Action mappings are explicit,
-- date and missing-value handling is specified,
-- CSV edge cases to test are identified,
-- file-write and manifest order is fixed,
-- failure-path run-after semantics are specified,
-- the manual Power Automate acceptance sequence is fixed,
-- the screenshot/evidence plan is fixed,
-- the Python handoff order is fixed,
-- runtime work packages and exit criteria are defined,
-- no runtime implementation is falsely claimed.
+Phase 7.1 was complete when the implementation decisions and acceptance sequence were fixed before runtime work began.
 
 **Phase 7.1 status: COMPLETE**
 
-**Phase 7 runtime implementation status: NOT IMPLEMENTED**
+The historical planned next step was Phase 7.2. That work, Phase 7.3, and the final WP3 acceptance have subsequently been completed.
 
-## 22. Next Step
-
-Phase 7.2 begins the actual Power Automate implementation of:
-
-```text
-Cyber Governance - Weekly Reporting Snapshot
-```
-
-The build must follow Sections 2–17 of this plan and the authoritative Phase 7.0 contract.
+**Current full Phase 7 status: COMPLETE**
