@@ -3,10 +3,13 @@ table ControlStatus
 
 	column source_row_number
 		dataType: int64
+		isHidden
 		formatString: 0
 		lineageTag: 4a522986-903f-4097-a0af-858270a47b83
-		summarizeBy: sum
+		summarizeBy: none
 		sourceColumn: source_row_number
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
@@ -151,7 +154,7 @@ table ControlStatus
 		dataType: int64
 		formatString: 0
 		lineageTag: 2b947889-d3b1-4ef4-bc01-1f1938aaf442
-		summarizeBy: sum
+		summarizeBy: none
 		sourceColumn: days_overdue
 
 		annotation SummarizationSetBy = Automatic
@@ -160,7 +163,7 @@ table ControlStatus
 		dataType: int64
 		formatString: 0
 		lineageTag: 2633e549-31da-4019-b29b-97decd662fd5
-		summarizeBy: sum
+		summarizeBy: none
 		sourceColumn: days_late
 
 		annotation SummarizationSetBy = Automatic
@@ -204,7 +207,7 @@ table ControlStatus
 		dataType: int64
 		formatString: 0
 		lineageTag: f73c7e7a-090d-472b-998f-2521cbc2323d
-		summarizeBy: sum
+		summarizeBy: none
 		sourceColumn: reminder_count
 
 		annotation SummarizationSetBy = Automatic
