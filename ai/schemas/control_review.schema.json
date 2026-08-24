@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gw-ai-security/cyber-governance-automation-lab/ai/schemas/control_review.schema.json",
+  "title": "Controlled AI Governance Review Output",
+  "description": "Structured advisory output for one minimized AI review queue item. This schema does not authorize compliance decisions or source-state mutation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "submission_id",
+    "control_id",
+    "summary",
+    "review_priority",
+    "missing_information",
+    "recommended_follow_up",
+    "human_review_required"
+  ],
+  "properties": {
+    "submission_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "control_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1200
+    },
+    "review_priority": {
+      "type": "string",
+      "enum": [
+        "Low",
+        "Medium",
+        "High"
+      ],
+      "description": "Advisory priority for human review attention. It is not the Control risk_level and does not change source risk classification."
+    },
+    "missing_information": {
+      "type": "array",
+      "maxItems": 20,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 300
+      }
+    },
+    "recommended_follow_up": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1200
+    },
+    "human_review_required": {
+      "const": true,
+      "description": "All AI-assisted governance review output requires human review."
+    }
+  }
+}
