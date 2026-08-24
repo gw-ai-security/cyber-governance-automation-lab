@@ -2,13 +2,34 @@
 
 ## Purpose
 
-This document describes the **current architecture** of the Cyber Governance Automation Lab.
+This document describes the **current architecture** of the Cyber Governance Automation Lab after completion of the Phase 8 Power BI reporting layer.
 
-The project is a simplified cybersecurity-control evidence process built as a portfolio proof of concept. It is not production-ready. The architecture emphasizes explicit business semantics, traceable state transitions, deterministic Data Quality, controlled workflow automation, reproducible acceptance, and strict separation between operational Microsoft 365 state, canonical repository fixtures, curated reporting outputs, and later AI processing.
+The project is a simplified cybersecurity-control evidence process built as a portfolio proof of concept. It is not production-ready. The architecture emphasizes explicit business semantics, traceable state transitions, deterministic Data Quality, controlled workflow automation, reproducible acceptance, and strict separation between operational Microsoft 365 state, canonical repository fixtures, curated reporting outputs, Power BI analytics, and later AI processing.
 
 ## 1. Architectural Overview
 
-The project contains an operational Microsoft 365 plane, a deterministic Python/repository plane, and a source-controlled Power BI reporting plane. Phase 7 is the explicit bridge between operational source facts and deterministic processing; Phase 8 consumes only Python-owned curated reporting outputs.
+The system contains three implemented planes and one planned downstream capability:
+
+```text
+Operational Microsoft 365 plane
+        ↓
+Phase 7 reporting snapshot boundary
+        ↓
+Deterministic Python processing plane
+        ↓
+Phase 8 curated Power BI reporting plane
+        ↓
+Controlled AI runtime — Phase 9 planned
+```
+
+The key architecture rule is that each layer has a narrow responsibility:
+
+```text
+Power Automate exports and updates operational source facts.
+Python owns deterministic validation and reporting derivation.
+Power BI consumes curated facts and calculates contracted reporting measures.
+AI remains downstream and cannot become the compliance authority.
+```
 
 ### Operational Microsoft 365 plane
 
@@ -45,7 +66,7 @@ data/raw/evidence_submissions.csv
 data/raw/actions.csv
 ```
 
-Alternative Phase 7 operational inputs:
+Alternative explicit Phase 7 operational inputs:
 
 ```text
 security_control_snapshot_<snapshot_id>.json
@@ -53,7 +74,7 @@ security_submission_snapshot_<snapshot_id>.csv
 security_action_snapshot_<snapshot_id>.csv
 ```
 
-Both modes use the same deterministic processing semantics:
+Both source modes use the same deterministic processing semantics:
 
 ```text
 EXTRACT
@@ -69,7 +90,7 @@ DERIVE
 LOAD
 ```
 
-Outputs:
+Runtime outputs:
 
 ```text
 curated_control_status.csv
@@ -90,7 +111,7 @@ powerbi/CyberGovernanceDashboard/
 └── CyberGovernanceDashboard.SemanticModel/
 ```
 
-The project uses:
+Representation:
 
 ```text
 PBIP → project container
@@ -98,7 +119,7 @@ PBIR → report metadata
 TMDL → semantic-model source representation
 ```
 
-Phase 8.3 loads exactly the two curated reporting outputs through the configurable `DataRoot` parameter:
+Power BI loads exactly the two Python-curated reporting outputs through one configurable `DataRoot` parameter:
 
 ```text
 DataRoot
@@ -106,7 +127,7 @@ DataRoot
    └─ data_quality_issues.csv    → DataQualityIssues
 ```
 
-Phase 8.4 connects the two reporting tables through technical raw-row lineage:
+The reporting tables are related through raw-row lineage:
 
 ```text
 ControlStatus[source_row_number]
@@ -116,18 +137,29 @@ ControlStatus[source_row_number]
 DataQualityIssues[source_row_number]
 ```
 
-The relationship is active, single-direction, and filters from `ControlStatus` to `DataQualityIssues`.
+The relationship is active, one-to-many, single-direction, and filters from `ControlStatus` to `DataQualityIssues`.
 
-Phase 8.5 implements the semantic measure layer:
+The semantic layer contains exactly:
 
 ```text
 ControlStatus       16 DAX measures
 DataQualityIssues    5 DAX measures
 -------------------------------
 Total               21 measures
+
+Calculated tables    0
+Calculated columns   0
 ```
 
-Phase 8.6 implements the first report page, **Management Overview**. A consistency review before Phase 8.7 standardizes known-zero aggregate behavior and disables default aggregation for row-detail numeric attributes. Phase 8.7 implements the second report page, **Control Monitoring**. Phase 8.8 is the next reporting work package and owns **Process & Data Quality**.
+The completed report contains exactly three primary pages:
+
+```text
+Management Overview
+Control Monitoring
+Process & Data Quality
+```
+
+Both the canonical synthetic dataset and one private processed Phase 7 operational dataset have been accepted against this same model. Operational acceptance changed only the temporary `DataRoot` value in a temporary project copy; the source-controlled model and report were not rebuilt.
 
 ## 2. High-Level Architecture
 
@@ -166,16 +198,16 @@ flowchart TD
         CS -->|1 to many / single direction| DQ
         CS --> SM[Semantic Model — 21 contracted DAX measures]
         DQ --> SM
-        SM --> MO[Management Overview — implemented]
-        SM --> CM[Control Monitoring — implemented]
-        SM --> PDQ[Process & Data Quality — Phase 8.8 next]
+        SM --> MO[Management Overview]
+        SM --> CM[Control Monitoring]
+        SM --> PDQ[Process & Data Quality]
     end
 
     N --> Q[Controlled AI Runtime — Phase 9 Planned]
     Q --> R[Human Governance Review]
 ```
 
-The Phase 7 bridge is deliberately explicit rather than automatically synchronized. Power Automate creates a private source snapshot; a caller explicitly supplies all three snapshot paths and the matching `as_of_date` to Python. Power BI consumes Python-curated outputs rather than operational source tables.
+The Phase 7 bridge is deliberately explicit rather than automatically synchronized. Power Automate creates private source snapshots; a caller explicitly supplies one coherent Control/Submission/Action source set and the matching `as_of_date` to Python. Power BI consumes Python-curated outputs rather than operational tables or raw snapshots.
 
 ## 3. Core Domain Model
 
@@ -207,6 +239,8 @@ Action completion != Submission compliance
 Control risk != DQ severity
 ```
 
+These separations are enforced across workflow behavior, Python transformation, DAX semantics, and report design.
+
 ## 4. Canonical vs Operational State
 
 The canonical files:
@@ -223,7 +257,31 @@ represent a deterministic synthetic acceptance scenario evaluated at:
 as_of_date = 2026-08-15
 ```
 
-Operational Microsoft 365 state evolved later during Phase 5–7 acceptance. Changing canonical fixtures merely to resemble later live PoC state would destroy reproducible regression evidence.
+Canonical source/result baseline:
+
+```text
+Controls loaded: 5
+Submissions loaded: 15
+Actions loaded: 5
+DQ issues: 5
+Valid submissions: 10
+Invalid submissions: 5
+AI review queue items: 2
+```
+
+Operational Microsoft 365 state evolves independently. The accepted Phase 7 operational snapshot observation is:
+
+```text
+snapshot_id = 20260823_112030
+as_of_date  = 2026-08-23
+Controls    = 5
+Submissions = 17
+Actions     = 2
+DQ issues   = 5
+Valid       = 12
+Invalid     = 5
+AI queue    = 3
+```
 
 Therefore:
 
@@ -233,7 +291,7 @@ Operational Microsoft 365 state
 Canonical repository fixtures
 ```
 
-Phase 7 connects the planes through explicit external files, not destructive synchronization.
+Changing canonical fixtures merely to resemble later operational state would destroy reproducible regression evidence. Phase 7 connects the planes through explicit external files, not destructive synchronization.
 
 ## 5. Expected Submission Initialization
 
@@ -346,6 +404,8 @@ last_reminder_at
 
 Known lifecycle limitation: the current Phase 5/6 PoC does not automatically complete a missing-submission Action after later evidence intake moves the related Submission to `In Review`.
 
+See [phase6_reminder_automation.md](phase6_reminder_automation.md).
+
 ## 8. Phase 7 Reporting Snapshot Bridge
 
 A successful run creates:
@@ -380,21 +440,9 @@ Python external source overrides are all-or-none:
 
 The manifest is not automatically ingested; the caller supplies its matching `as_of_date` explicitly.
 
-Accepted operational snapshot observation:
+The private operational package remains outside Git because it can contain authenticated identities, reachable owner addresses, comments, and deployment metadata.
 
-```text
-snapshot_id = 20260823_112030
-as_of_date  = 2026-08-23
-Controls    = 5
-Submissions = 17
-Actions     = 2
-DQ issues   = 5
-Valid       = 12
-Invalid     = 5
-AI queue    = 3
-```
-
-The canonical acceptance baseline remains unchanged and the complete Python suite remains 53 passing tests.
+See [phase7_end_to_end_acceptance.md](phase7_end_to_end_acceptance.md).
 
 ## 9. Operational Workbook Contract
 
@@ -460,6 +508,8 @@ reminder_count   = SUM(Action.reminder_count)
 last_reminder_at = MAX(Action.last_reminder_at)
 ```
 
+Active Action information is projected only from currently active Actions (`Open` or `In Progress`) under the existing Phase 6 contract.
+
 Derived fields include:
 
 ```text
@@ -476,9 +526,31 @@ reminder_count
 last_reminder_at
 ```
 
-Action-specific DQ rule IDs are not introduced by Phase 7. Python continues to apply DQ-001 through DQ-010 to Submission data.
+Action-specific DQ rule IDs are not introduced. Python continues to apply DQ-001 through DQ-010 to Submission data.
 
-## 11. Phase 8 Reporting Boundary
+Unknown or non-evaluable timing state remains null rather than being silently converted to `False` or `0`.
+
+## 11. Phase 8 Power BI Reporting Architecture
+
+Phase 8 is complete. Its dependency chain is:
+
+```text
+Phase 8.0  → reporting/KPI contract
+Phase 8.1  → canonical acceptance baseline
+Phase 8.2  → PBIP/PBIR/TMDL scaffold
+Phase 8.3  → curated CSV loading and technical typing
+Phase 8.4  → semantic-model relationship
+Phase 8.5  → DAX measures
+Phase 8.6  → Management Overview
+Consistency review → semantic/documentation hardening
+Phase 8.7  → Control Monitoring
+Phase 8.8  → Process & Data Quality
+Phase 8.9  → canonical runtime acceptance
+Phase 8.10 → operational Phase 7 output acceptance
+Phase 8.11 → public evidence, documentation and final regression closure
+```
+
+### 11.1 Source boundary and DataRoot
 
 Power BI consumes exactly:
 
@@ -489,46 +561,13 @@ data_quality_issues.csv
 
 It does not read the operational Excel workbook, raw Phase 7 snapshots, canonical raw inputs, or `ai_review_queue.json` directly.
 
-Dependency chain:
-
-```text
-Phase 8.0 → reporting/KPI contract
-Phase 8.1 → canonical acceptance baseline
-Phase 8.2 → PBIP/PBIR/TMDL scaffold
-Phase 8.3 → curated CSV loading and technical typing
-Phase 8.4 → semantic-model relationship
-Phase 8.5 → DAX measures
-Phase 8.6 → Management Overview page
-Consistency review → semantic/documentation hardening
-Phase 8.7 → Control Monitoring page
-Phase 8.8 → Process & Data Quality page
-Phase 8.9 → canonical runtime acceptance
-Phase 8.10 → operational Phase 7 output acceptance
-Phase 8.11 → final documentation/regression closure
-```
-
-### Current model state after Phase 8.7
-
 The semantic model contains the required text parameter:
 
 ```text
 DataRoot
 ```
 
-and exactly two reporting tables:
-
-```text
-ControlStatus
-DataQualityIssues
-```
-
-Canonical Power BI load acceptance remains:
-
-```text
-ControlStatus       = 15 rows / 25 columns
-DataQualityIssues   = 5 rows / 8 columns
-Model tables        = exactly 2
-```
+Both partitions use the parameter and append their own contractual filenames. This lets the same project consume either canonical generated output or a private processed Phase 7 output directory without rebuilding the semantic model.
 
 The two Power Query partitions perform only:
 
@@ -543,7 +582,16 @@ They do not implement compliance, timing, DQ, Action, or AI business rules.
 
 Automatic time intelligence is disabled.
 
-The semantic relationship remains:
+### 11.2 Semantic model
+
+Exactly two reporting tables exist:
+
+```text
+ControlStatus
+DataQualityIssues
+```
+
+The semantic relationship is:
 
 ```text
 ControlStatus[source_row_number]
@@ -562,7 +610,7 @@ Status           = active
 Relationships    = exactly 1
 ```
 
-The relationship does not use `submission_id`, because missing or duplicate Submission identifiers are valid Data Quality scenarios. `source_row_number` remains physically present in both tables but is hidden from report consumers.
+The relationship does not use `submission_id`, because missing or duplicate identifiers are valid DQ scenarios. `source_row_number` remains physically present in both tables but is hidden from report consumers.
 
 The model contains exactly 21 DAX measures:
 
@@ -584,14 +632,14 @@ The measure layer preserves the frozen reporting semantics:
 - count/sum measures return explicit zero for known empty result sets,
 - rate/average measures preserve blank when their denominator is zero.
 
-This means:
+Therefore:
 
 ```text
 known count = 0
 undefined ratio = blank
 ```
 
-The aggregate representation does not rewrite nullable source attributes such as `overdue_flag`, `submission_late`, `days_overdue`, or `days_late`.
+This aggregate representation does not rewrite nullable timing state.
 
 The row-detail numeric attributes:
 
@@ -601,39 +649,11 @@ days_late
 reminder_count
 ```
 
-use `summarizeBy: none`, preventing accidental additive presentation in Submission-grain detail visuals. Explicit aggregate reporting continues to use DAX measures such as `[Total Automated Reminders]`.
+use `summarizeBy: none`, preventing accidental additive presentation in Submission-grain detail visuals. Explicit aggregate reporting continues through DAX measures such as `[Total Automated Reminders]`.
 
-Canonical semantic targets remain unchanged:
+### 11.3 Management Overview
 
-```text
-Controls in Scope                           5
-Expected Submissions                       15
-Valid Submissions                          10
-Invalid Submissions                         5
-Assessed Submissions                        5
-Compliant Submissions                       4
-Non-Compliant Submissions                   1
-Assessed Compliance Rate                 80.0%
-Overdue Submissions                         1
-Late Submissions                            1
-High/Critical Exceptions                    2
-Overdue Submission Rate                  10.0%
-Total Automated Reminders                   4
-Active Follow-up Submissions                4
-Submissions with Reminder History           4
-Average Reminders per Reminded Submission 1.00
-Total DQ Issues                             5
-Submissions with DQ Issues                  5
-DQ Issue Rate                            33.3%
-High-Severity DQ Issues                     5
-Missing Evidence Issues                     1
-```
-
-### Management Overview state
-
-Phase 8.6 is implemented as the first report page.
-
-It contains exactly:
+The first report page contains:
 
 ```text
 1 page title
@@ -652,7 +672,7 @@ Risk Level
 Reporting Period
 ```
 
-Required KPI cards:
+KPI cards:
 
 ```text
 Controls in Scope
@@ -671,22 +691,15 @@ Assessed Compliance Rate by Business Unit
 High/Critical Exceptions by Risk Level
 ```
 
-Canonical Management Overview smoke-test values are:
+Canonical accepted values:
 
 ```text
-Controls in Scope              5
-Assessed Compliance Rate       80.0%
-Non-Compliant Submissions      1
-Overdue Submissions            1
-High/Critical Exceptions       2
-Total DQ Issues                5
+5 / 80.0% / 1 / 1 / 2 / 5
 ```
 
-### Control Monitoring state
+### 11.4 Control Monitoring
 
-Phase 8.7 is implemented as the second report page.
-
-It contains exactly:
+The second report page contains:
 
 ```text
 1 page title
@@ -706,7 +719,7 @@ Data Quality Status
 Overdue
 ```
 
-The detail table contains the contracted fields:
+The detail table contains exactly:
 
 ```text
 Control ID
@@ -726,35 +739,131 @@ Reminder Count
 Last Reminder At
 ```
 
-Business-friendly labels are PBIR presentation metadata only. The page does not add model aliases, calculated columns, new measures, or new business logic.
+Business-friendly labels are PBIR presentation metadata only. The page does not add model aliases, calculated columns, new measures, or business logic.
 
-Canonical Power BI Desktop smoke tests observed:
+Canonical acceptance observed 15 unfiltered Submission rows. Operational acceptance observed 17 rows with the same 15-field layout.
+
+### 11.5 Process & Data Quality
+
+The third report page intentionally separates operational follow-up behavior from Data Quality.
+
+Process KPI cards:
 
 ```text
-Unfiltered        15 rows
-Retail Banking     3 rows
-Finance            2 rows
-IT Operations      9 rows
-Invalid DQ          5 rows
-Non-Compliant       1 row
-Overdue = True      1 row
+Total Automated Reminders
+Active Follow-up Submissions
+Submissions with Reminder History
+Late Submissions
+Overdue Submission Rate
 ```
 
-`Pending` and unresolved `CTRL-999` remain reportable through the detail/DQ view. The current canonical fixture has no null `overdue_flag`, so blank Overdue runtime behavior remains deferred to formal acceptance; no null-to-False coercion is introduced.
+Data Quality KPI cards:
 
-Formal complete Power BI runtime acceptance remains Phase 8.9.
+```text
+Total DQ Issues
+DQ Issue Rate
+High-Severity DQ Issues
+```
 
-See:
+Analytical/detail views:
 
-- [phase8_power_bi_contract.md](phase8_power_bi_contract.md)
-- [phase8_canonical_baseline.md](phase8_canonical_baseline.md)
-- [phase8_power_bi_project.md](phase8_power_bi_project.md)
-- [phase8_curated_loading.md](phase8_curated_loading.md)
-- [phase8_semantic_model.md](phase8_semantic_model.md)
-- [phase8_measures.md](phase8_measures.md)
-- [phase8_management_overview.md](phase8_management_overview.md)
-- [phase8_consistency_review.md](phase8_consistency_review.md)
-- [phase8_control_monitoring.md](phase8_control_monitoring.md)
+```text
+DQ Issues by Rule
+DQ Issues by Severity
+DQ Issue Details
+```
+
+The DQ detail table contains exactly:
+
+```text
+Submission ID
+Control ID
+Rule
+Severity
+Field
+Message
+```
+
+Canonical accepted Process values:
+
+```text
+4 / 4 / 4 / 1 / 10.0%
+```
+
+Canonical accepted DQ values:
+
+```text
+5 / 33.3% / 5
+```
+
+Operational acceptance demonstrated the same page against the private 17-row dataset, including `3 / 2 / 2 / 2 / 16.7%` for the Process cards and `5 / 29.4% / 5` for DQ.
+
+### 11.6 Canonical runtime acceptance
+
+Phase 8.9 executed a full canonical Power BI refresh and formally accepted:
+
+```text
+ControlStatus      = 15 rows
+DataQualityIssues  = 5 rows
+Controls in Scope  = 5
+```
+
+All 21 measures matched their frozen canonical expected values. Known scenarios `SUB-004`, `SUB-005`, `SUB-014`, `SUB-015`, and all five DQ findings were verified. All three pages, slicers, cross-table filter propagation, zero-vs-blank behavior, and row-grain preservation passed.
+
+The unresolved `CTRL-999` row remains visible but does not inflate Controls in Scope.
+
+See [phase8_canonical_acceptance.md](phase8_canonical_acceptance.md).
+
+### 11.7 Operational runtime acceptance
+
+Phase 8.10 tested the already accepted private Phase 7 processed output without modifying the source-controlled project.
+
+Acceptance method:
+
+```text
+source-controlled PBIP project
+        ↓ copy to private temporary location
+change temporary DataRoot only
+        ↓
+private processed Phase 7 output
+        ↓
+full Power BI refresh
+```
+
+Operational runtime:
+
+```text
+ControlStatus      = 17 rows
+DataQualityIssues  = 5 rows
+```
+
+All 21 measures executed successfully. All values directly derivable from the Phase 7 acceptance contract matched their targets. The accepted reminder-state rows `SUB-016` and `SUB-017` were represented correctly without new columns, measures, relationships, or visuals.
+
+After the operational test, the temporary PBIP copy and processed outputs were removed; the canonical pipeline was rerun and returned the original baseline; the complete Python suite still passed.
+
+This proves:
+
+```text
+same PBIP / PBIR / TMDL model
++ different DataRoot
+= canonical and operational reporting accepted
+```
+
+See [phase8_operational_acceptance.md](phase8_operational_acceptance.md).
+
+### 11.8 Public dashboard evidence and final closure
+
+Public screenshots are canonical-only and stored under:
+
+```text
+docs/images/phase8/management-overview.webp
+docs/images/phase8/control-monitoring.webp
+docs/images/phase8/process-data-quality.webp
+```
+
+No private operational screenshots are committed.
+
+Final Phase 8 closure is documented in [phase8_final_acceptance.md](phase8_final_acceptance.md).
 
 ## 12. Controlled AI Boundary
 
@@ -772,9 +881,11 @@ AND
 
 The queue is a minimized review-preparation artifact, not a compliance engine or DQ repair mechanism. Final compliance authority remains human.
 
+The controlled AI runtime itself is planned for Phase 9 and is not implemented by Phase 8.
+
 ## 13. Storage and Privacy Boundary
 
-Operational snapshots may contain:
+Operational snapshots can contain:
 
 ```text
 owner_email
@@ -785,9 +896,28 @@ operational acceptance state
 
 and therefore remain private.
 
-The public repository may contain only sanitized screenshots, sanitized Power Automate source, synthetic examples, non-sensitive acceptance observations, and source-controlled Power BI project/query/model metadata that contains no embedded reporting rows or private connection state.
+The public repository can contain only:
 
-Power BI machine-local files remain outside Git through:
+- synthetic canonical fixtures,
+- sanitized Power Automate source and screenshots,
+- non-sensitive aggregate acceptance observations,
+- source-controlled Power BI project/query/model/report metadata,
+- canonical Power BI screenshots,
+- documentation and automated test evidence.
+
+The following remain outside Git:
+
+- private Phase 7 snapshots,
+- private processed operational outputs,
+- reachable operational e-mail addresses,
+- authenticated submitter identities,
+- private comments,
+- tenant/environment/connection/workbook identifiers,
+- credentials and tokens,
+- local Power BI cache/state,
+- generated curated runtime outputs.
+
+Power BI machine-local files remain outside Git through the project ignore boundary, including:
 
 ```text
 **/.pbi/localSettings.json
@@ -799,8 +929,6 @@ Generated Python curated runtime outputs remain ignored under:
 ```text
 data/curated/
 ```
-
-The TMDL `DataRoot` parameter stores an authoring path that can be changed for another clone or later operational processed-output directory.
 
 ## 14. Consistency and Concurrency Boundary
 
@@ -814,7 +942,7 @@ Mitigations are:
 - manifest created only after all source artifacts succeed,
 - explicit documentation of the limitation.
 
-Phase 7 does not claim ACID or point-in-time transactional semantics.
+Phase 7 does not claim ACID or point-in-time transactional semantics. Phase 8 accepts the processed output contract; it does not remove this upstream limitation.
 
 ## 15. Component Responsibilities
 
@@ -846,34 +974,34 @@ Phase 7 does not claim ACID or point-in-time transactional semantics.
 
 ### Excel Online / OneDrive
 
-- operational PoC state and private snapshots,
-- not presented as a production transactional datastore.
+- stores operational PoC state and private snapshots,
+- is not presented as a production transactional datastore.
 
 ### Python
 
 - deterministic extract/normalize/validate/transform/derive/load,
-- canonical and explicit external source modes,
-- DQ, Control enrichment, Action aggregation, and derived reporting metrics.
+- supports canonical and explicit external source modes,
+- owns DQ, Control enrichment, Action aggregation, derived timing, curated reporting output, and AI queue preparation.
 
 ### Power BI
 
 - PBIP/PBIR/TMDL project is source-controlled,
 - `DataRoot` resolves the curated reporting directory,
-- `ControlStatus` and `DataQualityIssues` are technically loaded and typed,
-- the active one-to-many lineage relationship is implemented on `source_row_number`,
-- technical relationship keys are hidden from report consumers,
-- 21 contracted DAX measures implement governance, compliance, timeliness, DQ, and process reporting semantics,
-- count/sum measures represent known empty results as zero while undefined ratios remain blank,
-- Submission-grain numeric detail attributes are configured not to summarize by default,
-- Management Overview is implemented and source-controlled,
-- Control Monitoring is implemented and source-controlled,
-- no calculated tables or calculated columns are used,
-- Phase 8.8 owns Process & Data Quality,
-- Phase 8.9–8.11 own final canonical/operational acceptance and documentation closure.
+- loads exactly `ControlStatus` and `DataQualityIssues`,
+- implements the active one-to-many lineage relationship on `source_row_number`,
+- hides technical relationship keys from report consumers,
+- implements exactly 21 contracted DAX measures,
+- represents known empty counts as zero while undefined ratios remain blank,
+- keeps Submission-grain numeric detail attributes non-additive by default,
+- implements Management Overview, Control Monitoring, and Process & Data Quality,
+- has passed canonical and operational runtime acceptance,
+- uses no calculated tables or calculated columns.
 
 ### Controlled AI Runtime
 
-Planned for Phase 9 and not yet implemented.
+- planned for Phase 9,
+- consumes minimized deterministic review candidates,
+- must remain advisory and human-governed.
 
 ## 16. Repository Governance Boundary
 
@@ -882,6 +1010,8 @@ GitHub Actions runs the complete Python test suite for pull requests targeting `
 Current CI is active, but the Python check is not enforced as a required merge gate by repository rules.
 
 Operational snapshot artifacts, private workbook data, credentials, tokens, tenant identifiers, connection bindings, local Power BI cache/state, generated curated outputs, and private deployment packages do not belong in version control.
+
+Phase-specific historical documents remain valid for the phase they describe. Current-state foundation documents plus later acceptance evidence define the present architecture.
 
 ## 17. Architecture Principles
 
@@ -897,20 +1027,23 @@ Operational snapshot artifacts, private workbook data, credentials, tokens, tena
 - Operational and canonical data planes remain distinct.
 - Phase 7 is an explicit reporting bridge, not destructive or automatic synchronization.
 - A completion manifest distinguishes valid snapshots from partial artifacts.
-- Python semantics are reused for both canonical and operational source sets.
+- Python semantics are reused for canonical and operational source sets.
 - Power BI consumes curated outputs rather than duplicating upstream business logic.
 - Power Query performs technical ingestion only.
 - Power BI relates Submission-grain reporting to DQ issue grain through technical raw-row lineage rather than unreliable business identifiers.
 - DAX implements contracted reporting measures without inventing a composite overall status or redefining Python-owned business rules.
 - Known empty aggregate counts are represented as zero; undefined ratios remain blank.
-- Null/non-evaluable source timing state remains null rather than becoming false/zero.
+- Null/non-evaluable timing state remains null rather than becoming false/zero.
 - Submission-grain detail attributes are not additively summarized by default.
 - Power BI project/report/model definitions are version-controlled separately from machine-local cache and generated reporting data.
+- The same semantic model must work across canonical and operational curated outputs through configuration, not rebuilding.
 - AI processing remains downstream of deterministic validation.
 - Final compliance authority remains human.
 - Excel/OneDrive is a PoC boundary, not an enterprise architecture claim.
 
 ## 18. Current Limitations
+
+Phase 8 completion does not make the lab a production governance platform. Current limitations include:
 
 - no automatic expected-Submission generation,
 - no automatic completion of missing-submission Actions after later evidence intake,
@@ -919,11 +1052,12 @@ Operational snapshot artifacts, private workbook data, credentials, tokens, tena
 - no scheduled Python snapshot-processing service,
 - no Action-specific DQ rule catalog,
 - no production-grade IAM/RBAC, DLP, audit, monitoring, retention, or telemetry architecture,
-- Power BI Management Overview and Control Monitoring are implemented, but Process & Data Quality and formal runtime acceptance remain incomplete,
-- the current canonical fixture does not exercise null `overdue_flag` in a runtime visual,
+- the canonical fixture does not directly exercise a runtime null example for every nullable timing column,
 - `DataRoot` must be configured for the relevant local clone or processed-output directory,
-- no external AI invocation,
-- no REST API implementation.
+- no Power BI Service/Fabric deployment architecture, gateway, deployment pipeline, or enterprise RLS implementation,
+- no external AI invocation yet,
+- no REST API implementation yet,
+- CI is not configured as an enforced required merge gate.
 
 ## 19. References
 
@@ -953,5 +1087,9 @@ Phase-specific evidence:
 - [phase8_management_overview.md](phase8_management_overview.md)
 - [phase8_consistency_review.md](phase8_consistency_review.md)
 - [phase8_control_monitoring.md](phase8_control_monitoring.md)
+- [phase8_process_data_quality.md](phase8_process_data_quality.md)
+- [phase8_canonical_acceptance.md](phase8_canonical_acceptance.md)
+- [phase8_operational_acceptance.md](phase8_operational_acceptance.md)
+- [phase8_final_acceptance.md](phase8_final_acceptance.md)
 
 Historical phase-specific documents remain valid for the phase they describe. Current-state foundation documents, implementation code, canonical datasets, automated tests, and later acceptance evidence define the present architecture.
