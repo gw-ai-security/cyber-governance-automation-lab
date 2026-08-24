@@ -22,6 +22,7 @@ The project is intentionally small and explicit. It demonstrates how operational
 - **Explicit semantic modeling** — Data Quality Issues relate to Submission-grain reporting through raw-row lineage rather than unreliable business identifiers.
 - **Contracted KPI layer** — 21 version-controlled DAX measures implement governance, compliance, timeliness, Data Quality, and reminder/process semantics without collapsing them into an invented overall status.
 - **Management reporting** — the source-controlled Management Overview provides three slicers, six governance KPI cards, and three analytical views against the canonical semantic model.
+- **Operational monitoring** — the source-controlled Control Monitoring page provides five operational slicers and a Submission-grain detail table without introducing additional business logic.
 - **Controlled AI boundary** — only Data-Quality-valid Non-Compliant or overdue Submissions enter the minimized AI review queue; final compliance authority remains human.
 - **Reproducible engineering** — GitHub Actions executes the Python regression suite on pushes and pull requests targeting `main`.
 
@@ -49,6 +50,7 @@ The project is intentionally small and explicit. It demonstrates how operational
 | Phase 8.5 governance/DQ/process measures | ✅ Complete and CI-verified |
 | Phase 8.6 Management Overview | ✅ Complete, smoke-tested and CI-verified |
 | Phase 8 consistency review | ✅ Complete and CI-verified |
+| Phase 8.7 Control Monitoring | ✅ Complete, smoke-tested and CI-verified |
 | Continuous Integration | ✅ GitHub Actions |
 | Required CI merge gate | ⚠ Not currently enforced |
 
@@ -77,7 +79,7 @@ ControlStatus       = 15 rows / 25 columns
 DataQualityIssues   = 5 rows / 8 columns
 ```
 
-Phase 8.4 adds the single active `1:*` relationship from `ControlStatus[source_row_number]` to `DataQualityIssues[source_row_number]`. Phase 8.5 adds the 21 contracted DAX measures. Phase 8.6 implements the first report page, **Management Overview**. Phase 8.7 is the next work package and builds **Control Monitoring**.
+Phase 8.4 adds the single active `1:*` relationship from `ControlStatus[source_row_number]` to `DataQualityIssues[source_row_number]`. Phase 8.5 adds the 21 contracted DAX measures. Phase 8.6 implements **Management Overview**. Phase 8.7 implements **Control Monitoring**. Phase 8.8 is the next work package and builds **Process & Data Quality**.
 
 ## Current Architecture
 
@@ -111,9 +113,9 @@ flowchart TD
         M --> O[DataQualityIssues]
         P --> R[Semantic Model — 1:* lineage + 21 DAX measures]
         O --> R
-        R --> U[Management Overview — Phase 8.6]
-        R --> V[Control Monitoring — Phase 8.7 Next]
-        R --> W[Process & Data Quality — Phase 8.8 Planned]
+        R --> U[Management Overview — implemented]
+        R --> V[Control Monitoring — implemented]
+        R --> W[Process & Data Quality — Phase 8.8 Next]
     end
 
     N --> Q[Controlled AI Runtime — Phase 9 Planned]
@@ -147,12 +149,12 @@ The Phase 7 bridge is caller-controlled rather than automatically synchronized. 
 | Phase 8.5 | Governance, DQ and Process Measures | ✅ Complete and CI-verified |
 | Phase 8.6 | Management Overview | ✅ Complete, smoke-tested and CI-verified |
 | Phase 8 consistency review | Cross-phase semantic/documentation hardening | ✅ Complete and CI-verified |
-| Phase 8.7 | Control Monitoring | ○ Next |
-| Phase 8.8 | Process & Data Quality | ○ Planned |
+| Phase 8.7 | Control Monitoring | ✅ Complete, smoke-tested and CI-verified |
+| Phase 8.8 | Process & Data Quality | ○ Next |
 | Phase 8.9 | Canonical Power BI Acceptance | ○ Planned |
 | Phase 8.10 | Operational Phase 7 Output Acceptance | ○ Planned |
 | Phase 8.11 | Documentation, Screenshots, Regression & Final Acceptance | ○ Planned |
-| **Phase 8** | **Power BI Dashboard** | **◐ In progress — Management Overview complete; Control Monitoring next** |
+| **Phase 8** | **Power BI Dashboard** | **◐ In progress — Management Overview and Control Monitoring complete; Process & Data Quality next** |
 | Phase 9 | Controlled AI Workflow | ○ Planned |
 | Phase 10 | REST API | ○ Planned |
 | Phase 11 | Documentation & Handover | ○ Planned |
@@ -449,6 +451,34 @@ Canonical smoke-test values remain:
 5 / 80.0% / 1 / 1 / 2 / 5
 ```
 
+### Phase 8.7 — Control Monitoring
+
+The second source-controlled report page is complete.
+
+It contains:
+
+```text
+1 title
+5 slicers
+1 Submission-grain detail table
+-------------------------------
+7 visuals
+```
+
+Primary slicers:
+
+```text
+Business Unit
+Risk Level
+Submission Status
+Data Quality Status
+Overdue
+```
+
+The detail table contains the 15 contracted operational fields from Control ID through Last Reminder At. `Pending` and DQ-invalid rows remain reportable; `days_overdue` and `reminder_count` remain non-additive row-detail attributes.
+
+Canonical smoke tests confirmed 15 unfiltered Submission rows, the expected Business Unit slices, five DQ-invalid rows, one Non-Compliant row, and one Overdue row.
+
 Formal complete Power BI runtime acceptance remains Phase 8.9.
 
 ## Python Pipeline
@@ -597,6 +627,7 @@ The three source overrides must be supplied together. No OneDrive, Graph, manife
 | [docs/phase8_measures.md](docs/phase8_measures.md) | Phase 8.5 DAX measure semantics, formatting, canonical targets, and scope boundaries |
 | [docs/phase8_management_overview.md](docs/phase8_management_overview.md) | Phase 8.6 Management Overview implementation and runtime smoke-test evidence |
 | [docs/phase8_consistency_review.md](docs/phase8_consistency_review.md) | Cross-phase consistency review and pre-8.7 semantic hardening |
+| [docs/phase8_control_monitoring.md](docs/phase8_control_monitoring.md) | Phase 8.7 Control Monitoring implementation and smoke-test evidence |
 | [docs/repository_conventions.md](docs/repository_conventions.md) | Documentation and naming conventions |
 
 ## Security and Governance Boundaries
@@ -632,7 +663,7 @@ Current limitations include:
 - no custom Phase 5 confirmation e-mail,
 - no production escalation hierarchy or SLA engine,
 - no production-grade IAM/RBAC, audit trail, monitoring, or telemetry datastore,
-- Power BI Management Overview is implemented, but Control Monitoring, Process & Data Quality, and formal Phase 8 runtime acceptance remain incomplete,
+- Power BI Management Overview and Control Monitoring are implemented, but Process & Data Quality and formal Phase 8 runtime acceptance remain incomplete,
 - `DataRoot` must be configured for the local clone or target processed-output directory,
 - no external AI model invocation,
 - no REST API implementation,
