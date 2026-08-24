@@ -38,11 +38,43 @@ def validate_control_review_output(
     return output
 
 
+def validate_control_review_correlation(
+    output: dict[str, Any],
+    input_record: dict[str, Any],
+) -> dict[str, Any]:
+    """Require the AI output to preserve the reviewed Submission and Control."""
+
+    for field in ("submission_id", "control_id"):
+        if field not in input_record:
+            raise KeyError(
+                f"Controlled AI input is missing required correlation field: {field}"
+            )
+
+        if output.get(field) != input_record[field]:
+            raise ValueError(
+                f"AI review correlation mismatch for {field}: "
+                f"expected {input_record[field]!r}, got {output.get(field)!r}."
+            )
+
+    return output
+
+
+def validate_control_review_result(
+    output: dict[str, Any],
+    input_record: dict[str, Any],
+    schema: dict[str, Any],
+) -> dict[str, Any]:
+    """Validate structure and input/output correlation without semantic repair."""
+
+    validate_control_review_output(output, schema)
+    return validate_control_review_correlation(output, input_record)
+
+
 def validate_control_review_output_file(
     output_path: Path | str,
     schema_path: Path | str,
 ) -> dict[str, Any]:
-    """Load and validate one stored AI review output against the contract."""
+    """Load and validate one stored AI review output against the schema."""
 
     output = load_json_object(output_path)
     schema = load_json_object(schema_path)
