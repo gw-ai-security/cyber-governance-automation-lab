@@ -6,7 +6,7 @@ This document defines the **current business-process semantics** modeled by the 
 
 The project represents a simplified recurring cybersecurity-governance evidence process. It is a portfolio proof of concept and does not claim to reproduce the exact control-governance process of any real organization, bank, or regulated entity.
 
-The process covers expected evidence Submissions, evidence intake, governance assessment, timeliness, deterministic Data Quality, follow-up Actions, reminder tracking, and reporting. It does not model the technical execution of the underlying controls themselves.
+The process covers expected evidence Submissions, evidence intake, governance assessment, timeliness, deterministic Data Quality, follow-up Actions, reminder tracking, operational snapshot export, deterministic processing, and Power BI reporting. It does not model the technical execution of the underlying controls themselves.
 
 ## 1. Core Modeling Principles
 
@@ -22,6 +22,7 @@ Submission Status != Action Status
 Unknown != False
 Not Evaluated != Failed
 Action completion != Submission compliance
+Control risk != DQ severity
 ```
 
 The project also distinguishes:
@@ -356,7 +357,7 @@ Phase 5 evidence intake
 
 Therefore an operational missing-submission Action may remain `Open` until separately resolved.
 
-This distinction is intentional and removes a previous documentation ambiguity:
+This distinction is intentional:
 
 ```text
 Target process semantic
@@ -458,7 +459,7 @@ See [data_quality.md](data_quality.md).
 
 ## 15. Reporting Process
 
-Phase 7 connects current operational state to the same deterministic Python reporting semantics.
+Phase 7 connects current operational state to the same deterministic Python reporting semantics, and Phase 8 consumes only the resulting curated reporting outputs.
 
 ```text
 Operational ControlCatalog
@@ -471,14 +472,32 @@ explicit Python source paths
         ↓
 Data Quality + enrichment + Action aggregation + derivation
         ↓
-curated reporting outputs
+curated_control_status.csv
++ data_quality_issues.csv
+        ↓
+Power BI DataRoot
+        ↓
+ControlStatus + DataQualityIssues
+        ↓
+21 contracted DAX measures
+        ↓
+Management Overview
+Control Monitoring
+Process & Data Quality
 ```
 
 Power Automate exports source facts only. It does not assign compliance, evaluate DQ rules, aggregate Actions, or repair source state.
 
-The accepted Phase 7 bridge has been proven end to end with one private operational snapshot while preserving the canonical repository baseline.
+Power BI does not read the operational workbook or raw Phase 7 snapshots directly. It consumes only the two Python-curated CSV reporting outputs. Power Query performs technical ingestion and typing; it does not reimplement Python business rules.
 
-See [phase7_end_to_end_acceptance.md](phase7_end_to_end_acceptance.md).
+The Phase 7 bridge has been accepted end to end with one private operational snapshot while preserving the canonical repository baseline. Phase 8 has been accepted against both the canonical synthetic output and a private processed Phase 7 output set using the same source-controlled PBIP/PBIR/TMDL model and a configurable `DataRoot`.
+
+See:
+
+- [phase7_end_to_end_acceptance.md](phase7_end_to_end_acceptance.md)
+- [phase8_canonical_acceptance.md](phase8_canonical_acceptance.md)
+- [phase8_operational_acceptance.md](phase8_operational_acceptance.md)
+- [phase8_final_acceptance.md](phase8_final_acceptance.md)
 
 ## 16. AI Review Preparation
 
@@ -495,6 +514,8 @@ AND
 ```
 
 AI processing is review preparation. It is not the final compliance decision and it is not a Data Quality repair mechanism.
+
+The queue artifact is implemented by the deterministic Python pipeline. External controlled AI runtime execution remains a later phase.
 
 ## 17. End-to-End Process
 
@@ -514,11 +535,11 @@ flowchart TD
     I --> J
     J --> K[Phase 7 Reporting Snapshot]
     K --> L[Python Curated Reporting]
-    L --> M[Power BI — Planned]
+    L --> M[Phase 8 Power BI Dashboard]
     L --> N[Controlled AI Queue]
 ```
 
-The diagram shows logical process relationships. It does not imply that every conceptual transition is currently automated.
+The diagram shows logical process relationships. It does not imply that every conceptual transition is currently automated. In particular, the Governance Reviewer decision UI and automatic Action completion after later evidence intake are not implemented.
 
 ## 18. Scope Limitations
 
@@ -531,7 +552,9 @@ The diagram shows logical process relationships. It does not imply that every co
 - no automatic completion of missing-submission Actions after later evidence intake is implemented,
 - no production escalation/SLA process is implemented,
 - no production datastore, IAM/RBAC, audit, telemetry, or retention architecture is implemented,
-- Phase 8 Power BI has not started,
+- Phase 8 Power BI reporting is implemented and accepted locally, but Power BI Service/Fabric deployment, gateways, deployment pipelines, enterprise RLS, and production monitoring are not implemented,
+- the canonical Power BI fixture does not contain a direct runtime null example for every nullable timing column,
+- operational Power BI acceptance requires authorized access to the private accepted Phase 7 snapshot,
 - AI runtime and REST API remain later phases.
 
 ## 19. Source of Truth
