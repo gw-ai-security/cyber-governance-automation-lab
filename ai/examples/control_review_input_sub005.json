@@ -1,0 +1,16 @@
+{
+  "submission_id": "SUB-005",
+  "control_id": "CTRL-002",
+  "control_name": "Privileged Access Review",
+  "business_unit": "Retail Banking",
+  "risk_level": "High",
+  "reporting_period": "2026-Q2",
+  "submission_status": "Non-Compliant",
+  "due_date": "2026-07-10",
+  "evidence_present": true,
+  "days_overdue": 0,
+  "comment": "Access review identified unresolved privileged access.",
+  "review_reasons": [
+    "Non-Compliant"
+  ]
+}

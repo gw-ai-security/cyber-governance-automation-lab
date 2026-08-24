@@ -1,0 +1,16 @@
+{
+  "submission_id": "SUB-014",
+  "control_id": "CTRL-005",
+  "control_name": "Critical System Patch Status Review",
+  "business_unit": "IT Operations",
+  "risk_level": "Critical",
+  "reporting_period": "2026-07",
+  "submission_status": "Not Submitted",
+  "due_date": "2026-08-10",
+  "evidence_present": false,
+  "days_overdue": 5,
+  "comment": "No submission received by due date.",
+  "review_reasons": [
+    "Overdue"
+  ]
+}

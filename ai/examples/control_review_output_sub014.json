@@ -1,0 +1,12 @@
+{
+  "submission_id": "SUB-014",
+  "control_id": "CTRL-005",
+  "summary": "The supplied record is Not Submitted, has no evidence present, and is 5 days overdue.",
+  "review_priority": "High",
+  "missing_information": [
+    "planned submission date",
+    "reason for delay"
+  ],
+  "recommended_follow_up": "Request the planned submission date, reason for delay, and the required evidence for human governance assessment.",
+  "human_review_required": true
+}
