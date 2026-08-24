@@ -35,7 +35,7 @@ table DataQualityIssues
 			    DataQualityIssues[severity] = "High"
 			)
 		formatString: 0
-		lineageTag: fa39af9e-4b18-4987-b1b0-aaa92c612791
+		lineageTag: fa39af9e-4b18-4987-b1b0-a9386abd5032
 
 	measure 'Missing Evidence Issues' =
 			
