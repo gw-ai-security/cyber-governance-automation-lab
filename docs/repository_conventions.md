@@ -62,9 +62,9 @@ When a later phase changes the current architecture without invalidating an earl
 - update the current-state foundation documents,
 - add a subsequent-status note to the phase-specific document when needed to avoid ambiguity.
 
-## 3. Screenshot Paths
+## 3. Screenshot and Public Image Paths
 
-Phase-specific screenshot evidence uses:
+Phase-specific raw or sanitized screenshot evidence normally uses:
 
 ```text
 docs/screenshots/phase-<N>-<scope>/
@@ -86,7 +86,23 @@ phase6_overdue_detection.webp
 phase7_failure_path.webp
 ```
 
-Public screenshots must be sanitized when authenticated identities, reachable e-mail addresses, tenant/environment identifiers, connection/resource identifiers, or similar operational metadata could be exposed.
+Curated public image assets that are embedded directly in top-level portfolio documentation may instead use:
+
+```text
+docs/images/phase<N>/
+```
+
+This path is appropriate when the image is a deliberately selected public presentation derivative rather than a raw runtime-evidence dump. Phase 8 uses this pattern for its three canonical Power BI dashboard images:
+
+```text
+docs/images/phase8/management-overview.webp
+docs/images/phase8/control-monitoring.webp
+docs/images/phase8/process-data-quality.webp
+```
+
+A public image that also supports a phase acceptance document should have one canonical repository path rather than being duplicated solely to satisfy folder conventions.
+
+All public screenshots and image assets must be sanitized when authenticated identities, reachable e-mail addresses, tenant/environment identifiers, connection/resource identifiers, or similar operational metadata could be exposed.
 
 Raw acceptance screenshots do not need to be committed when a sanitized subset plus written acceptance evidence is sufficient to establish the contract.
 
