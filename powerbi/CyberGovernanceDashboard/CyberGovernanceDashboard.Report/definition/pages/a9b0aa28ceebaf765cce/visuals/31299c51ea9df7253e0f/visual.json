@@ -1,0 +1,89 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
+  "name": "31299c51ea9df7253e0f",
+  "position": {
+    "x": 170.21276595744681,
+    "y": 125.47112462006079,
+    "z": 5,
+    "height": 103.10030395136779,
+    "width": 252.88753799392097,
+    "tabOrder": 5
+  },
+  "visual": {
+    "visualType": "cardVisual",
+    "query": {
+      "queryState": {
+        "Data": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ControlStatus"
+                    }
+                  },
+                  "Property": "Assessed Compliance Rate"
+                }
+              },
+              "queryRef": "ControlStatus.Assessed Compliance Rate",
+              "nativeQueryRef": "Assessed Compliance Rate"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "ControlStatus"
+                  }
+                },
+                "Property": "Assessed Compliance Rate"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "objects": {
+      "layout": [
+        {
+          "properties": {
+            "columnCount": {
+              "expr": {
+                "Literal": {
+                  "Value": "6L"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "c9ece5fb5ae1868a41cf",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "ControlStatus"
+              }
+            },
+            "Property": "Assessed Compliance Rate"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
+  }
+}

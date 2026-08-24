@@ -1,0 +1,163 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
+  "name": "14b6fe39250459f14ff8",
+  "position": {
+    "x": 27.23404255319149,
+    "y": 231.48936170212767,
+    "z": 10,
+    "height": 256.77811550151978,
+    "width": 353.06990881458967,
+    "tabOrder": 10
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ControlStatus"
+                    }
+                  },
+                  "Property": "submission_status"
+                }
+              },
+              "queryRef": "ControlStatus.submission_status",
+              "nativeQueryRef": "submission_status",
+              "active": true
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ControlStatus"
+                    }
+                  },
+                  "Property": "Expected Submissions"
+                }
+              },
+              "queryRef": "ControlStatus.Expected Submissions",
+              "nativeQueryRef": "Expected Submissions"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "ControlStatus"
+                  }
+                },
+                "Property": "Expected Submissions"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "objects": {
+      "labels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Submission Status Distribution'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "df8f0a339eda908b911f",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "ControlStatus"
+              }
+            },
+            "Property": "submission_status"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "43b57e4b85daa874d677",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "ControlStatus"
+              }
+            },
+            "Property": "Expected Submissions"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
+  }
+}

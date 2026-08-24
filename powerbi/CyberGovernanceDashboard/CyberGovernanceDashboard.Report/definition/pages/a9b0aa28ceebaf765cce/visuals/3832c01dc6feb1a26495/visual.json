@@ -1,0 +1,74 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
+  "name": "3832c01dc6feb1a26495",
+  "position": {
+    "x": 646.80851063829789,
+    "y": 125.47112462006079,
+    "z": 7,
+    "height": 103.10030395136779,
+    "width": 216.89969604863222,
+    "tabOrder": 7
+  },
+  "visual": {
+    "visualType": "cardVisual",
+    "query": {
+      "queryState": {
+        "Data": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ControlStatus"
+                    }
+                  },
+                  "Property": "Overdue Submissions"
+                }
+              },
+              "queryRef": "ControlStatus.Overdue Submissions",
+              "nativeQueryRef": "Overdue Submissions"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "ControlStatus"
+                  }
+                },
+                "Property": "Overdue Submissions"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "896d882c39e805d6d6b8",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "ControlStatus"
+              }
+            },
+            "Property": "Overdue Submissions"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
+  }
+}

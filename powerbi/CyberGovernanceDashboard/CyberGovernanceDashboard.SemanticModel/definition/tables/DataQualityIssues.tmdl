@@ -3,7 +3,10 @@ table DataQualityIssues
 
 	measure 'Total DQ Issues' =
 			
-			COUNTROWS(DataQualityIssues)
+			COALESCE(
+			    COUNTROWS(DataQualityIssues),
+			    0
+			)
 		formatString: 0
 		lineageTag: 82ddb086-f78f-4cc3-83f8-a53e82706b0d
 
