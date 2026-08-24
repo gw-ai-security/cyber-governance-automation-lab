@@ -1,0 +1,12 @@
+{
+  "submission_id": "SUB-005",
+  "control_id": "CTRL-002",
+  "summary": "The supplied record is Non-Compliant and notes unresolved privileged access.",
+  "review_priority": "High",
+  "missing_information": [
+    "remediation plan",
+    "target remediation date"
+  ],
+  "recommended_follow_up": "Request the remediation plan and target remediation date for the unresolved privileged access, then have a human Governance Reviewer assess the response.",
+  "human_review_required": true
+}
