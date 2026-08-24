@@ -2,9 +2,9 @@
 
 ## Status
 
-**TECHNICAL IMPLEMENTATION IN PROGRESS — HUMAN GOVERNANCE ACCEPTANCE PENDING**
+**TECHNICAL IMPLEMENTATION ACCEPTED BY CI — HUMAN GOVERNANCE ACCEPTANCE PENDING**
 
-This document records the evidence for Phase 9 work that can be completed without an external AI API or an authoritative human governance decision.
+This document records the Phase 9 evidence that can be completed without an external AI API or an authoritative human governance decision.
 
 Phase 9 deliberately separates technical implementation from human acceptance.
 
@@ -61,7 +61,7 @@ Controls:
 - no compliance decision field,
 - no source write-back field.
 
-Status: **implemented**.
+Status: **implemented and CI-validated**.
 
 ## 3. Phase 9.2 — Version-Controlled Prompt
 
@@ -82,7 +82,7 @@ The prompt explicitly:
 - requires JSON-only structured output,
 - requires `human_review_required = true`.
 
-Status: **implemented**.
+Status: **implemented and contract-tested**.
 
 ## 4. Phase 9.3 — Canonical Examples
 
@@ -102,7 +102,9 @@ ai/examples/control_review_output_sub014.json
 
 The canonical raw fixtures were not edited to create these examples.
 
-Status: **implemented**.
+Automated testing asserts that the two committed input JSON objects equal the queue items produced by the canonical deterministic pipeline.
+
+Status: **implemented and CI-validated**.
 
 ## 5. Phase 9.4 — Deterministic Output Validation
 
@@ -134,11 +136,54 @@ Contract tests cover:
 - prompt security boundaries remain present,
 - the prompt-injection reference output does not accept the embedded compliance request.
 
-CI evidence will be recorded after the pull-request run completes.
+### CI evidence
+
+Pull request:
+
+```text
+PR #41
+```
+
+GitHub Actions:
+
+```text
+Workflow: Python tests
+Run:      #71
+Python:   3.14.5
+Result:   62 passed in 7.45s
+```
+
+The CI run installed:
+
+```text
+jsonschema 4.26.0
+```
+
+successfully under the repository's existing Python 3.14.5 workflow.
+
+The 62-test run includes the pre-existing canonical CLI end-to-end acceptance test, which executes:
+
+```text
+python src/main.py --as-of-date 2026-08-15
+```
+
+inside an isolated temporary project copy and asserts:
+
+```text
+Controls loaded: 5
+Submissions loaded: 15
+Actions loaded: 5
+DQ issues: 5
+Valid submissions: 10
+Invalid submissions: 5
+AI review queue items: 2
+```
+
+Status: **implemented and CI-accepted**.
 
 ## 6. Phase 9.5 — Controlled Manual AI Review
 
-The project roadmap requires understanding the controlled process before introducing an external API.
+The roadmap requires understanding the controlled process before introducing an external API.
 
 This implementation therefore uses the current ChatGPT interaction as the manual AI-assisted review step and stores only canonical synthetic candidate artifacts in the repository.
 
@@ -230,9 +275,9 @@ Observed behavior:
 
 The JSON Schema independently rejects an attempted extra compliance-decision field and rejects `human_review_required = false`.
 
-This is evidence for the tested contract and prompt, not a claim that prompt injection is universally solved for every model/provider/input.
+This is evidence for the tested contract and prompt, not a claim that prompt injection is universally solved for every model, provider, or input.
 
-Status: **implemented and represented in automated contract tests**.
+Status: **implemented and CI-validated**.
 
 ## 8. Phase 9.7 — Human Review Boundary
 
@@ -264,7 +309,7 @@ Status: **procedure implemented; human acceptance pending**.
 
 ## 9. Phase 9.8 — Current-State Documentation and Public Evidence
 
-Public technical evidence already added in this branch:
+Public technical evidence already added in the Phase 9 branch:
 
 - version-controlled prompt,
 - JSON Schema,
@@ -272,51 +317,49 @@ Public technical evidence already added in this branch:
 - adversarial synthetic example,
 - validator code,
 - automated tests,
-- governance/output/human-review documentation.
+- governance/output/human-review documentation,
+- GitHub Actions evidence.
 
-Final synchronization of `README.md`, `docs/architecture.md`, and `docs/business_process.md` should occur only after the human Phase 9.7 outcome is known, so the current-state documents do not overstate Phase 9 completion.
+Final synchronization of `README.md`, `docs/architecture.md`, and `docs/business_process.md` is intentionally deferred until the Phase 9.7 human outcome is known. This prevents current-state documents from claiming that mandatory human governance acceptance occurred when it has not.
 
-Status: **phase-specific evidence implemented; final current-state synchronization pending human acceptance**.
+Status: **phase-specific evidence complete; final current-state synchronization human-gated**.
 
 ## 10. Phase 9.9 — Regression, CI and Closure
 
-Required before closure:
+Regression and CI gate achieved:
 
 ```text
-python -m pytest -q
-python src/main.py --as-of-date 2026-08-15
+62 passed in 7.45s
+GitHub Actions run #71
 ```
 
-The canonical pipeline must remain:
+Canonical CLI acceptance remains unchanged and passes as part of the suite.
 
-```text
-Controls loaded: 5
-Submissions loaded: 15
-Actions loaded: 5
-DQ issues: 5
-Valid submissions: 10
-Invalid submissions: 5
-AI review queue items: 2
-```
+The Phase 9 pull request is technically green.
 
-The Phase 9 pull request must pass GitHub Actions before merge.
+Final Phase 9 closure remains blocked until:
 
-Final Phase 9 closure is blocked until Phase 9.7 human acceptance and Phase 9.8 current-state synchronization are complete.
+1. Phase 9.7 human acceptance is executed,
+2. Phase 9.8 current-state documents are synchronized to that outcome,
+3. PR #41 is merged,
+4. Phase 9 closure is recorded in issue #35.
+
+Status: **regression/CI complete; final closure human-gated**.
 
 ## 11. Current Work-Package Status
 
 | Work package | Status |
 | --- | --- |
 | 9.0 Governance / threat contract | ✅ Complete on `main` |
-| 9.1 Structured output + JSON Schema | ✅ Implemented |
-| 9.2 Version-controlled prompt | ✅ Implemented |
-| 9.3 Canonical examples | ✅ Implemented |
-| 9.4 Deterministic validator + tests | ✅ Implemented; CI pending |
+| 9.1 Structured output + JSON Schema | ✅ Implemented and CI-validated |
+| 9.2 Version-controlled prompt | ✅ Implemented and contract-tested |
+| 9.3 Canonical examples | ✅ Implemented and tied to generated queue |
+| 9.4 Deterministic validator + tests | ✅ 62-test CI accepted |
 | 9.5 Manual controlled AI candidate run | ✅ Implemented |
-| 9.6 Adversarial guardrail exercise | ✅ Implemented |
+| 9.6 Adversarial guardrail exercise | ✅ Implemented and CI-validated |
 | 9.7 Human Accept/Edit/Reject | ◐ Procedure implemented; human decision pending |
 | 9.8 Current-state synchronization | ◐ Final sync pending human decision |
-| 9.9 Regression / CI / closure | ◐ PR CI and human closure gate pending |
+| 9.9 Regression / CI / closure | ◐ Regression + CI complete; human closure gate pending |
 
 ## 12. No Production Claim
 
