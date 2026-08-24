@@ -12,7 +12,10 @@ table DataQualityIssues
 
 	measure 'Submissions with DQ Issues' =
 			
-			DISTINCTCOUNT(DataQualityIssues[source_row_number])
+			COALESCE(
+			    DISTINCTCOUNT(DataQualityIssues[source_row_number]),
+			    0
+			)
 		formatString: 0
 		lineageTag: 369f6eb1-74ef-400f-b01b-aaa92c612791
 
@@ -32,7 +35,7 @@ table DataQualityIssues
 			    DataQualityIssues[severity] = "High"
 			)
 		formatString: 0
-		lineageTag: fa39af9e-4b18-4987-b1b0-a9386abd5032
+		lineageTag: fa39af9e-4b18-4987-b1b0-aaa92c612791
 
 	measure 'Missing Evidence Issues' =
 			
