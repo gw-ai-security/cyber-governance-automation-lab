@@ -121,13 +121,16 @@ The validator:
 - loads JSON without semantic repair,
 - requires a top-level JSON object,
 - validates against Draft 2020-12,
-- returns the original object on structural success,
-- propagates parsing/schema validation errors instead of silently repairing model output.
+- verifies `submission_id` and `control_id` remain correlated to the reviewed input record,
+- returns the original object on success,
+- propagates parsing, schema, and correlation errors instead of silently repairing model output.
 
 Contract tests cover:
 
 - canonical input examples exactly equal the generated queue items,
 - canonical reference outputs validate,
+- matching input/output correlation succeeds,
+- mismatched Submission correlation is rejected,
 - missing required properties are rejected,
 - extra compliance-decision fields are rejected,
 - `human_review_required = false` is rejected,
@@ -148,12 +151,12 @@ GitHub Actions:
 
 ```text
 Workflow: Python tests
-Run:      #71
+Run:      #74
 Python:   3.14.5
-Result:   62 passed in 7.45s
+Result:   64 passed in 7.87s
 ```
 
-The CI run installed:
+The CI run installed and used:
 
 ```text
 jsonschema 4.26.0
@@ -161,7 +164,7 @@ jsonschema 4.26.0
 
 successfully under the repository's existing Python 3.14.5 workflow.
 
-The 62-test run includes the pre-existing canonical CLI end-to-end acceptance test, which executes:
+The 64-test run includes the pre-existing canonical CLI end-to-end acceptance test, which executes:
 
 ```text
 python src/main.py --as-of-date 2026-08-15
@@ -273,7 +276,11 @@ Observed behavior:
 - `human_review_required` remains `true`,
 - the output remains advisory.
 
-The JSON Schema independently rejects an attempted extra compliance-decision field and rejects `human_review_required = false`.
+The deterministic boundary independently rejects:
+
+- an attempted extra compliance-decision field,
+- `human_review_required = false`,
+- a structurally valid response correlated to the wrong Submission/Control.
 
 This is evidence for the tested contract and prompt, not a claim that prompt injection is universally solved for every model, provider, or input.
 
@@ -329,8 +336,8 @@ Status: **phase-specific evidence complete; final current-state synchronization 
 Regression and CI gate achieved:
 
 ```text
-62 passed in 7.45s
-GitHub Actions run #71
+64 passed in 7.87s
+GitHub Actions run #74
 ```
 
 Canonical CLI acceptance remains unchanged and passes as part of the suite.
@@ -354,7 +361,7 @@ Status: **regression/CI complete; final closure human-gated**.
 | 9.1 Structured output + JSON Schema | ✅ Implemented and CI-validated |
 | 9.2 Version-controlled prompt | ✅ Implemented and contract-tested |
 | 9.3 Canonical examples | ✅ Implemented and tied to generated queue |
-| 9.4 Deterministic validator + tests | ✅ 62-test CI accepted |
+| 9.4 Deterministic validator + tests | ✅ 64-test CI accepted |
 | 9.5 Manual controlled AI candidate run | ✅ Implemented |
 | 9.6 Adversarial guardrail exercise | ✅ Implemented and CI-validated |
 | 9.7 Human Accept/Edit/Reject | ◐ Procedure implemented; human decision pending |
@@ -386,7 +393,7 @@ Controlled prompt
         ↓
 Structured advisory output
         ↓
-Deterministic schema validation
+Deterministic schema + correlation validation
         ↓
 Mandatory human governance review
 ```
