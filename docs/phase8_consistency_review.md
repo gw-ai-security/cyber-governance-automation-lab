@@ -214,7 +214,7 @@ This consistency review is complete when:
 - [x] no upstream Python business rule is duplicated in Power BI,
 - [x] no new data source, table, relationship, calculated table, or calculated column is introduced,
 - [x] current-state documentation reflects Phase 8.6 completion,
-- [ ] regression CI is green on the review pull request.
+- [x] regression CI is green on the review pull request.
 
 ## 9. Next Work Package
 
