@@ -11,6 +11,7 @@ from src.ai_validation import (
     parse_and_validate_control_review_output,
     validate_control_review_output,
     validate_control_review_output_file,
+    validate_control_review_result,
 )
 from src.extract import (
     load_actions,
@@ -87,6 +88,41 @@ def test_reference_outputs_are_schema_valid():
             SCHEMA_PATH,
         )
         assert validated["human_review_required"] is True
+
+
+def test_result_validation_accepts_matching_input_output_correlation():
+    schema = load_json_object(SCHEMA_PATH)
+    input_record = load_json_object(
+        EXAMPLES_DIR / "control_review_input_sub005.json"
+    )
+    output = load_json_object(
+        EXAMPLES_DIR / "control_review_output_sub005.json"
+    )
+
+    assert validate_control_review_result(
+        output,
+        input_record,
+        schema,
+    ) == output
+
+
+def test_result_validation_rejects_mismatched_input_output_correlation():
+    schema = load_json_object(SCHEMA_PATH)
+    input_record = load_json_object(
+        EXAMPLES_DIR / "control_review_input_sub005.json"
+    )
+    output = load_json_object(
+        EXAMPLES_DIR / "control_review_output_sub005.json"
+    )
+    invalid = copy.deepcopy(output)
+    invalid["submission_id"] = "SUB-014"
+
+    with pytest.raises(ValueError, match="correlation mismatch"):
+        validate_control_review_result(
+            invalid,
+            input_record,
+            schema,
+        )
 
 
 def test_schema_rejects_missing_required_property():
