@@ -2,7 +2,7 @@
 
 ## Status
 
-**PHASE 8.7 IMPLEMENTED — CONTROL MONITORING PAGE BUILT AND SMOKE-TESTED**
+**PHASE 8.7 IMPLEMENTED — CONTROL MONITORING PAGE BUILT, SMOKE-TESTED, AND CI-VERIFIED**
 
 Phase 8.7 implements the second report page of the source-controlled Power BI project. It uses the existing `ControlStatus` submission-grain reporting table and preserves the Phase 8 semantic-model boundary established in Phases 8.0–8.6.
 
@@ -237,13 +237,15 @@ No `Overall Status`, traffic-light composite, or new DAX status calculation is i
 
 ## 10. Repository / Model Review
 
-The Phase 8.7 report commit contains only:
+The Phase 8.7 report implementation contains only:
 
 ```text
 pages/pages.json
 Control Monitoring page.json
 7 Control Monitoring visual.json files
 ```
+
+plus this phase-specific documentation file.
 
 The branch comparison against `main` contains no TMDL, Power Query, Python, canonical data, or generated reporting-output change.
 
@@ -261,7 +263,7 @@ Power BI Desktop temporarily generated linguistic culture/synonym metadata durin
 
 ## 11. Regression Evidence
 
-Local regression reported before push:
+Local implementation validation before push reported:
 
 ```text
 python -m pytest -q
@@ -270,7 +272,12 @@ python -m pytest -q
 
 `git diff --check` and the staged diff check also completed without whitespace errors.
 
-GitHub CI evidence is recorded on the Phase 8.7 pull request before merge.
+GitHub Actions `Python tests` run #53 completed successfully on PR #28:
+
+```text
+Python 3.14.5
+53 passed in 7.48s
+```
 
 ## 12. Scope Exclusions
 
@@ -292,7 +299,7 @@ Phase 8.7 does not:
 
 ## 13. Definition of Done
 
-Phase 8.7 is complete when:
+Phase 8.7 implementation is complete when:
 
 - [x] the `Control Monitoring` page exists,
 - [x] the page title is present,
@@ -305,8 +312,9 @@ Phase 8.7 is complete when:
 - [x] no new data source, table, relationship, calculated table/column, or Power Query business rule is introduced,
 - [x] PBIR definitions are source-controlled,
 - [x] local implementation smoke tests were performed,
-- [ ] GitHub regression CI is green on the Phase 8.7 pull request,
-- [ ] Phase 8 tracking is updated after merge.
+- [x] GitHub regression CI is green on PR #28.
+
+Phase-level tracking is updated in Issue #18 after the PR is merged.
 
 ## 14. Next Work Package
 
