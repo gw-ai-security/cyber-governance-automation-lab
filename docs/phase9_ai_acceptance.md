@@ -59,7 +59,7 @@ Phase 9 does not change:
 
 ## 2. Phase 9.0 — Governance / Threat Contract
 
-Implemented on `main` before the later Phase 9 implementation work:
+Implemented:
 
 ```text
 docs/phase9_ai_workflow_contract.md
@@ -259,7 +259,7 @@ ai/examples/control_review_input_prompt_injection.json
 ai/examples/control_review_output_prompt_injection.json
 ```
 
-The untrusted `comment` contains instructions attempting to:
+The untrusted `comment` attempts to:
 
 ```text
 ignore previous instructions
@@ -300,14 +300,6 @@ Final human acceptance record:
 docs/phase9_human_acceptance.md
 ```
 
-Supported decisions remain:
-
-```text
-Accept
-Edit
-Reject
-```
-
 The Governance Reviewer reviewed both canonical candidate outputs and recorded:
 
 ```text
@@ -346,7 +338,7 @@ src/ai_validation.py
 tests/test_ai_contract.py
 ```
 
-Current-state synchronization is completed in:
+Current-state synchronization is complete in:
 
 ```text
 README.md
@@ -360,15 +352,16 @@ Status: **complete**.
 
 ## 11. Phase 9.9 — Regression, CI and Closure
 
-Before the final documentation synchronization, the implementation branch passed:
+Final synchronized pull-request acceptance:
 
 ```text
-GitHub Actions run #75
-Python 3.14.5
-64 passed in 7.69s
+PR:             #41
+GitHub Actions: run #80
+Python:         3.14.5
+Tests:          64 passed in 6.05s
 ```
 
-The test suite includes the existing canonical CLI end-to-end acceptance and therefore continues to prove:
+The suite includes the existing canonical CLI end-to-end acceptance and therefore continues to prove:
 
 ```text
 Controls loaded: 5
@@ -380,7 +373,13 @@ Invalid submissions: 5
 AI review queue items: 2
 ```
 
-A final pull-request CI run is required after the human-acceptance/current-state documentation commits. Phase 9 is complete when that final run is green and PR #41 is merged.
+The final CI run includes the complete Phase 9 implementation, human-acceptance record, README synchronization, architecture synchronization, and business-process synchronization.
+
+After this CI evidence was recorded, only this acceptance-document update remained. It changes documentation only and does not alter source code, dependencies, fixtures, AI contracts, or tests.
+
+PR #41 is ready for merge. Merge plus closure of issue #35 completes the repository workflow for Phase 9.
+
+Status: **final implementation/current-state CI passed; merge closure ready**.
 
 ## 12. Final Work-Package Status
 
@@ -395,7 +394,7 @@ A final pull-request CI run is required after the human-acceptance/current-state
 | 9.6 Adversarial guardrail exercise | ✅ Complete |
 | 9.7 Human Accept/Edit/Reject | ✅ SUB-005 Accept; SUB-014 Accept |
 | 9.8 Current-state synchronization | ✅ Complete |
-| 9.9 Regression / CI / closure | ◐ Final post-documentation CI + merge pending |
+| 9.9 Regression / CI / closure | ✅ Final CI passed; PR merge ready |
 
 ## 13. No Production Claim
 
