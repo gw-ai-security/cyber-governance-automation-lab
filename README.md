@@ -48,6 +48,7 @@ The project is intentionally small and explicit. It demonstrates how operational
 | Phase 8.4 semantic-model relationship | ✅ Complete |
 | Phase 8.5 governance/DQ/process measures | ✅ Complete and CI-verified |
 | Phase 8.6 Management Overview | ✅ Complete, smoke-tested and CI-verified |
+| Phase 8 consistency review | ✅ Complete and CI-verified |
 | Continuous Integration | ✅ GitHub Actions |
 | Required CI merge gate | ⚠ Not currently enforced |
 
@@ -145,7 +146,7 @@ The Phase 7 bridge is caller-controlled rather than automatically synchronized. 
 | Phase 8.4 | Semantic Model Relationship | ✅ Complete |
 | Phase 8.5 | Governance, DQ and Process Measures | ✅ Complete and CI-verified |
 | Phase 8.6 | Management Overview | ✅ Complete, smoke-tested and CI-verified |
-| Phase 8 consistency review | Cross-phase semantic/documentation hardening | ◐ Review PR in progress |
+| Phase 8 consistency review | Cross-phase semantic/documentation hardening | ✅ Complete and CI-verified |
 | Phase 8.7 | Control Monitoring | ○ Next |
 | Phase 8.8 | Process & Data Quality | ○ Planned |
 | Phase 8.9 | Canonical Power BI Acceptance | ○ Planned |
