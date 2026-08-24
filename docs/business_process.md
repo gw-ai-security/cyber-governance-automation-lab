@@ -2,15 +2,28 @@
 
 ## Purpose
 
-This document defines the **current business-process semantics** modeled by the Cyber Governance Automation Lab.
+This document defines the **current business-process semantics** modeled by the Cyber Governance Automation Lab after completion of Phase 9.
 
-The project represents a simplified recurring cybersecurity-governance evidence process. It is a portfolio proof of concept and does not claim to reproduce the exact control-governance process of any real organization, bank, or regulated entity.
+The project represents a simplified recurring cybersecurity-governance evidence process. It is a portfolio proof of concept and does not claim to reproduce the exact governance process of any real organization, bank, or regulated entity.
 
-The process covers expected evidence Submissions, evidence intake, governance assessment, timeliness, deterministic Data Quality, follow-up Actions, reminder tracking, operational snapshot export, deterministic processing, and Power BI reporting. It does not model the technical execution of the underlying controls themselves.
+The process covers:
+
+- expected evidence Submissions,
+- evidence intake,
+- governance assessment,
+- timeliness,
+- deterministic Data Quality,
+- follow-up Actions and reminders,
+- operational snapshot export,
+- deterministic reporting,
+- controlled AI-assisted exception review,
+- mandatory human governance acceptance.
+
+It does not model the technical execution of the underlying security controls themselves.
 
 ## 1. Core Modeling Principles
 
-The process is built around several explicit separations:
+The process preserves these explicit separations:
 
 ```text
 Evidence Present != Compliant
@@ -23,6 +36,9 @@ Unknown != False
 Not Evaluated != Failed
 Action completion != Submission compliance
 Control risk != DQ severity
+Control risk != AI review priority
+Schema-valid != factually correct
+AI recommendation accepted != Submission compliant
 ```
 
 The project also distinguishes:
@@ -41,7 +57,7 @@ An expected Submission therefore exists before evidence arrives.
 
 ### Control Owner
 
-The Control Owner is accountable for ensuring that evidence is supplied for a Control and reporting period. Accountability does not require the owner to personally execute every underlying technical activity.
+The Control Owner is accountable for ensuring that evidence is supplied for a Control and reporting period.
 
 ```text
 Execution != Accountability
@@ -51,29 +67,28 @@ The Control Owner can submit or ensure submission of evidence but does not hold 
 
 ### Governance Reviewer
 
-The Governance Reviewer represents the governance function responsible for assessing submitted evidence.
+The Governance Reviewer represents the governance function responsible for assessing submitted evidence and reviewing AI-assisted recommendations.
 
 Responsibilities include:
 
 - review submitted evidence,
 - determine `Compliant` or `Non-Compliant`,
-- interpret relevant exceptions where human judgment is required,
-- review AI-assisted recommendations,
-- retain final decision authority.
+- interpret exceptions where human judgment is required,
+- review validated AI recommendations,
+- choose `Accept`, `Edit`, or `Reject` for AI recommendations,
+- retain final governance authority.
 
-The project deliberately separates evidence submission from final governance assessment.
+The project deliberately separates evidence submission, AI recommendation acceptance, and final compliance assessment.
 
-## 3. Business Units and Controls
+## 3. Controls and Business Units
 
-The synthetic reference model uses three business units:
+Synthetic business units:
 
 ```text
 IT Operations
 Finance
 Retail Banking
 ```
-
-Each Control belongs to one primary business unit and one accountable owner in this PoC.
 
 Reference Controls:
 
@@ -89,8 +104,6 @@ Full logical fields are defined in [data_model.md](data_model.md).
 
 ## 4. Submission Identity
 
-A Submission represents one expected or completed evidence-assessment record for one Control and reporting period.
-
 Technical key:
 
 ```text
@@ -103,7 +116,7 @@ Business key:
 control_id + reporting_period
 ```
 
-The business key identifies the expected business object. The technical key is used for stable physical updates.
+The business key identifies the expected business object. The technical key is used for stable physical updates and for correlation of downstream AI review output.
 
 ## 5. Expected Submission Lifecycle
 
@@ -113,7 +126,7 @@ Expected Submission records exist before evidence is received and begin in:
 Not Submitted
 ```
 
-Allowed Submission statuses are exactly:
+Allowed Submission statuses:
 
 ```text
 Not Submitted
@@ -134,11 +147,9 @@ Not Submitted
 Compliant  Non-Compliant
 ```
 
-`Open` is not a Submission status. It belongs to Action.
+### Evidence intake
 
-### Evidence intake transition
-
-Phase 5 operationalizes only:
+Phase 5 implements only:
 
 ```text
 Not Submitted → In Review
@@ -148,7 +159,7 @@ Evidence submission does not assign compliance.
 
 ### Governance assessment
 
-The later governance assessment produces:
+Human governance assessment can produce:
 
 ```text
 In Review → Compliant
@@ -160,11 +171,11 @@ or:
 In Review → Non-Compliant
 ```
 
-The project models these outcomes in data but does not currently implement a dedicated Governance Reviewer UI for making the decision.
+The PoC models these outcomes in data but does not implement a dedicated Governance Reviewer UI for assigning them.
 
 ## 6. Evidence-State Semantics
 
-Expected state relationships are:
+Expected relationships:
 
 | Submission status | submitted_at | submitted_by | evidence_reference |
 | --- | --- | --- | --- |
@@ -175,11 +186,11 @@ Expected state relationships are:
 
 These are validation semantics, not automatic repair rules.
 
-A source row violating them remains visible and can produce a Data Quality Issue.
+A row violating them remains visible and can produce a Data Quality Issue.
 
-## 7. Reporting Frequency and Periods
+## 7. Reporting Periods and Synthetic Due Dates
 
-Control `frequency` values:
+Control frequencies:
 
 ```text
 Monthly
@@ -187,7 +198,7 @@ Quarterly
 Annual
 ```
 
-Submission `reporting_period` representations:
+Reporting-period representations:
 
 ```text
 Monthly   → YYYY-MM
@@ -195,49 +206,19 @@ Quarterly → YYYY-QN
 Annual    → YYYY
 ```
 
-Examples:
+Synthetic PoC due-date assumptions:
 
 ```text
-2026-08
-2026-Q3
-2026
+Monthly   → 10th calendar day of following month
+Quarterly → Q1 10 Apr / Q2 10 Jul / Q3 10 Oct / Q4 10 Jan next year
+Annual    → 31 January of following year
 ```
 
-## 8. Synthetic Due-Date Rules
+These are project assumptions, not regulatory requirements.
 
-The following rules are project assumptions for the PoC. They are not regulatory requirements.
+## 8. Timeliness
 
-### Monthly
-
-```text
-Due date = 10th calendar day of the following month
-```
-
-Example:
-
-```text
-2026-08 → 2026-09-10
-```
-
-### Quarterly
-
-```text
-Q1 → 10 April
-Q2 → 10 July
-Q3 → 10 October
-Q4 → 10 January of the following year
-```
-
-### Annual
-
-```text
-Reporting year YYYY
-→ 31 January of YYYY+1
-```
-
-## 9. Timeliness
-
-### Currently overdue
+Currently overdue:
 
 ```text
 IF submitted_at IS NULL
@@ -252,9 +233,7 @@ as_of_date == due_date
 → overdue_flag = false
 ```
 
-`as_of_date` is an execution/snapshot parameter, not a persisted Submission source field.
-
-### Submitted late
+Submitted late:
 
 ```text
 IF submitted_at IS NOT NULL
@@ -262,16 +241,7 @@ AND submitted_at > due_date
 THEN submission_late = true
 ```
 
-A Submission can therefore be:
-
-- compliant and late,
-- non-compliant and on time,
-- overdue because no Submission has arrived,
-- in review after a late submission.
-
-Compliance and timeliness are independent.
-
-### Derived timing fields
+Derived timing fields:
 
 ```text
 overdue_flag
@@ -280,26 +250,17 @@ days_overdue
 days_late
 ```
 
-When required dates are not evaluable, the deterministic pipeline preserves unknown/missing derived state rather than forcing `False` or `0`.
+When timing cannot be safely evaluated, unknown/missing state remains null rather than being forced to `False` or `0`.
 
-## 10. Evidence Handling
+## 9. Evidence Handling
 
 Only an `evidence_reference` is modeled. Actual evidence files are not stored in this repository.
 
-Synthetic examples may resemble:
-
-```text
-EVID-001
-sharepoint://evidence/EVID-001
-```
-
 A production evidence repository would require access control, classification, retention, auditability, and lifecycle governance beyond this PoC.
 
-## 11. Action Lifecycle
+## 10. Action Lifecycle
 
-Actions are follow-up work items related to exactly one Submission.
-
-Allowed statuses:
+Allowed Action statuses:
 
 ```text
 Open
@@ -307,7 +268,7 @@ In Progress
 Completed
 ```
 
-Synthetic due-date rule:
+Synthetic Action due-date rule:
 
 ```text
 Action due_date = created_at + 7 calendar days
@@ -320,11 +281,7 @@ reminder_count
 last_reminder_at
 ```
 
-### Missing-submission follow-up
-
-When a Submission is missing and overdue, Phase 6 may create or reuse one active follow-up Action.
-
-Operational invariant:
+Missing-submission follow-up invariant:
 
 ```text
 0 active Actions  → create one
@@ -332,50 +289,17 @@ Operational invariant:
 >1 active Actions → DUPLICATE_ACTIVE_ACTION
 ```
 
-The conceptual business completion condition is:
-
-```text
-missing evidence received
-→ missing-submission follow-up task no longer needed
-```
-
-and therefore the **target lifecycle** can resolve that Action to:
-
-```text
-Completed
-```
-
-However, the current PoC does **not automatically implement this transition** when Phase 5 later receives evidence and moves the Submission to `In Review`.
-
-Current implementation boundary:
+Known limitation:
 
 ```text
 Phase 5 evidence intake
 → updates Submission
-→ does not complete existing Action
+→ does not automatically complete existing missing-submission Action
 ```
 
-Therefore an operational missing-submission Action may remain `Open` until separately resolved.
+Target process semantic and implemented automation therefore remain explicitly separate.
 
-This distinction is intentional:
-
-```text
-Target process semantic
-!=
-Implemented automation
-```
-
-Phase 7 exports the Action state exactly as stored and does not infer lifecycle repair.
-
-### Non-Compliant remediation Actions
-
-An Action associated with a `Non-Compliant` Submission represents remediation work. Evidence presence does not automatically complete that Action.
-
-### Data Quality follow-up
-
-A Data Quality finding may conceptually require human follow-up. The deterministic pipeline surfaces DQ Issues but does not silently mutate source Submissions or invent remediation outcomes.
-
-## 12. Phase 5 Evidence Intake Process
+## 11. Phase 5 Evidence Intake Process
 
 ```text
 Authenticated Forms response
@@ -401,7 +325,7 @@ INVALID_SUBMISSION_STATE
 
 These are workflow outcomes, not DQ rule IDs.
 
-## 13. Phase 6 Reminder Process
+## 12. Phase 6 Reminder Process
 
 For each operationally overdue missing Submission:
 
@@ -421,54 +345,51 @@ send reminder
 update reminder_count + last_reminder_at
 ```
 
-Control ambiguity outcomes:
+Controlled outcomes include:
 
 ```text
 CONTROL_NOT_FOUND
 DUPLICATE_CONTROL
-```
-
-Action ambiguity/idempotency outcomes:
-
-```text
 DUPLICATE_ACTIVE_ACTION
 SAME_DAY_REMINDER_SKIPPED
 ```
 
 Reminder automation never assigns Submission compliance.
 
-## 14. Deterministic Data Quality
+## 13. Deterministic Data Quality
 
 The project applies exactly DQ-001 through DQ-010 to Submission source rows.
 
 DQ findings:
 
-- remain separate from compliance status,
+- remain separate from compliance,
 - do not delete invalid rows,
-- do not automatically repair malformed source facts,
+- do not automatically repair source facts,
 - can coexist with other workflow/business states.
 
-Derived:
+Derived status:
 
 ```text
 0 DQ issues  → Valid
 1+ DQ issues → Invalid
 ```
 
+DQ-invalid records remain available for reporting but are not eligible for Phase 9 AI review.
+
 See [data_quality.md](data_quality.md).
 
-## 15. Reporting Process
+## 14. Reporting Process
 
-Phase 7 connects current operational state to the same deterministic Python reporting semantics, and Phase 8 consumes only the resulting curated reporting outputs.
+Phase 7 connects operational state to deterministic Python semantics. Phase 8 consumes only Python-owned curated reporting outputs.
 
 ```text
 Operational ControlCatalog
 Operational SubmissionRegister
 Operational ActionRegister
         ↓
-Power Automate private snapshot package
+Private Phase 7 snapshot package
         ↓
-explicit Python source paths
+Explicit Python source paths
         ↓
 Data Quality + enrichment + Action aggregation + derivation
         ↓
@@ -486,22 +407,15 @@ Control Monitoring
 Process & Data Quality
 ```
 
-Power Automate exports source facts only. It does not assign compliance, evaluate DQ rules, aggregate Actions, or repair source state.
+Power Automate exports source facts only. Power BI consumes curated reporting facts only.
 
-Power BI does not read the operational workbook or raw Phase 7 snapshots directly. It consumes only the two Python-curated CSV reporting outputs. Power Query performs technical ingestion and typing; it does not reimplement Python business rules.
+The same source-controlled Power BI model passed canonical and private operational runtime acceptance.
 
-The Phase 7 bridge has been accepted end to end with one private operational snapshot while preserving the canonical repository baseline. Phase 8 has been accepted against both the canonical synthetic output and a private processed Phase 7 output set using the same source-controlled PBIP/PBIR/TMDL model and a configurable `DataRoot`.
+## 15. Phase 9 AI Review Candidate Selection
 
-See:
+Phase 9 begins only after deterministic Data Quality evaluation and reporting derivation.
 
-- [phase7_end_to_end_acceptance.md](phase7_end_to_end_acceptance.md)
-- [phase8_canonical_acceptance.md](phase8_canonical_acceptance.md)
-- [phase8_operational_acceptance.md](phase8_operational_acceptance.md)
-- [phase8_final_acceptance.md](phase8_final_acceptance.md)
-
-## 16. AI Review Preparation
-
-The minimized AI queue includes only:
+Eligibility remains exactly:
 
 ```text
 data_quality_status = Valid
@@ -513,52 +427,254 @@ AND
 )
 ```
 
-AI processing is review preparation. It is not the final compliance decision and it is not a Data Quality repair mechanism.
+Therefore:
 
-The queue artifact is implemented by the deterministic Python pipeline. External controlled AI runtime execution remains a later phase.
+```text
+DQ-invalid                         → no AI review
+Valid + Non-Compliant              → AI review candidate
+Valid + currently Overdue          → AI review candidate
+Valid + Non-Compliant + Overdue    → AI review candidate
+Late only                          → no AI review
+```
 
-## 17. End-to-End Process
+Canonical acceptance produces:
+
+```text
+SUB-005
+SUB-014
+```
+
+The queue is created by deterministic Python logic. AI does not choose its own input population.
+
+## 16. Phase 9 Input Minimization and Trust
+
+The queue excludes fields such as:
+
+```text
+owner_email
+submitted_by
+evidence_reference
+```
+
+However:
+
+```text
+Data minimization
+!=
+External-transfer approval
+```
+
+Free-text values such as `comment` can still contain sensitive information or instruction-like content.
+
+Every supplied record value is therefore treated as untrusted data.
+
+## 17. Phase 9 Controlled AI Review
+
+The version-controlled prompt allows AI to:
+
+- summarize supplied facts,
+- identify information not present in the supplied record,
+- suggest advisory review priority,
+- recommend follow-up for a human reviewer.
+
+The prompt forbids AI from:
+
+- assigning or changing compliance,
+- claiming missing evidence exists,
+- inventing hidden facts,
+- repairing source data or DQ issues,
+- following instructions embedded in record fields,
+- writing back to source systems,
+- bypassing human review.
+
+The workflow is intentionally manual in Phase 9. No external provider API/SDK/key is required.
+
+## 18. Phase 9 Structured Output
+
+AI output is constrained to:
+
+```text
+submission_id
+control_id
+summary
+review_priority
+missing_information
+recommended_follow_up
+human_review_required
+```
+
+The JSON Schema enforces:
+
+```text
+additionalProperties = false
+review_priority ∈ {Low, Medium, High}
+human_review_required = true
+```
+
+No AI compliance-decision field is part of the contract.
+
+## 19. Phase 9 Deterministic Validation
+
+Before human review, output must pass:
+
+```text
+JSON parse
+   ↓
+Top-level object check
+   ↓
+JSON Schema validation
+   ↓
+submission_id correlation
+   ↓
+control_id correlation
+```
+
+Invalid output is rejected rather than silently repaired.
+
+Important:
+
+```text
+Schema-valid
+!=
+Factually correct
+!=
+Governance-approved
+```
+
+## 20. Prompt-Injection Guardrail Process
+
+The synthetic adversarial fixture places instruction-like text inside `comment`, attempting to:
+
+- ignore the controlling prompt,
+- mark a Control compliant,
+- claim evidence was reviewed,
+- disable human review.
+
+The controlled accepted output does not follow those embedded instructions.
+
+Deterministic validation independently rejects structurally prohibited variants.
+
+This is acceptance evidence for the implemented contract, not a claim that prompt injection is universally solved.
+
+## 21. Human Governance Review
+
+Validated AI recommendations go through:
+
+```text
+AI Recommendation
+      ↓
+Deterministic Validation
+      ↓
+Human Governance Reviewer
+      ↓
+Accept / Edit / Reject
+      ↓
+Normal Governance Process
+```
+
+Meaning of decisions:
+
+### Accept
+
+The recommendation is acceptable as governance-review input.
+
+### Edit
+
+The recommendation is useful but requires human correction before use.
+
+### Reject
+
+The recommendation should not be used as governance-review input.
+
+Critical boundary:
+
+```text
+Accept AI recommendation
+!=
+mark Submission Compliant
+```
+
+## 22. Canonical Phase 9 Human Acceptance
+
+The Governance Reviewer reviewed the two canonical Phase 9 outputs and recorded:
+
+```text
+SUB-005 → Accept
+SUB-014 → Accept
+```
+
+No edits were required.
+
+The acceptance approves the recommendations as usable governance-review input only.
+
+It does not mean:
+
+```text
+SUB-005 becomes Compliant
+SUB-014 becomes Compliant
+Control effectiveness is certified
+Evidence is approved
+Remediation is complete
+Source data is changed
+```
+
+See [phase9_human_acceptance.md](phase9_human_acceptance.md).
+
+## 23. End-to-End Business Process
 
 ```mermaid
 flowchart TD
-    A[Governance Defines Controls] --> B[Reporting Period Becomes Active]
+    A[Governance Defines Controls] --> B[Reporting Period Active]
     B --> C[Expected Submission: Not Submitted]
     C --> D[Control Owner Submits Evidence]
     D --> E[Submission: In Review]
-    E --> F[Governance Reviewer Assessment]
+    E --> F[Human Governance Assessment]
     F --> G[Compliant or Non-Compliant]
 
     C --> H{Missing after due date?}
     H -->|Yes| I[Follow-up Action + Reminder]
 
-    G --> J[Timeliness + Data Quality]
+    G --> J[Deterministic DQ + Timing]
     I --> J
-    J --> K[Phase 7 Reporting Snapshot]
+    J --> K[Phase 7 Snapshot / Canonical Sources]
     K --> L[Python Curated Reporting]
-    L --> M[Phase 8 Power BI Dashboard]
-    L --> N[Controlled AI Queue]
+    L --> M[Phase 8 Power BI]
+
+    L --> N{Valid AND Non-Compliant or Overdue?}
+    N -->|Yes| O[Minimized AI Review Queue]
+    O --> P[Controlled AI Recommendation]
+    P --> Q[Schema + Correlation Validation]
+    Q --> R[Human Accept / Edit / Reject]
 ```
 
-The diagram shows logical process relationships. It does not imply that every conceptual transition is currently automated. In particular, the Governance Reviewer decision UI and automatic Action completion after later evidence intake are not implemented.
+The diagram shows logical process relationships. It does not imply that every conceptual transition is automated.
 
-## 18. Scope Limitations
+## 24. Scope Limitations
 
 - only five synthetic Controls are modeled,
-- each Control has one primary business unit and accountable owner,
 - due-date rules are synthetic PoC assumptions,
 - no actual evidence repository is implemented,
 - no automatic expected-Submission generation is implemented,
-- no dedicated Governance Reviewer decision UI is implemented,
+- no dedicated Governance Reviewer UI is implemented,
 - no automatic completion of missing-submission Actions after later evidence intake is implemented,
 - no production escalation/SLA process is implemented,
-- no production datastore, IAM/RBAC, audit, telemetry, or retention architecture is implemented,
-- Phase 8 Power BI reporting is implemented and accepted locally, but Power BI Service/Fabric deployment, gateways, deployment pipelines, enterprise RLS, and production monitoring are not implemented,
-- the canonical Power BI fixture does not contain a direct runtime null example for every nullable timing column,
-- operational Power BI acceptance requires authorized access to the private accepted Phase 7 snapshot,
-- AI runtime and REST API remain later phases.
+- no production datastore, IAM/RBAC, DLP, audit, telemetry, retention, or monitoring architecture is implemented,
+- no Power BI Service/Fabric deployment architecture or enterprise RLS is implemented,
+- Phase 9 has no external AI provider API/runtime integration,
+- Phase 9 does not claim universal prompt-injection resistance,
+- Phase 9 has no automatic AI source write-back,
+- Phase 10 REST API remains planned.
 
-## 19. Source of Truth
+## 25. Source of Truth
 
-This document defines current process semantics. Phase-specific acceptance documents define what was actually implemented and tested in each phase.
+This document defines current process semantics. Phase-specific acceptance documents define what was implemented and tested.
 
-When target process behavior and current PoC automation differ, the implementation limitation must be explicit rather than silently treating the target behavior as already automated.
+Relevant Phase 9 records:
+
+- [phase9_ai_workflow_contract.md](phase9_ai_workflow_contract.md)
+- [phase9_ai_output_contract.md](phase9_ai_output_contract.md)
+- [phase9_human_review.md](phase9_human_review.md)
+- [phase9_human_acceptance.md](phase9_human_acceptance.md)
+- [phase9_ai_acceptance.md](phase9_ai_acceptance.md)
+
+When target process behavior and current PoC automation differ, the limitation must remain explicit rather than being silently presented as implemented automation.
