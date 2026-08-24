@@ -1,0 +1,89 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
+  "name": "c8d9e0f1a2b3c4d50109",
+  "position": {
+    "x": 10,
+    "y": 232,
+    "z": 8,
+    "height": 100,
+    "width": 230,
+    "tabOrder": 8
+  },
+  "visual": {
+    "visualType": "cardVisual",
+    "query": {
+      "queryState": {
+        "Data": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DataQualityIssues"
+                    }
+                  },
+                  "Property": "Total DQ Issues"
+                }
+              },
+              "queryRef": "DataQualityIssues.Total DQ Issues",
+              "nativeQueryRef": "Total DQ Issues"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "DataQualityIssues"
+                  }
+                },
+                "Property": "Total DQ Issues"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "visualHeader": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "d0e1f2a3b4c5d6e70109",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "DataQualityIssues"
+              }
+            },
+            "Property": "Total DQ Issues"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
+  }
+}
