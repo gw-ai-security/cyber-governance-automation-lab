@@ -1,6 +1,6 @@
 # Phase 8.11 — Final Documentation, Screenshots, Regression & Acceptance
 
-**Status:** PHASE 8.11 FINAL CLOSURE — PENDING FINAL PR CI
+**Status:** PHASE 8.11 COMPLETE — FINAL PHASE 8 ACCEPTANCE PASSED
 
 ## Purpose
 
@@ -259,9 +259,10 @@ Regression is layered rather than relying on screenshots alone:
 - Phase 8.9 repeated canonical generation and Power BI runtime acceptance,
 - Phase 8.10 repeated the operational run, then reran the canonical pipeline and all 53 tests,
 - the Phase 8.10 canonical rerun returned exactly the original `5 / 15 / 5 / 5 / 10 / 5 / 2` baseline,
-- the final Phase 8.11 pull request is merged only after a successful GitHub Actions regression run.
+- final closure PR **#33** ran GitHub Actions `Python tests` run **#64** against the branch containing the synchronized README, current architecture, final acceptance document, and all three public dashboard screenshots,
+- run #64 completed on Python 3.14.5 with **53 passed in 7.98s**.
 
-The final CI run identifier is added to this document before merge.
+The subsequent commit only records this already successful CI evidence in the acceptance document. The pull request is merged only after GitHub Actions revalidates that final documentation head successfully.
 
 ## Public / private evidence boundary
 
@@ -301,7 +302,7 @@ Phase 8 completion does not turn the PoC into a production reporting platform. C
 
 ## Phase 8 Definition of Done
 
-Phase 8 is complete when the final closure PR passes CI and is merged because:
+Phase 8 is complete because:
 
 - [x] reporting and KPI semantics were frozen before implementation,
 - [x] the canonical reporting baseline was made deterministic,
@@ -319,7 +320,8 @@ Phase 8 is complete when the final closure PR passes CI and is merged because:
 - [x] no private operational data entered the repository,
 - [x] public canonical dashboard screenshots are version-controlled,
 - [x] README and architecture documentation are synchronized to current state,
-- [x] final regression is protected by the existing GitHub Actions test workflow.
+- [x] final regression is protected by the existing GitHub Actions test workflow,
+- [x] final closure PR CI passed on the substantive closure branch content.
 
 ## Next phase boundary
 
