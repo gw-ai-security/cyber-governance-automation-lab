@@ -127,7 +127,7 @@ DataQualityIssues    5 DAX measures
 Total               21 measures
 ```
 
-These measures implement the frozen governance, compliance, timeliness, Data Quality, and reminder/process KPI contract. Report-page construction begins in Phase 8.6.
+Phase 8.6 implements the first source-controlled report page, **Management Overview**, with three slicers, six management KPI cards, and three analytical views. A cross-phase consistency review before Phase 8.7 standardizes known-zero aggregate behavior and disables default aggregation for row-detail numeric attributes without changing any canonical business definition.
 
 ## 2. High-Level Architecture
 
@@ -166,6 +166,9 @@ flowchart TD
         CS -->|1 to many / single direction| DQ
         CS --> SM[Semantic Model — 21 contracted DAX measures]
         DQ --> SM
+        SM --> MO[Management Overview — implemented]
+        SM --> CM[Control Monitoring — Phase 8.7 next]
+        SM --> PDQ[Process & Data Quality — Phase 8.8 planned]
     end
 
     N --> Q[Controlled AI Runtime — Phase 9 Planned]
@@ -496,9 +499,11 @@ Phase 8.3 → curated CSV loading and technical typing
 Phase 8.4 → semantic-model relationship
 Phase 8.5 → DAX measures
 Phase 8.6 → Management Overview page
+Consistency review → semantic/documentation hardening
+Phase 8.7 → Control Monitoring page
 ```
 
-### Current model state after Phase 8.5
+### Current model state after Phase 8.6 consistency review
 
 The semantic model contains a required text parameter:
 
@@ -566,15 +571,35 @@ Calculated columns   0
 
 The measure layer preserves the frozen reporting semantics:
 
-- `Expected Submissions` keeps DQ-invalid source rows visible in the denominator,
+- `Expected Submissions` keeps DQ-invalid source rows visible in expected volume,
 - compliance measures operate on DQ-valid assessed records,
 - `Controls in Scope` excludes unresolved Control enrichment such as canonical `CTRL-999`,
 - timeliness measures operate on DQ-valid records,
 - DQ-affected Submission counts use `source_row_number`, not potentially missing or duplicate `submission_id`,
 - reminder/process measures consume Python-owned aggregation rather than reconstructing Action history,
-- `DIVIDE` is used where a zero denominator should yield blank rather than an invented value.
+- count/sum measures return explicit zero for known empty result sets,
+- rate/average measures preserve blank when their denominator is zero.
 
-Canonical semantic targets include:
+This means:
+
+```text
+known count = 0
+undefined ratio = blank
+```
+
+The aggregate representation does not rewrite nullable source attributes such as `overdue_flag`, `submission_late`, `days_overdue`, or `days_late`.
+
+The row-detail numeric attributes:
+
+```text
+days_overdue
+days_late
+reminder_count
+```
+
+use `summarizeBy: none`, preventing accidental additive presentation in Submission-grain detail visuals. Explicit aggregate reporting continues to use DAX measures such as `[Total Automated Reminders]`.
+
+Canonical semantic targets remain unchanged:
 
 ```text
 Controls in Scope                           5
@@ -600,7 +625,60 @@ High-Severity DQ Issues                     5
 Missing Evidence Issues                     1
 ```
 
-Formal Power BI runtime acceptance of these values remains Phase 8.9. Final report visuals are not yet implemented at the Phase 8.5 boundary.
+### Management Overview state
+
+Phase 8.6 is implemented as the first report page.
+
+It contains exactly:
+
+```text
+1 page title
+3 slicers
+6 KPI cards
+3 analytical charts
+-------------------
+13 visuals
+```
+
+Primary slicers:
+
+```text
+Business Unit
+Risk Level
+Reporting Period
+```
+
+Required KPI cards:
+
+```text
+Controls in Scope
+Assessed Compliance Rate
+Non-Compliant Submissions
+Overdue Submissions
+High/Critical Exceptions
+Total DQ Issues
+```
+
+Analytical views:
+
+```text
+Submission Status Distribution
+Assessed Compliance Rate by Business Unit
+High/Critical Exceptions by Risk Level
+```
+
+Canonical Management Overview smoke-test values are:
+
+```text
+Controls in Scope              5
+Assessed Compliance Rate       80.0%
+Non-Compliant Submissions      1
+Overdue Submissions            1
+High/Critical Exceptions       2
+Total DQ Issues                5
+```
+
+Formal full Power BI runtime acceptance remains Phase 8.9.
 
 See:
 
@@ -610,6 +688,8 @@ See:
 - [phase8_curated_loading.md](phase8_curated_loading.md)
 - [phase8_semantic_model.md](phase8_semantic_model.md)
 - [phase8_measures.md](phase8_measures.md)
+- [phase8_management_overview.md](phase8_management_overview.md)
+- [phase8_consistency_review.md](phase8_consistency_review.md)
 
 ## 12. Controlled AI Boundary
 
@@ -718,8 +798,12 @@ Phase 7 does not claim ACID or point-in-time transactional semantics.
 - the active one-to-many lineage relationship is implemented on `source_row_number`,
 - technical relationship keys are hidden from report consumers,
 - 21 contracted DAX measures implement governance, compliance, timeliness, DQ, and process reporting semantics,
-- no calculated tables or calculated columns are introduced by Phase 8.5,
-- later Phase 8 work packages own report pages and final runtime acceptance.
+- count/sum measures represent known empty results as zero while undefined ratios remain blank,
+- Submission-grain numeric detail attributes are configured not to summarize by default,
+- the Management Overview page is implemented and source-controlled,
+- no calculated tables or calculated columns are used,
+- Phase 8.7 and 8.8 own the remaining two report pages,
+- Phase 8.9–8.11 own final canonical/operational acceptance and documentation closure.
 
 ### Controlled AI Runtime
 
@@ -752,7 +836,9 @@ Operational snapshot artifacts, private workbook data, credentials, tokens, tena
 - Power Query performs technical ingestion only.
 - Power BI relates Submission-grain reporting to DQ issue grain through technical raw-row lineage rather than unreliable business identifiers.
 - DAX implements contracted reporting measures without inventing a composite overall status or redefining Python-owned business rules.
-- Null/non-evaluable timing state remains null rather than becoming false/zero.
+- Known empty aggregate counts are represented as zero; undefined ratios remain blank.
+- Null/non-evaluable source timing state remains null rather than becoming false/zero.
+- Submission-grain detail attributes are not additively summarized by default.
 - Power BI project/report/model definitions are version-controlled separately from machine-local cache and generated reporting data.
 - AI processing remains downstream of deterministic validation.
 - Final compliance authority remains human.
@@ -767,7 +853,7 @@ Operational snapshot artifacts, private workbook data, credentials, tokens, tena
 - no scheduled Python snapshot-processing service,
 - no Action-specific DQ rule catalog,
 - no production-grade IAM/RBAC, DLP, audit, monitoring, retention, or telemetry architecture,
-- Power BI curated-source loading, the semantic relationship, and contracted DAX measures exist, but final report pages and runtime acceptance are not implemented yet,
+- Power BI Management Overview is implemented, but Control Monitoring, Process & Data Quality, and formal runtime acceptance remain incomplete,
 - `DataRoot` must be configured for the relevant local clone or processed-output directory,
 - no external AI invocation,
 - no REST API implementation.
@@ -797,5 +883,7 @@ Phase-specific evidence:
 - [phase8_curated_loading.md](phase8_curated_loading.md)
 - [phase8_semantic_model.md](phase8_semantic_model.md)
 - [phase8_measures.md](phase8_measures.md)
+- [phase8_management_overview.md](phase8_management_overview.md)
+- [phase8_consistency_review.md](phase8_consistency_review.md)
 
-Historical phase-specific documents remain valid for the phase they describe. Current-state foundation documents, implementation code, and final acceptance evidence define the present architecture.
+Historical phase-specific documents remain valid for the phase they describe. Current-state foundation documents, implementation code, canonical datasets, automated tests, and later acceptance evidence define the present architecture.
