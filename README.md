@@ -214,30 +214,113 @@ AI recommendation accepted != Submission compliant
 
 ## Phase Status
 
+For Phases 0–6, the `Phase X.Y` rows below normalize already documented implementation work into the same status format used by the later phases; they do not redefine historical acceptance. From Phase 7 onward, the rows preserve the explicitly numbered work packages from the phase sources.
+
 | Phase | Scope | Status |
 | --- | --- | --- |
-| Phase 0 | Repository & Project Foundation | ✅ Complete |
-| Phase 1 | Business Process & Data Model | ✅ Complete |
-| Phase 2 | Canonical Synthetic Dataset | ✅ Complete |
-| Phase 3 | Deterministic Python Data Quality Pipeline | ✅ Complete |
-| Phase 4 | Test Hardening & Acceptance | ✅ Complete |
-| Phase 5 | Power Automate Evidence Intake | ✅ Core DoD complete |
-| Phase 6 | Scheduled Reminder Automation | ✅ Complete and acceptance-tested |
-| Phase 7 | Reporting Snapshot Bridge | ✅ Complete and end-to-end accepted |
-| Phase 8 | Power BI Dashboard | ✅ Complete |
-| Phase 9.0 | AI Governance & Threat Contract | ✅ Complete |
-| Phase 9.1 | Structured Output + JSON Schema | ✅ Complete |
-| Phase 9.2 | Controlled Prompt | ✅ Complete |
-| Phase 9.3 | Canonical AI Examples | ✅ Complete |
+| **Phase 0** | **Repository & Project Foundation** | **—** |
+| Phase 0.0 | Repository creation & project definition | ✅ Complete |
+| Phase 0.1 | README, business problem & project scope | ✅ Complete |
+| Phase 0.2 | Repository structure & Git hygiene | ✅ Complete |
+| Phase 0.3 | Python environment & dependencies | ✅ Complete |
+| Phase 0.4 | Initial architecture & security baseline | ✅ Complete |
+| **Phase 0 Complete** | **Repository & Project Foundation** | **✅ Complete** |
+| **Phase 1** | **Business Process & Data Model** | **—** |
+| Phase 1.0 | Business roles & business units | ✅ Complete |
+| Phase 1.1 | Canonical Security Control catalog | ✅ Complete |
+| Phase 1.2 | Logical domain model & identifiers | ✅ Complete |
+| Phase 1.3 | Submission lifecycle & evidence semantics | ✅ Complete |
+| Phase 1.4 | Reporting period, due-date & timing semantics | ✅ Complete |
+| Phase 1.5 | Action model & lifecycle | ✅ Complete |
+| Phase 1.6 | Data Quality Issue model & DQ rule catalog | ✅ Complete |
+| Phase 1.7 | Validation dependencies & physical data contracts | ✅ Complete |
+| **Phase 1 Complete** | **Business Process & Data Model** | **✅ Complete** |
+| **Phase 2** | **Canonical Synthetic Dataset** | **—** |
+| Phase 2.0 | Deterministic reference date & dataset baseline | ✅ Complete |
+| Phase 2.1 | Canonical Control dataset | ✅ Complete |
+| Phase 2.2 | Submission scenario matrix | ✅ Complete |
+| Phase 2.3 | Deliberate Data Quality coverage | ✅ Complete |
+| Phase 2.4 | Valid non-DQ exception coverage | ✅ Complete |
+| Phase 2.5 | Canonical Action dataset | ✅ Complete |
+| Phase 2.6 | Canonical dataset acceptance | ✅ Complete |
+| **Phase 2 Complete** | **Canonical Synthetic Dataset** | **✅ Complete** |
+| **Phase 3** | **Deterministic Python Data Quality Pipeline** | **—** |
+| Phase 3.0 | Input contracts & deterministic runtime | ✅ Complete |
+| Phase 3.1 | Extract & structural input validation | ✅ Complete |
+| Phase 3.2 | Technical normalization without semantic repair | ✅ Complete |
+| Phase 3.3 | Deterministic DQ engine DQ-001 through DQ-010 | ✅ Complete |
+| Phase 3.4 | Transform, enrichment & timing derivation | ✅ Complete |
+| Phase 3.5 | Action aggregation & Submission-grain preservation | ✅ Complete |
+| Phase 3.6 | Curated Control Status output | ✅ Complete |
+| Phase 3.7 | Minimized AI review queue | ✅ Complete |
+| Phase 3.8 | Serialization & pipeline orchestration | ✅ Complete |
+| Phase 3.9 | Automated tests & canonical acceptance | ✅ Complete |
+| **Phase 3 Complete** | **Deterministic Python Data Quality Pipeline** | **✅ Complete** |
+| **Phase 4** | **Test Hardening & Acceptance** | **—** |
+| Phase 4.0 | Existing-test coverage analysis & contract mapping | ✅ Complete |
+| Phase 4.1 | Duplicate and combined-invariant hardening | ✅ Complete |
+| Phase 4.2 | Missing-field & cross-field hardening | ✅ Complete |
+| Phase 4.3 | Timing-boundary hardening | ✅ Complete |
+| Phase 4.4 | Deterministic DQ issue ordering | ✅ Complete |
+| Phase 4.5 | Regression acceptance | ✅ Complete |
+| Phase 4.6 | GitHub Actions CI integration | ✅ Complete |
+| Phase 4.7 | Documentation & repository workflow acceptance | ✅ Complete |
+| **Phase 4 Complete** | **Test Hardening & Acceptance** | **✅ Complete** |
+| **Phase 5** | **Power Automate Evidence Intake** | **—** |
+| Phase 5.0 | Forms evidence-intake contract | ✅ Complete |
+| Phase 5.1 | Operational SubmissionRegister baseline | ✅ Complete |
+| Phase 5.2 | Business-key resolution by `control_id + reporting_period` | ✅ Complete |
+| Phase 5.3 | Happy-path update to `In Review` | ✅ Complete |
+| Phase 5.4 | Submission-state guardrail | ✅ Complete |
+| Phase 5.5 | Controlled failure classification | ✅ Complete |
+| Phase 5.6 | Acceptance matrix: happy path, invalid state, no match, duplicate key | ✅ Complete |
+| Phase 5.7 | Security, evidence & repository documentation | ✅ Complete |
+| **Phase 5 Complete** | **Power Automate Evidence Intake** | **✅ Core DoD complete** |
+| **Phase 6** | **Scheduled Reminder Automation** | **—** |
+| Phase 6.0 | Reminder & overdue contract | ✅ Complete |
+| Phase 6.1 | Operational Control / Submission / Action workbook model | ✅ Complete |
+| Phase 6.2 | Scheduled Power Automate flow architecture | ✅ Complete |
+| Phase 6.3 | Overdue detection & Control resolution | ✅ Complete |
+| Phase 6.4 | Active Action create/reuse cardinality guardrail | ✅ Complete |
+| Phase 6.5 | Same-day idempotency & reminder tracking | ✅ Complete |
+| Phase 6.6 | Controlled workflow outcomes & fail-safe handling | ✅ Complete |
+| Phase 6.7 | Operational acceptance matrix | ✅ Complete |
+| Phase 6.8 | Security, privacy, regression & documentation | ✅ Complete |
+| **Phase 6 Complete** | **Scheduled Reminder Automation** | **✅ Complete and acceptance-tested** |
+| **Phase 7** | **Reporting Snapshot Bridge** | **—** |
+| Phase 7.0 | Reporting Export Contract | ✅ Complete |
+| Phase 7.1 | Implementation Preparation | ✅ Complete |
+| Phase 7.2 | Power Automate Reporting Snapshot Runtime | ✅ Complete |
+| Phase 7.3 | Python External Input Boundary | ✅ Complete |
+| **Phase 7 Complete** | **Reporting Snapshot Bridge** | **✅ Complete and end-to-end accepted** |
+| **Phase 8** | **Power BI Dashboard** | **—** |
+| Phase 8.0 | Reporting & KPI Contract | ✅ Complete |
+| Phase 8.1 | Canonical Reporting Baseline | ✅ Complete |
+| Phase 8.2 | PBIP / PBIR / TMDL Project Scaffold | ✅ Complete |
+| Phase 8.3 | Curated CSV Loading & Technical Typing | ✅ Complete |
+| Phase 8.4 | Semantic Model Relationship | ✅ Complete |
+| Phase 8.5 | 21 DAX Measures | ✅ Complete |
+| Phase 8.6 | Management Overview | ✅ Complete |
+| Phase 8.7 | Control Monitoring | ✅ Complete |
+| Phase 8.8 | Process & Data Quality | ✅ Complete |
+| Phase 8.9 | Canonical Power BI Acceptance | ✅ Complete |
+| Phase 8.10 | Operational Phase 7 Output in Power BI | ✅ Complete |
+| Phase 8.11 | Final Documentation, Screenshots & Closure | ✅ Complete |
+| **Phase 8 Complete** | **Power BI Dashboard** | **✅ Complete** |
+| **Phase 9** | **Controlled AI Workflow** | **—** |
+| Phase 9.0 | AI Governance, Trust, Authority, Threat & Failure Contract | ✅ Complete |
+| Phase 9.1 | Structured AI Output Contract & JSON Schema | ✅ Complete |
+| Phase 9.2 | Version-Controlled Controlled Review Prompt | ✅ Complete |
+| Phase 9.3 | Canonical Input & Output Examples | ✅ Complete |
 | Phase 9.4 | Deterministic AI Output Validation | ✅ Complete |
-| Phase 9.5 | Manual Controlled AI Review | ✅ Complete |
-| Phase 9.6 | Adversarial Guardrail Acceptance | ✅ Complete |
-| Phase 9.7 | Human Governance Acceptance | ✅ SUB-005 + SUB-014 accepted |
-| Phase 9.8 | Documentation & Public Evidence | ✅ Complete |
-| Phase 9.9 | Regression / CI / Closure | ✅ Complete after final PR merge |
-| **Phase 9** | **Controlled AI Workflow** | **✅ Complete** |
-| Phase 10 | REST API | ○ Planned |
-| Phase 11 | Documentation & Handover | ○ Planned |
+| Phase 9.5 | Controlled Manual AI Review | ✅ Complete |
+| Phase 9.6 | Adversarial Prompt-Injection Acceptance | ✅ Complete |
+| Phase 9.7 | Human Governance Review Procedure & Acceptance | ✅ SUB-005 + SUB-014 accepted |
+| Phase 9.8 | Current-State Documentation & Public Evidence | ✅ Complete |
+| Phase 9.9 | Regression, CI, PR & Closure | ✅ Complete after final PR merge |
+| **Phase 9 Complete** | **Controlled AI Workflow** | **✅ Complete** |
+| **Phase 10** | **REST API** | **○ Planned** |
+| **Phase 11** | **Documentation & Handover** | **○ Planned** |
 
 ## Phase 5 — Evidence Intake
 
