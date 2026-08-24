@@ -1,0 +1,89 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
+  "name": "c8d9e0f1a2b3c4d50105",
+  "position": {
+    "x": 507.72036474164133,
+    "y": 90.455927051671736,
+    "z": 4,
+    "height": 99.209726443769,
+    "width": 310.27355623100306,
+    "tabOrder": 4
+  },
+  "visual": {
+    "visualType": "cardVisual",
+    "query": {
+      "queryState": {
+        "Data": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ControlStatus"
+                    }
+                  },
+                  "Property": "Submissions with Reminder History"
+                }
+              },
+              "queryRef": "ControlStatus.Submissions with Reminder History",
+              "nativeQueryRef": "Submissions with Reminder History"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "ControlStatus"
+                  }
+                },
+                "Property": "Submissions with Reminder History"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "visualHeader": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "d0e1f2a3b4c5d6e70105",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "ControlStatus"
+              }
+            },
+            "Property": "Submissions with Reminder History"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
+  }
+}

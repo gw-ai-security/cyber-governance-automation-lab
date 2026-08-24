@@ -1,0 +1,239 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
+  "name": "c8d9e0f1a2b3c4d5010e",
+  "position": {
+    "x": 10,
+    "y": 518,
+    "z": 13,
+    "height": 202,
+    "width": 1260,
+    "tabOrder": 13
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DataQualityIssues"
+                    }
+                  },
+                  "Property": "submission_id"
+                }
+              },
+              "queryRef": "DataQualityIssues.submission_id",
+              "nativeQueryRef": "submission_id",
+              "displayName": "Submission ID"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DataQualityIssues"
+                    }
+                  },
+                  "Property": "control_id"
+                }
+              },
+              "queryRef": "DataQualityIssues.control_id",
+              "nativeQueryRef": "control_id",
+              "displayName": "Control ID"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DataQualityIssues"
+                    }
+                  },
+                  "Property": "rule"
+                }
+              },
+              "queryRef": "DataQualityIssues.rule",
+              "nativeQueryRef": "rule",
+              "displayName": "Rule"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DataQualityIssues"
+                    }
+                  },
+                  "Property": "severity"
+                }
+              },
+              "queryRef": "DataQualityIssues.severity",
+              "nativeQueryRef": "severity",
+              "displayName": "Severity"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DataQualityIssues"
+                    }
+                  },
+                  "Property": "field"
+                }
+              },
+              "queryRef": "DataQualityIssues.field",
+              "nativeQueryRef": "field",
+              "displayName": "Field"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DataQualityIssues"
+                    }
+                  },
+                  "Property": "message"
+                }
+              },
+              "queryRef": "DataQualityIssues.message",
+              "nativeQueryRef": "message",
+              "displayName": "Message"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "columnHeaders": [
+        {
+          "properties": {
+            "columnAdjustment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'growToFit'"
+                }
+              }
+            },
+            "autoSizeColumnWidth": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'DQ Issue Details'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "d0e1f2a3b4c5d6e70301",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "DataQualityIssues"
+              }
+            },
+            "Property": "submission_id"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "d0e1f2a3b4c5d6e70302",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "DataQualityIssues"
+              }
+            },
+            "Property": "control_id"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "d0e1f2a3b4c5d6e70303",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "DataQualityIssues"
+              }
+            },
+            "Property": "rule"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "d0e1f2a3b4c5d6e70304",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "DataQualityIssues"
+              }
+            },
+            "Property": "severity"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "d0e1f2a3b4c5d6e70305",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "DataQualityIssues"
+              }
+            },
+            "Property": "field"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "d0e1f2a3b4c5d6e70306",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "DataQualityIssues"
+              }
+            },
+            "Property": "message"
+          }
+        },
+        "type": "Categorical"
+      }
+    ]
+  }
+}

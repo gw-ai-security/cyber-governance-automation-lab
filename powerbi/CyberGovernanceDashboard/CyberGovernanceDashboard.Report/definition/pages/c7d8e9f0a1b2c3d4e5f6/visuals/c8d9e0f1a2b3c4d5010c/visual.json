@@ -1,0 +1,163 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
+  "name": "c8d9e0f1a2b3c4d5010c",
+  "position": {
+    "x": 10,
+    "y": 340,
+    "z": 11,
+    "height": 170,
+    "width": 700,
+    "tabOrder": 11
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DataQualityIssues"
+                    }
+                  },
+                  "Property": "rule"
+                }
+              },
+              "queryRef": "DataQualityIssues.rule",
+              "nativeQueryRef": "rule",
+              "active": true
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DataQualityIssues"
+                    }
+                  },
+                  "Property": "Total DQ Issues"
+                }
+              },
+              "queryRef": "DataQualityIssues.Total DQ Issues",
+              "nativeQueryRef": "Total DQ Issues"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "DataQualityIssues"
+                  }
+                },
+                "Property": "Total DQ Issues"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "objects": {
+      "labels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'DQ Issues by Rule'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "d0e1f2a3b4c5d6e7010c",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "DataQualityIssues"
+              }
+            },
+            "Property": "rule"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "d0e1f2a3b4c5d6e7020c",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "DataQualityIssues"
+              }
+            },
+            "Property": "Total DQ Issues"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
+  }
+}
