@@ -67,10 +67,13 @@ table ControlStatus
 
 	measure 'Non-Compliant Submissions' =
 			
-			CALCULATE(
-			    COUNTROWS(ControlStatus),
-			    ControlStatus[data_quality_status] = "Valid",
-			    ControlStatus[submission_status] = "Non-Compliant"
+			COALESCE(
+			    CALCULATE(
+			        COUNTROWS(ControlStatus),
+			        ControlStatus[data_quality_status] = "Valid",
+			        ControlStatus[submission_status] = "Non-Compliant"
+			    ),
+			    0
 			)
 		formatString: 0
 		lineageTag: cb4d9c17-1048-4284-bfe1-1727b2b9d0b0
@@ -78,7 +81,7 @@ table ControlStatus
 	measure 'Assessed Compliance Rate' =
 			
 			DIVIDE(
-			    [Compliant Submissions],
+			    COALESCE([Compliant Submissions], 0),
 			    [Assessed Submissions]
 			)
 		formatString: 0.0\ %;-0.0\ %;0.0\ %
@@ -86,10 +89,13 @@ table ControlStatus
 
 	measure 'Overdue Submissions' =
 			
-			CALCULATE(
-			    COUNTROWS(ControlStatus),
-			    ControlStatus[data_quality_status] = "Valid",
-			    ControlStatus[overdue_flag] = TRUE()
+			COALESCE(
+			    CALCULATE(
+			        COUNTROWS(ControlStatus),
+			        ControlStatus[data_quality_status] = "Valid",
+			        ControlStatus[overdue_flag] = TRUE()
+			    ),
+			    0
 			)
 		formatString: 0
 		lineageTag: 20fdfd93-c50c-4769-9a97-c41f8d95dc85
@@ -106,24 +112,27 @@ table ControlStatus
 
 	measure 'High/Critical Exceptions' =
 			
-			CALCULATE(
-			    COUNTROWS(ControlStatus),
-			    FILTER(
-			        ControlStatus,
-			        ControlStatus[data_quality_status] = "Valid"
-			            &&
-			        (
-			            ControlStatus[risk_level] = "High"
-			            ||
-			            ControlStatus[risk_level] = "Critical"
+			COALESCE(
+			    CALCULATE(
+			        COUNTROWS(ControlStatus),
+			        FILTER(
+			            ControlStatus,
+			            ControlStatus[data_quality_status] = "Valid"
+			                &&
+			            (
+			                ControlStatus[risk_level] = "High"
+			                ||
+			                ControlStatus[risk_level] = "Critical"
+			            )
+			                &&
+			            (
+			                ControlStatus[submission_status] = "Non-Compliant"
+			                ||
+			                ControlStatus[overdue_flag] = TRUE()
+			            )
 			        )
-			            &&
-			        (
-			            ControlStatus[submission_status] = "Non-Compliant"
-			            ||
-			            ControlStatus[overdue_flag] = TRUE()
-			        )
-			    )
+			    ),
+			    0
 			)
 		formatString: 0
 		lineageTag: bb8217a3-4358-47e7-9051-96a9899ecac5

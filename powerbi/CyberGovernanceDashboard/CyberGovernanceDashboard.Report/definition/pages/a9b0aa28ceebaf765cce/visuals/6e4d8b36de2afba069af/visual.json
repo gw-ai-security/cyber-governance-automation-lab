@@ -1,0 +1,74 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
+  "name": "6e4d8b36de2afba069af",
+  "position": {
+    "x": 863.70820668693011,
+    "y": 125.47112462006079,
+    "z": 8,
+    "height": 103.10030395136779,
+    "width": 228.57142857142858,
+    "tabOrder": 8
+  },
+  "visual": {
+    "visualType": "cardVisual",
+    "query": {
+      "queryState": {
+        "Data": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ControlStatus"
+                    }
+                  },
+                  "Property": "High/Critical Exceptions"
+                }
+              },
+              "queryRef": "ControlStatus.High/Critical Exceptions",
+              "nativeQueryRef": "High/Critical Exceptions"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "ControlStatus"
+                  }
+                },
+                "Property": "High/Critical Exceptions"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "95b6f9dd99fa3f4b4644",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "ControlStatus"
+              }
+            },
+            "Property": "High/Critical Exceptions"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
+  }
+}
