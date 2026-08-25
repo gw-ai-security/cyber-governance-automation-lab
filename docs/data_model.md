@@ -1,10 +1,16 @@
 # Data Model
 
+## Document Role
+
+**CURRENT-STATE FOUNDATION DOCUMENT — CURRENT THROUGH PHASE 10**
+
+Documentation index: [README.md](README.md)
+
 ## Purpose
 
 This document defines the logical business data model for the Cyber Governance Automation Lab: entities, fields, relationships, keys, enumerations, and derived-state semantics.
 
-Physical CSV/JSON serialization and the Phase 7 snapshot boundary are defined separately in [data_contract.md](data_contract.md). Operational Microsoft 365 table mappings are documented in the Phase 5–7 workflow contracts.
+Physical CSV/JSON serialization and the Phase 7 snapshot boundary are defined in [data_contract.md](data_contract.md). Data Quality rules are defined in [data_quality.md](data_quality.md). The Phase 10 REST response is an external technical projection of Control data and does not extend the business entity model.
 
 ## 1. Modeling Principles
 
@@ -15,6 +21,7 @@ Physical CSV/JSON serialization and the Phase 7 snapshot boundary are defined se
 - Canonical repository identities and e-mail addresses are synthetic.
 - Operational Microsoft 365 data may contain authenticated/reachable identities and therefore remains private.
 - Operational workbook data may evolve independently from canonical repository fixtures.
+- Technical projections, manifests, report tables, and AI outputs do not create new core business entities.
 
 ## 2. Entity Overview
 
@@ -34,7 +41,7 @@ SUBMISSION
    └──────────────► DATA QUALITY ISSUE
 ```
 
-No additional physical table, runtime parameter, snapshot manifest, screenshot, or workflow branch creates another core business entity.
+No snapshot manifest, Power BI table/measure, AI review object, API response model, screenshot, or runtime parameter creates another core business entity.
 
 ## 3. Control
 
@@ -45,7 +52,7 @@ No additional physical table, runtime parameter, snapshot manifest, screenshot, 
 | `control_statement` | Testable Control requirement |
 | `business_unit` | Primary responsible business unit |
 | `owner_role` | Accountable organizational role |
-| `owner_email` | Accountable owner contact; synthetic in canonical repository data, potentially reachable in private operational data |
+| `owner_email` | Accountable owner contact; synthetic in canonical data, potentially reachable in private operational data |
 | `frequency` | Monthly, Quarterly, or Annual |
 | `risk_level` | Low, Medium, High, or Critical |
 
@@ -69,19 +76,19 @@ Canonical Control statements:
 | CTRL-004 | Staff must complete security awareness training at defined intervals. |
 | CTRL-005 | The patch status of critical systems must be reviewed at defined intervals and documented. |
 
-[data/reference/control_catalog.json](../data/reference/control_catalog.json) must match these canonical values.
+[data/reference/control_catalog.json](../data/reference/control_catalog.json) is the canonical physical source for these values.
 
 ## 4. Submission
 
 A Submission is a period-specific expected assessment record for a Control. One record exists for each expected Control/reporting-period combination before evidence is received.
 
-This means:
+Therefore:
 
 ```text
 status = Not Submitted
 ```
 
-is an explicit expected process state, not an absence of data. Pre-existing expected records make overdue detection possible.
+is an explicit expected process state, not absence of data.
 
 | Field | Description |
 | --- | --- |
@@ -92,7 +99,7 @@ is an explicit expected process state, not an absence of data. Pre-existing expe
 | `status` | Submission assessment/workflow status |
 | `evidence_reference` | Reference to supporting evidence |
 | `submitted_at` | Submission date |
-| `submitted_by` | Submitter identity; synthetic in canonical repository data, authenticated operational identity may be present in private Microsoft 365 state |
+| `submitted_by` | Submitter identity; synthetic in canonical data, authenticated identity may be present in private operational state |
 | `comment` | Short contextual note |
 
 ### Submission business key
@@ -100,8 +107,6 @@ is an explicit expected process state, not an absence of data. Pre-existing expe
 ```text
 control_id + reporting_period
 ```
-
-The business key is not extended with `business_unit`, because business unit is already a Control attribute.
 
 ### Submission technical key
 
@@ -111,14 +116,14 @@ submission_id
 
 ## 5. Action
 
-An Action is a follow-up work item related to exactly one Submission. Through that Submission, it is also related to one Control.
+An Action is follow-up work related to exactly one Submission. Through that Submission it is also related to one Control.
 
 | Field | Description |
 | --- | --- |
 | `action_id` | Unique Action identifier |
 | `control_id` | Denormalized related Control identifier |
 | `submission_id` | Related Submission |
-| `owner_email` | Responsible Action owner; synthetic in canonical repository data, potentially reachable in private operational data |
+| `owner_email` | Responsible Action owner; synthetic in canonical data, potentially reachable in private operational data |
 | `created_at` | Action creation date |
 | `due_date` | Action deadline |
 | `status` | Open, In Progress, or Completed |
@@ -137,27 +142,24 @@ submission.control_id
 for action.submission_id
 ```
 
-### Action Data Constraints
-
-The following invariants apply to canonical Action data and the operational `ActionRegister`:
+### Action constraints
 
 - `action_id` is required and unique,
 - `submission_id` is required,
 - `control_id` is required,
 - Action `control_id` must match the referenced Submission,
-- `owner_email` is required and must contain `@` as a simple plausibility check,
+- `owner_email` is required and must contain `@` as a simple PoC plausibility check,
 - `reminder_count` is a non-negative integer,
 - `reminder_count = 0` permits empty `last_reminder_at`,
 - `reminder_count > 0` requires `last_reminder_at`,
-- `created_at` is required,
-- `due_date` is required,
+- `created_at` and `due_date` are required,
 - synthetic PoC rule: `due_date = created_at + 7 calendar days`,
 - `status` is one of `Open`, `In Progress`, `Completed`,
 - a Submission may have at most one non-completed Action (`Open` or `In Progress`) for missing-submission reminder tracking.
 
-The deterministic Python pipeline does not currently implement Action-specific DQ rule IDs. Phase 6 enforces active-Action cardinality operationally and fails safely with `DUPLICATE_ACTIVE_ACTION` when more than one active Action exists for an overdue Submission.
+The deterministic Python pipeline does not implement Action-specific DQ rule IDs. Phase 6 enforces active-Action cardinality operationally and fails safely with `DUPLICATE_ACTIVE_ACTION` when more than one active Action exists for an overdue Submission.
 
-The current PoC also does not automatically complete an existing missing-submission Action when later evidence moves the related Submission to `In Review`. That is an implementation/lifecycle limitation, not a change to the Action status model.
+The PoC does not automatically complete an existing missing-submission Action when later evidence moves the related Submission to `In Review`.
 
 ## 6. Data Quality Issue
 
@@ -172,9 +174,7 @@ The current PoC also does not automatically complete an existing missing-submiss
 | `field` | Field(s) associated with the finding |
 | `message` | Human-readable issue description |
 
-`source_row_number` is technical lineage metadata, not a fifth entity. It preserves traceability even for malformed source rows whose business identifiers are missing or duplicated.
-
-The canonical rule catalog is defined in [data_quality.md](data_quality.md).
+`source_row_number` is technical lineage metadata, not a fifth entity. It preserves traceability even for malformed rows whose business identifiers are missing or duplicated.
 
 ## 7. Relationships
 
@@ -185,7 +185,7 @@ erDiagram
     SUBMISSION o|--o{ DATA_QUALITY_ISSUE : may_generate
 ```
 
-The optional identifiable-Submission side of the Data Quality Issue relationship reflects malformed raw input. Every DQ issue still maps to a raw source row through `source_row_number`.
+Every DQ issue maps to a raw source row through `source_row_number`, even when business identifiers are not usable.
 
 ## 8. Status and Enumeration Contracts
 
@@ -214,7 +214,7 @@ Quarterly
 Annual
 ```
 
-### Risk level
+### Control risk level
 
 ```text
 Low
@@ -239,6 +239,8 @@ Finance
 Retail Banking
 ```
 
+Control `risk_level` and DQ `severity` are different taxonomies.
+
 ## 9. Derived Metrics
 
 The following are derived values, not raw Submission source fields:
@@ -252,7 +254,7 @@ days_late
 data_quality_status
 ```
 
-`as_of_date` is an execution parameter used for overdue evaluation. It is not persisted as a Submission source field.
+`as_of_date` is an execution parameter used for overdue evaluation and is not persisted as a Submission source field.
 
 ### `evidence_present`
 
@@ -263,6 +265,8 @@ ELSE evidence_present = false
 ```
 
 ### `overdue_flag`
+
+When required date state is evaluable:
 
 ```text
 IF submitted_at IS NULL
@@ -278,7 +282,11 @@ as_of_date == due_date
 → overdue_flag = false
 ```
 
+If `due_date`/required timing state cannot be safely evaluated, `overdue_flag` remains unknown/null rather than being forced to `False`.
+
 ### `submission_late`
+
+When required date state is evaluable:
 
 ```text
 IF submitted_at IS NOT NULL
@@ -287,12 +295,17 @@ THEN submission_late = true
 ELSE submission_late = false
 ```
 
+If the required submitted/due date state cannot be safely evaluated, `submission_late` remains unknown/null.
+
 ### `days_overdue`
 
 ```text
 IF overdue_flag = true
 THEN days_overdue = as_of_date - due_date in calendar days
-ELSE days_overdue = 0
+IF overdue_flag = false
+THEN days_overdue = 0
+IF overdue_flag = unknown
+THEN days_overdue = null
 ```
 
 ### `days_late`
@@ -300,12 +313,15 @@ ELSE days_overdue = 0
 ```text
 IF submission_late = true
 THEN days_late = submitted_at - due_date in calendar days
-ELSE days_late = 0
+IF submission_late = false
+THEN days_late = 0
+IF submission_late = unknown
+THEN days_late = null
 ```
 
 ### `data_quality_status`
 
-Allowed derived values:
+Allowed values:
 
 ```text
 Valid
@@ -333,13 +349,17 @@ Submission Status != Action Status
 Unknown != False
 Not Evaluated != Failed
 Action completion != Submission compliance
+Control risk != DQ severity
+Control risk != AI review priority
+Schema-valid != factually correct
+AI recommendation accepted != Submission compliant
 ```
 
-These distinctions are contractual across documentation, Python derivation, and Power Automate workflows.
+These distinctions are contractual across documentation, Python derivation, workflow automation, reporting, and AI review.
 
 ## 11. Operational Mapping
 
-Phase 5–7 map the existing logical entities into operational Excel tables and reporting snapshots:
+Phases 5–7 map logical entities into operational Excel tables and reporting snapshots:
 
 ```text
 Control    → ControlCatalog → Control snapshot JSON
@@ -349,15 +369,47 @@ Action     → ActionRegister → Action snapshot CSV
 
 The completion manifest is technical package metadata and does not create a fifth business entity.
 
-This operational representation does not replace the canonical repository fixtures.
+## 12. Phase 8 Reporting Projection
 
-See:
+Power BI receives a curated Submission-grain table plus a DQ issue table. Those reporting tables are physical analytical projections, not replacements for the four-domain-entity model.
 
-- [phase5_evidence_intake.md](phase5_evidence_intake.md)
-- [phase6_reminder_automation.md](phase6_reminder_automation.md)
-- [phase7_reporting_export.md](phase7_reporting_export.md)
-- [phase7_end_to_end_acceptance.md](phase7_end_to_end_acceptance.md)
+## 13. Phase 9 AI Advisory Projection
 
-## 12. Production Considerations
+AI review output is a downstream advisory artifact correlated to an existing Submission/Control pair. It is not authoritative business state and does not become a fifth entity.
 
-This model is intentionally minimal for a portfolio proof of concept. A production system could reasonably add versioned Control definitions, shared/delegated ownership, formal evidence storage, richer review/approval workflows, Action validation and telemetry, and a transactional datastore such as Dataverse or a relational database. None of those extensions are claimed as implemented here.
+## 14. Phase 10 REST Projection
+
+The local REST API deliberately exposes a smaller external Control representation:
+
+```text
+ControlSummary
+├── control_id
+└── risk_level
+```
+
+Therefore:
+
+```text
+Internal Control model
+!=
+External REST representation
+```
+
+The API does not expose:
+
+```text
+control_name
+control_statement
+business_unit
+owner_role
+owner_email
+frequency
+```
+
+`ControlSummary` is a transport DTO/projection, not a new domain entity and not a compliance decision object.
+
+See [phase10_rest_api_acceptance.md](phase10_rest_api_acceptance.md).
+
+## 15. Production Considerations
+
+This model is intentionally minimal for a portfolio proof of concept. A production system could reasonably add versioned Control definitions, richer ownership, formal evidence storage, approval workflows, Action validation/telemetry, transactional persistence, and authenticated/authorized integration APIs. None of those extensions is claimed as implemented here.
