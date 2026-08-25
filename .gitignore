@@ -57,8 +57,7 @@ ENV/
 # 3. VS Code / IDE (conservative)
 # -------------------------------------------------------------
 # Only ignore user-/machine-local VS Code state, keep shared
-# workspace configuration (settings.json, extensions.json, etc.)
-# versionable on purpose.
+# workspace configuration versionable on purpose.
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
@@ -66,8 +65,6 @@ ENV/
 !.vscode/tasks.json
 .history/
 *.code-workspace
-
-# Other common IDEs
 .idea/
 
 # -------------------------------------------------------------
@@ -94,8 +91,6 @@ logs/
 # -------------------------------------------------------------
 # 6. Power BI (only clearly local/user-specific artifacts)
 # -------------------------------------------------------------
-# Local Power BI Desktop cache/temp files — not the project's
-# .pbip/.pbix/report/semantic-model/documentation files.
 *.pbi.bak
 **/.pbi/localSettings.json
 **/.pbi/cache.abf
@@ -105,13 +100,11 @@ logs/
 # -------------------------------------------------------------
 # 7. Generated curated runtime outputs
 # -------------------------------------------------------------
-# The Python pipeline writes reproducible runtime artifacts here.
-# Keep the directory itself, but do not commit generated snapshots.
 data/curated/*
 !data/curated/.gitkeep
 
 # -------------------------------------------------------------
-# 8. Operational Microsoft 365 workbook (Phases 5–6)
+# 8. Operational Microsoft 365 workbook (Phases 5–7)
 # -------------------------------------------------------------
 # The live workbook can contain authenticated responder identity
 # and reachable acceptance-test recipients. It is an operational
@@ -121,31 +114,27 @@ Cyber_Governance_Control_Register.xlsx
 # -------------------------------------------------------------
 # 9. Private Power Automate deployment/runtime artifacts
 # -------------------------------------------------------------
-# Unmanaged tenant exports can contain environment-specific
-# resource identifiers and reachable notification recipients.
-# Only sanitized source templates belong in the public repository.
 power_automate/exports/
 power_automate/private/
-
-# Operational Phase 7 snapshot packages remain private.
 power_automate/snapshots/
 
 # -------------------------------------------------------------
 # 10. Project-specific keep-list / do NOT ignore
 # -------------------------------------------------------------
-# Canonical source/reference data, documentation evidence, future
-# phase directories, requirements, source code, tests, and the
-# sanitized Power Automate source templates remain versionable.
-# data/curated is the exception documented above: only its
-# .gitkeep is retained until a later phase deliberately introduces
-# a versioned artifact contract.
+# Canonical source/reference data, public documentation/evidence,
+# source-controlled AI/API/Power Platform/Power BI definitions,
+# requirements, Python source, and tests remain versionable.
+# data/curated is the exception above: generated outputs remain
+# ignored while the placeholder keeps the directory in Git.
 !data/raw/
 !data/reference/
-!docs/screenshots/
+!docs/
 !ai/prompts/
 !ai/schemas/
 !ai/examples/
+!api/
 !power_automate/solutions/
+!powerbi/
 !requirements.txt
 !src/
 !tests/
