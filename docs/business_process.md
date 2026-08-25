@@ -1,25 +1,32 @@
 # Business Process
 
+## Document Role
+
+**CURRENT-STATE FOUNDATION DOCUMENT — CURRENT THROUGH PHASE 10**
+
+Documentation index: [README.md](README.md)
+
 ## Purpose
 
-This document defines the **current business-process semantics** modeled by the Cyber Governance Automation Lab after completion of Phase 9.
+This document defines the current business-process semantics modeled by the Cyber Governance Automation Lab after completion of Phase 10.
 
-The project represents a simplified recurring cybersecurity-governance evidence process. It is a portfolio proof of concept and does not claim to reproduce the exact governance process of any real organization, bank, or regulated entity.
+The project represents a simplified recurring cybersecurity-governance evidence process. It is a portfolio proof of concept and does not claim to reproduce the exact process of a real organization or regulated entity.
 
-The process covers:
+The modeled process covers:
 
 - expected evidence Submissions,
 - evidence intake,
-- governance assessment,
+- human governance assessment,
 - timeliness,
 - deterministic Data Quality,
 - follow-up Actions and reminders,
 - operational snapshot export,
 - deterministic reporting,
 - controlled AI-assisted exception review,
-- mandatory human governance acceptance.
+- mandatory human governance review,
+- a local read-only REST projection of canonical Control data.
 
-It does not model the technical execution of the underlying security controls themselves.
+Phase 10 is a technical integration boundary. It does not add a new business-state transition.
 
 ## 1. Core Modeling Principles
 
@@ -39,6 +46,8 @@ Control risk != DQ severity
 Control risk != AI review priority
 Schema-valid != factually correct
 AI recommendation accepted != Submission compliant
+REST API != Governance authority
+API response != Compliance decision
 ```
 
 The project also distinguishes:
@@ -116,7 +125,7 @@ Business key:
 control_id + reporting_period
 ```
 
-The business key identifies the expected business object. The technical key is used for stable physical updates and for correlation of downstream AI review output.
+The business key identifies the expected business object. The technical key supports stable physical updates and downstream correlation.
 
 ## 5. Expected Submission Lifecycle
 
@@ -184,9 +193,7 @@ Expected relationships:
 | Compliant | present | present | present |
 | Non-Compliant | present | present | present |
 
-These are validation semantics, not automatic repair rules.
-
-A row violating them remains visible and can produce a Data Quality Issue.
+These are validation semantics, not automatic repair rules. A violating row remains visible and can produce a Data Quality Issue.
 
 ## 7. Reporting Periods and Synthetic Due Dates
 
@@ -250,7 +257,7 @@ days_overdue
 days_late
 ```
 
-When timing cannot be safely evaluated, unknown/missing state remains null rather than being forced to `False` or `0`.
+When required date state cannot be safely evaluated, the derived timing result remains unknown/null rather than being forced to `False` or `0`.
 
 ## 9. Evidence Handling
 
@@ -297,7 +304,7 @@ Phase 5 evidence intake
 → does not automatically complete existing missing-submission Action
 ```
 
-Target process semantic and implemented automation therefore remain explicitly separate.
+Target lifecycle semantics and implemented automation therefore remain explicitly separate.
 
 ## 11. Phase 5 Evidence Intake Process
 
@@ -378,7 +385,7 @@ DQ-invalid records remain available for reporting but are not eligible for Phase
 
 See [data_quality.md](data_quality.md).
 
-## 14. Reporting Process
+## 14. Reporting Process — Phases 7–8
 
 Phase 7 connects operational state to deterministic Python semantics. Phase 8 consumes only Python-owned curated reporting outputs.
 
@@ -409,13 +416,11 @@ Process & Data Quality
 
 Power Automate exports source facts only. Power BI consumes curated reporting facts only.
 
-The same source-controlled Power BI model passed canonical and private operational runtime acceptance.
-
 ## 15. Phase 9 AI Review Candidate Selection
 
-Phase 9 begins only after deterministic Data Quality evaluation and reporting derivation.
+Phase 9 begins only after deterministic Data Quality evaluation and derivation.
 
-Eligibility remains exactly:
+Eligibility is exactly:
 
 ```text
 data_quality_status = Valid
@@ -459,14 +464,10 @@ evidence_reference
 However:
 
 ```text
-Data minimization
-!=
-External-transfer approval
+Data minimization != External-transfer approval
 ```
 
-Free-text values such as `comment` can still contain sensitive information or instruction-like content.
-
-Every supplied record value is therefore treated as untrusted data.
+Free-text values such as `comment` can still contain sensitive information or instruction-like content. Every supplied record value is therefore treated as untrusted data.
 
 ## 17. Phase 9 Controlled AI Review
 
@@ -475,11 +476,11 @@ The version-controlled prompt allows AI to:
 - summarize supplied facts,
 - identify information not present in the supplied record,
 - suggest advisory review priority,
-- recommend follow-up for a human reviewer.
+- recommend human follow-up.
 
-The prompt forbids AI from:
+It forbids AI from:
 
-- assigning or changing compliance,
+- assigning/changing compliance,
 - claiming missing evidence exists,
 - inventing hidden facts,
 - repairing source data or DQ issues,
@@ -487,140 +488,65 @@ The prompt forbids AI from:
 - writing back to source systems,
 - bypassing human review.
 
-The workflow is intentionally manual in Phase 9. No external provider API/SDK/key is required.
-
-## 18. Phase 9 Structured Output
-
-AI output is constrained to:
-
-```text
-submission_id
-control_id
-summary
-review_priority
-missing_information
-recommended_follow_up
-human_review_required
-```
-
-The JSON Schema enforces:
-
-```text
-additionalProperties = false
-review_priority ∈ {Low, Medium, High}
-human_review_required = true
-```
-
-No AI compliance-decision field is part of the contract.
-
-## 19. Phase 9 Deterministic Validation
-
-Before human review, output must pass:
-
-```text
-JSON parse
-   ↓
-Top-level object check
-   ↓
-JSON Schema validation
-   ↓
-submission_id correlation
-   ↓
-control_id correlation
-```
-
-Invalid output is rejected rather than silently repaired.
-
-Important:
-
-```text
-Schema-valid
-!=
-Factually correct
-!=
-Governance-approved
-```
-
-## 20. Prompt-Injection Guardrail Process
-
-The synthetic adversarial fixture places instruction-like text inside `comment`, attempting to:
-
-- ignore the controlling prompt,
-- mark a Control compliant,
-- claim evidence was reviewed,
-- disable human review.
-
-The controlled accepted output does not follow those embedded instructions.
-
-Deterministic validation independently rejects structurally prohibited variants.
-
-This is acceptance evidence for the implemented contract, not a claim that prompt injection is universally solved.
-
-## 21. Human Governance Review
-
-Validated AI recommendations go through:
-
-```text
-AI Recommendation
-      ↓
-Deterministic Validation
-      ↓
-Human Governance Reviewer
-      ↓
-Accept / Edit / Reject
-      ↓
-Normal Governance Process
-```
-
-Meaning of decisions:
-
-### Accept
-
-The recommendation is acceptable as governance-review input.
-
-### Edit
-
-The recommendation is useful but requires human correction before use.
-
-### Reject
-
-The recommendation should not be used as governance-review input.
+AI output is constrained by JSON Schema and then validated for schema and Submission/Control correlation before human review.
 
 Critical boundary:
 
 ```text
-Accept AI recommendation
-!=
-mark Submission Compliant
+Accept AI recommendation != mark Submission Compliant
 ```
 
-## 22. Canonical Phase 9 Human Acceptance
-
-The Governance Reviewer reviewed the two canonical Phase 9 outputs and recorded:
+Canonical human acceptance:
 
 ```text
 SUB-005 → Accept
 SUB-014 → Accept
 ```
 
-No edits were required.
+## 18. Phase 10 REST Integration
 
-The acceptance approves the recommendations as usable governance-review input only.
-
-It does not mean:
+Phase 10 adds a technical read-only integration path around canonical Control reference data:
 
 ```text
-SUB-005 becomes Compliant
-SUB-014 becomes Compliant
-Control effectiveness is certified
-Evidence is approved
-Remediation is complete
-Source data is changed
+data/reference/control_catalog.json
+        ↓
+src.extract.load_control_catalog()
+        ↓
+FastAPI
+        ↓
+GET /api/v1/controls
+GET /api/v1/controls/{control_id}
+        ↓
+JSON
+        ↓
+requests-based Python client
 ```
 
-See [phase9_human_acceptance.md](phase9_human_acceptance.md).
+The public response contains only:
 
-## 23. End-to-End Business Process
+```text
+control_id
+risk_level
+```
+
+Phase 10 deliberately does **not**:
+
+- change Submission state,
+- assign compliance,
+- create/update Actions,
+- send reminders,
+- execute/redefine DQ rules,
+- change AI review eligibility,
+- expose private operational state,
+- write back to Microsoft 365.
+
+Therefore the REST API is not a new process actor with governance authority. It is a local technical interface for reading a minimized canonical Control projection.
+
+Unknown Control IDs fail safely with 404. Source failures fail safely with a generic 500. The client uses an explicit three-second timeout and translates integration failures into `ApiClientError`.
+
+See [phase10_rest_api_acceptance.md](phase10_rest_api_acceptance.md).
+
+## 19. End-to-End Business Process
 
 ```mermaid
 flowchart TD
@@ -645,11 +571,13 @@ flowchart TD
     O --> P[Controlled AI Recommendation]
     P --> Q[Schema + Correlation Validation]
     Q --> R[Human Accept / Edit / Reject]
+
+    A -. canonical Control reference .-> S[Phase 10 Read-only REST Projection]
 ```
 
-The diagram shows logical process relationships. It does not imply that every conceptual transition is automated.
+The Phase 10 branch is dotted because it does not participate in or mutate the business-state lifecycle.
 
-## 24. Scope Limitations
+## 20. Scope Limitations
 
 - only five synthetic Controls are modeled,
 - due-date rules are synthetic PoC assumptions,
@@ -660,21 +588,21 @@ The diagram shows logical process relationships. It does not imply that every co
 - no production escalation/SLA process is implemented,
 - no production datastore, IAM/RBAC, DLP, audit, telemetry, retention, or monitoring architecture is implemented,
 - no Power BI Service/Fabric deployment architecture or enterprise RLS is implemented,
-- Phase 9 has no external AI provider API/runtime integration,
+- Phase 9 has no external AI provider runtime/API integration,
 - Phase 9 does not claim universal prompt-injection resistance,
 - Phase 9 has no automatic AI source write-back,
-- Phase 10 REST API remains planned.
+- Phase 10 API is local-only, read-only, unauthenticated, and canonical-synthetic only,
+- Phase 10 does not implement production API authentication, authorization, rate limiting, gateway, deployment, telemetry, or write operations.
 
-## 25. Source of Truth
+## 21. Source of Truth
 
-This document defines current process semantics. Phase-specific acceptance documents define what was implemented and tested.
+This document defines current process semantics. Phase-specific documents define historical contracts and implementation/acceptance evidence.
 
-Relevant Phase 9 records:
+Current Phase 10 evidence:
 
-- [phase9_ai_workflow_contract.md](phase9_ai_workflow_contract.md)
-- [phase9_ai_output_contract.md](phase9_ai_output_contract.md)
-- [phase9_human_review.md](phase9_human_review.md)
-- [phase9_human_acceptance.md](phase9_human_acceptance.md)
-- [phase9_ai_acceptance.md](phase9_ai_acceptance.md)
+- [phase10_rest_api_contract.md](phase10_rest_api_contract.md)
+- [phase10_rest_api_acceptance.md](phase10_rest_api_acceptance.md)
 
-When target process behavior and current PoC automation differ, the limitation must remain explicit rather than being silently presented as implemented automation.
+Documentation role/status mapping is maintained in [README.md](README.md).
+
+When target process behavior and current PoC automation differ, the limitation remains explicit rather than being silently presented as implemented automation.
