@@ -1,94 +1,79 @@
 # Cyber Governance Automation Lab
 
-**Security Control Evidence, Automation, Reporting, Controlled AI Review & Read-only REST Integration**
+**Security Control Evidence · Workflow Automation · Deterministic Data Quality · Power BI · Controlled AI Review · Read-only REST Integration**
 
 [![Python tests](https://github.com/gw-ai-security/cyber-governance-automation-lab/actions/workflows/tests.yml/badge.svg)](https://github.com/gw-ai-security/cyber-governance-automation-lab/actions/workflows/tests.yml)
 
 A portfolio proof of concept for a recurring cybersecurity-governance evidence process.
 
-The lab combines explicit governance modeling, Microsoft Forms and Power Automate workflows, deterministic Python Data Quality processing, reminder/action tracking, a private reporting-snapshot bridge, a source-controlled Power BI dashboard, a controlled AI-assisted review workflow, and a local read-only FastAPI integration with a `requests`-based Python client.
+The lab demonstrates how expected control evidence can be modeled, collected, validated, followed up, reported, selectively reviewed with AI, and exposed through a minimized local REST boundary without collapsing compliance, timeliness, workflow state, and Data Quality into one ambiguous status.
 
-The project deliberately separates business semantics from technical integration layers:
+The project is deliberately **not production-ready**. It is designed to make architecture, trust, failure handling, human authority, and production gaps explicit.
+
+## System at a Glance
 
 ```text
-Operational source facts
-        ↓
-Deterministic Python validation / derivation
-        ↓
-Curated reporting + minimized AI review queue
-        ↓                    ↓
-Power BI                Controlled AI review
-                             ↓
-                     Deterministic validation
-                             ↓
-                     Human Governance Review
+Operational Microsoft 365 plane
+Microsoft Forms
+    ↓
+Power Automate evidence intake
+    ↓
+SubmissionRegister
+
+Scheduled reminder flow
+    ↓
+ControlCatalog + SubmissionRegister + ActionRegister
+    ↓
+Private Phase 7 snapshot package
+    ↓
+Deterministic Python pipeline
+    ├────────────→ curated reporting → Power BI
+    └────────────→ minimized AI queue → controlled AI review
+                                      ↓
+                              schema + correlation validation
+                                      ↓
+                              Human Governance Review
 
 Canonical Control Catalog
-        ↓
-Existing Python loader
-        ↓
-Read-only FastAPI projection
-        ↓
-HTTP GET / JSON
-        ↓
+    ↓ existing Python loader
+Local read-only FastAPI service
+    ↓ HTTP GET / JSON
 requests-based Python client
 ```
 
-AI remains advisory. The REST API remains read-only. Final compliance authority remains human.
+Final authority remains human:
+
+```text
+Evidence intake != compliance decision
+Data Quality     != compliance decision
+AI output        != compliance decision
+REST response    != governance authority
+```
 
 ## What This Project Demonstrates
 
-- **Governance modeling** — Control, Submission, Action, and Data Quality Issue remain distinct domain concepts.
-- **Expected-state design** — expected Submissions exist before evidence arrives, making missing evidence observable.
-- **Controlled evidence intake** — authenticated Forms intake resolves an expected Submission and permits only `Not Submitted → In Review`.
-- **Fail-safe workflow behavior** — ambiguous business keys, invalid states, missing/duplicate Controls, and duplicate active Actions are surfaced instead of guessed.
-- **Scheduled follow-up** — overdue missing Submissions create or reuse an Action, send reminders, and persist reminder history with same-day idempotency.
-- **Deterministic Data Quality** — exactly DQ-001 through DQ-010 validate Submission data without semantic auto-correction.
-- **Operational reporting bridge** — Microsoft 365 state is exported as a private snapshot package and processed through the same Python semantics as canonical fixtures.
-- **Curated BI boundary** — Power BI loads only Python-owned curated outputs and does not reimplement upstream business rules.
-- **Source-controlled BI engineering** — PBIP, PBIR, and TMDL are versioned while machine-local state remains excluded.
-- **Contracted semantic model** — 21 DAX measures implement governance, compliance, timeliness, DQ, and process semantics without inventing an overall status.
-- **Controlled AI workflow** — only DQ-valid Non-Compliant/Overdue candidates enter the minimized AI queue.
-- **AI Security guardrails** — free-text record values are untrusted; prompt-injection behavior is explicitly acceptance-tested.
-- **Structured AI output** — JSON Schema Draft 2020-12 constrains advisory output and forbids additional compliance-decision fields.
-- **Deterministic AI-output validation** — schema and Submission/Control correlation are checked before human review.
-- **Human-in-the-loop governance** — AI recommendations support `Accept / Edit / Reject`; acceptance does not change compliance state.
-- **REST/API fundamentals** — FastAPI, GET endpoints, HTTP status semantics, JSON contracts, OpenAPI, Uvicorn, `requests`, explicit timeouts, and controlled failures.
-- **Data minimization at integration boundaries** — the REST API exposes only `control_id` and `risk_level`, not the full internal Control object.
-- **Reproducible engineering** — GitHub Actions runs the complete Python regression suite for pushes and pull requests targeting `main`.
+- explicit **Control / Submission / Action / Data Quality Issue** domain modeling,
+- expected-state design so missing evidence is observable rather than absent data,
+- authenticated Microsoft Forms intake with controlled `Not Submitted -> In Review`,
+- fail-safe business-key and state handling in Power Automate,
+- scheduled overdue detection, Action create/reuse, reminders, and same-day idempotency,
+- deterministic Submission Data Quality using exactly **DQ-001 through DQ-010**,
+- canonical and operational data-plane separation,
+- a private reporting-snapshot bridge from Microsoft 365 to Python,
+- Submission-grain preservation and explicit lineage,
+- Power BI consuming only Python-owned curated outputs,
+- source-controlled PBIP/PBIR/TMDL with **21 DAX measures**,
+- deterministic AI candidate selection,
+- minimized AI inputs and explicit untrusted-input handling,
+- JSON Schema-constrained AI output and correlation validation,
+- mandatory human Governance Review,
+- a minimized local FastAPI read-only projection,
+- explicit client timeout/HTTP/JSON/connection handling,
+- GitHub Actions regression testing,
+- reproducible dependency handover with an accepted lock file,
+- explicit Security Considerations and PoC-to-production gap analysis.
 
-## Current Engineering Evidence
-
-| Evidence | Current state |
-| --- | ---: |
-| Security Controls | 5 |
-| Canonical synthetic Submissions | 15 |
-| Canonical raw Actions | 5 |
-| Explicit Submission DQ rules | 10 |
-| Automated tests | **84 passing** |
-| Phase 10 API tests / client tests | 10 / 10 |
-| Canonical DQ findings | 5 |
-| Canonical Valid / Invalid Submissions | 10 / 5 |
-| Canonical raw / curated Submission rows | 15 / 15 |
-| Canonical AI review queue items | 2 |
-| Phase 5 evidence-intake workflow | ✅ Implemented and acceptance-tested |
-| Phase 6 reminder workflow | ✅ Implemented and acceptance-tested |
-| Phase 7 reporting snapshot bridge | ✅ End-to-end accepted |
-| Phase 8 Power BI dashboard | ✅ Canonical and operational runtime accepted |
-| Phase 9 controlled AI workflow | ✅ Technical + human acceptance complete |
-| Phase 10 local REST integration | ✅ Implementation + automated + manual acceptance complete |
-| Canonical AI candidates human-reviewed | 2 / 2 accepted |
-| REST business endpoints | 2 GET endpoints |
-| REST public Control fields | 2 fields |
-| REST client timeout | 3 seconds |
-| AI output schema | JSON Schema Draft 2020-12 |
-| Power BI reporting tables | 2 |
-| Active Power BI relationships | 1 |
-| DAX measures | 21 |
-| Calculated tables / columns | 0 / 0 |
-| Primary Power BI pages | 3 |
-| Continuous Integration | ✅ GitHub Actions |
-| Required CI merge gate | ⚠ Not currently enforced |
+## Final Engineering Baseline
 
 Canonical deterministic acceptance uses:
 
@@ -96,7 +81,7 @@ Canonical deterministic acceptance uses:
 as_of_date = 2026-08-15
 ```
 
-and remains:
+Expected result:
 
 ```text
 Controls loaded: 5
@@ -115,11 +100,43 @@ SUB-005
 SUB-014
 ```
 
-Both Phase 9 candidate recommendations were accepted by the human Governance Reviewer as governance-review input. This does not alter source compliance state.
+Current functional test baseline before Phase 11 documentation-only changes:
+
+```text
+84 passed
+```
+
+The successful Phase 10 `main` CI run used Ubuntu 24.04, Python 3.14.5, and completed the full suite with **84 passed in 6.51s**.
+
+## Engineering Evidence
+
+| Evidence | Accepted state |
+| --- | ---: |
+| Security Controls | 5 |
+| Canonical Submissions | 15 |
+| Canonical raw Actions | 5 |
+| Submission DQ rules | 10 |
+| Canonical DQ findings | 5 |
+| Valid / Invalid Submissions | 10 / 5 |
+| Canonical raw / curated Submission rows | 15 / 15 |
+| AI queue items | 2 |
+| AI candidates human-reviewed | 2 / 2 accepted as review input |
+| Power BI tables | 2 |
+| Active Power BI relationships | 1 |
+| DAX measures | 21 |
+| Calculated tables / columns | 0 / 0 |
+| Primary Power BI pages | 3 |
+| REST business endpoints | 2 GET endpoints |
+| REST public Control fields | 2 |
+| REST client timeout | 3 seconds |
+| Phase 10/11 functional test baseline | 84 |
+| Continuous Integration | GitHub Actions |
+
+Curated evidence navigation: [docs/evidence.md](docs/evidence.md).
 
 ## Dashboard Evidence
 
-All public screenshots use the canonical synthetic dataset. No private operational identities or tenant metadata are shown.
+All public dashboard images use canonical synthetic data.
 
 ### Management Overview
 
@@ -131,73 +148,17 @@ Canonical headline values: `5 / 80.0% / 1 / 1 / 2 / 5`.
 
 ![Control Monitoring](docs/images/phase8/control-monitoring.webp)
 
-Submission-grain monitoring keeps invalid, unresolved-Control, Non-Compliant, and Overdue scenarios inspectable.
+Submission-grain monitoring keeps invalid, unresolved-Control, Non-Compliant, and Overdue scenarios visible rather than silently dropping them.
 
 ### Process & Data Quality
 
 ![Process & Data Quality](docs/images/phase8/process-data-quality.webp)
 
-Process follow-up and Data Quality remain separate dimensions in one analytical workspace.
-
-## Architecture
-
-```mermaid
-flowchart TD
-    subgraph OP[Operational Microsoft 365 Plane]
-        A[Microsoft Forms] --> B[Evidence Intake Flow]
-        B --> C[SubmissionRegister]
-        D[Scheduled Reminder Flow] --> C
-        D --> E[ControlCatalog]
-        D --> F[ActionRegister]
-        D --> G[Reminder Email]
-        G --> F
-        C --> S[Phase 7 Snapshot Package]
-        E --> S
-        F --> S
-    end
-
-    subgraph PY[Deterministic Python Processing]
-        H[Canonical Submission CSV] --> K[Python ETL + Data Quality]
-        I[Canonical Control JSON] --> K
-        J[Canonical Action CSV] --> K
-        S -. explicit coherent source paths .-> K
-        K --> L[curated_control_status.csv]
-        K --> M[data_quality_issues.csv]
-        K --> N[Minimized AI Review Queue]
-    end
-
-    subgraph BI[Phase 8 Power BI]
-        L --> P[ControlStatus]
-        M --> O[DataQualityIssues]
-        P -->|1:* source_row_number| O
-        P --> R[21 DAX Measures]
-        O --> R
-        R --> U[Management Overview]
-        R --> V[Control Monitoring]
-        R --> W[Process & Data Quality]
-    end
-
-    subgraph AI[Phase 9 Controlled AI Review]
-        N --> Q[Version-Controlled Prompt]
-        Q --> X[Structured Advisory JSON]
-        X --> Y[Schema + Correlation Validation]
-        Y --> T[Human Governance Review]
-        T --> Z[Accept / Edit / Reject]
-    end
-
-    subgraph API[Phase 10 Local REST Integration]
-        I --> LC[src.extract.load_control_catalog]
-        LC --> FA[FastAPI Read-only Projection]
-        FA --> HC[HTTP GET + JSON]
-        HC --> RC[requests Client]
-    end
-```
-
-Detailed responsibility and trust boundaries: [docs/architecture.md](docs/architecture.md).
+Process follow-up and Data Quality remain separate analytical dimensions.
 
 ## Core Domain Model
 
-Exactly four core entities are modeled:
+Exactly four core business entities are modeled:
 
 ```text
 CONTROL
@@ -240,151 +201,73 @@ REST API != Governance authority
 API response != Compliance decision
 ```
 
-## Phase Status
+## Deterministic Python Pipeline
 
-For Phases 0–6, `Phase X.Y` rows normalize already documented implementation work into the status format later phases use. From Phase 7 onward, rows preserve explicit work packages.
+```text
+EXTRACT
+   ↓
+NORMALIZE
+   ↓
+VALIDATE
+   ↓
+TRANSFORM / ENRICH
+   ↓
+DERIVE
+   ↓
+LOAD
+```
 
-| Phase | Scope | Status |
+Runtime outputs:
+
+```text
+data/curated/
+├── curated_control_status.csv
+├── data_quality_issues.csv
+└── ai_review_queue.json
+```
+
+Submission remains the primary reporting grain. Control enrichment uses a `LEFT JOIN`; invalid rows remain visible; Action aggregation does not multiply Submission rows.
+
+## Data Quality
+
+Submission DQ remains exactly:
+
+| Rule | Name | Severity |
 | --- | --- | --- |
-| **Phase 0** | **Repository & Project Foundation** | **—** |
-| Phase 0.0 | Repository creation & project definition | ✅ Complete |
-| Phase 0.1 | README, business problem & project scope | ✅ Complete |
-| Phase 0.2 | Repository structure & Git hygiene | ✅ Complete |
-| Phase 0.3 | Python environment & dependencies | ✅ Complete |
-| Phase 0.4 | Initial architecture & security baseline | ✅ Complete |
-| **Phase 0 Complete** | **Repository & Project Foundation** | **✅ Complete** |
-| **Phase 1** | **Business Process & Data Model** | **—** |
-| Phase 1.0 | Business roles & business units | ✅ Complete |
-| Phase 1.1 | Canonical Security Control catalog | ✅ Complete |
-| Phase 1.2 | Logical domain model & identifiers | ✅ Complete |
-| Phase 1.3 | Submission lifecycle & evidence semantics | ✅ Complete |
-| Phase 1.4 | Reporting period, due-date & timing semantics | ✅ Complete |
-| Phase 1.5 | Action model & lifecycle | ✅ Complete |
-| Phase 1.6 | Data Quality Issue model & DQ rule catalog | ✅ Complete |
-| Phase 1.7 | Validation dependencies & physical data contracts | ✅ Complete |
-| **Phase 1 Complete** | **Business Process & Data Model** | **✅ Complete** |
-| **Phase 2** | **Canonical Synthetic Dataset** | **—** |
-| Phase 2.0 | Deterministic reference date & dataset baseline | ✅ Complete |
-| Phase 2.1 | Canonical Control dataset | ✅ Complete |
-| Phase 2.2 | Submission scenario matrix | ✅ Complete |
-| Phase 2.3 | Deliberate Data Quality coverage | ✅ Complete |
-| Phase 2.4 | Valid non-DQ exception coverage | ✅ Complete |
-| Phase 2.5 | Canonical Action dataset | ✅ Complete |
-| Phase 2.6 | Canonical dataset acceptance | ✅ Complete |
-| **Phase 2 Complete** | **Canonical Synthetic Dataset** | **✅ Complete** |
-| **Phase 3** | **Deterministic Python Data Quality Pipeline** | **—** |
-| Phase 3.0 | Input contracts & deterministic runtime | ✅ Complete |
-| Phase 3.1 | Extract & structural input validation | ✅ Complete |
-| Phase 3.2 | Technical normalization without semantic repair | ✅ Complete |
-| Phase 3.3 | Deterministic DQ engine DQ-001 through DQ-010 | ✅ Complete |
-| Phase 3.4 | Transform, enrichment & timing derivation | ✅ Complete |
-| Phase 3.5 | Action aggregation & Submission-grain preservation | ✅ Complete |
-| Phase 3.6 | Curated Control Status output | ✅ Complete |
-| Phase 3.7 | Minimized AI review queue | ✅ Complete |
-| Phase 3.8 | Serialization & pipeline orchestration | ✅ Complete |
-| Phase 3.9 | Automated tests & canonical acceptance | ✅ Complete |
-| **Phase 3 Complete** | **Deterministic Python Data Quality Pipeline** | **✅ Complete** |
-| **Phase 4** | **Test Hardening & Acceptance** | **—** |
-| Phase 4.0 | Existing-test coverage analysis & contract mapping | ✅ Complete |
-| Phase 4.1 | Duplicate and combined-invariant hardening | ✅ Complete |
-| Phase 4.2 | Missing-field & cross-field hardening | ✅ Complete |
-| Phase 4.3 | Timing-boundary hardening | ✅ Complete |
-| Phase 4.4 | Deterministic DQ issue ordering | ✅ Complete |
-| Phase 4.5 | Regression acceptance | ✅ Complete |
-| Phase 4.6 | GitHub Actions CI integration | ✅ Complete |
-| Phase 4.7 | Documentation & repository workflow acceptance | ✅ Complete |
-| **Phase 4 Complete** | **Test Hardening & Acceptance** | **✅ Complete** |
-| **Phase 5** | **Power Automate Evidence Intake** | **—** |
-| Phase 5.0 | Forms evidence-intake contract | ✅ Complete |
-| Phase 5.1 | Operational SubmissionRegister baseline | ✅ Complete |
-| Phase 5.2 | Business-key resolution by `control_id + reporting_period` | ✅ Complete |
-| Phase 5.3 | Happy-path update to `In Review` | ✅ Complete |
-| Phase 5.4 | Submission-state guardrail | ✅ Complete |
-| Phase 5.5 | Controlled failure classification | ✅ Complete |
-| Phase 5.6 | Acceptance matrix | ✅ Complete |
-| Phase 5.7 | Security, evidence & repository documentation | ✅ Complete |
-| **Phase 5 Complete** | **Power Automate Evidence Intake** | **✅ Core DoD complete** |
-| **Phase 6** | **Scheduled Reminder Automation** | **—** |
-| Phase 6.0 | Reminder & overdue contract | ✅ Complete |
-| Phase 6.1 | Operational workbook model | ✅ Complete |
-| Phase 6.2 | Scheduled Power Automate flow architecture | ✅ Complete |
-| Phase 6.3 | Overdue detection & Control resolution | ✅ Complete |
-| Phase 6.4 | Active Action create/reuse cardinality guardrail | ✅ Complete |
-| Phase 6.5 | Same-day idempotency & reminder tracking | ✅ Complete |
-| Phase 6.6 | Controlled workflow outcomes & fail-safe handling | ✅ Complete |
-| Phase 6.7 | Operational acceptance matrix | ✅ Complete |
-| Phase 6.8 | Security, privacy, regression & documentation | ✅ Complete |
-| **Phase 6 Complete** | **Scheduled Reminder Automation** | **✅ Complete and acceptance-tested** |
-| **Phase 7** | **Reporting Snapshot Bridge** | **—** |
-| Phase 7.0 | Reporting Export Contract | ✅ Complete |
-| Phase 7.1 | Implementation Preparation | ✅ Complete |
-| Phase 7.2 | Power Automate Reporting Snapshot Runtime | ✅ Complete |
-| Phase 7.3 | Python External Input Boundary | ✅ Complete |
-| **Phase 7 Complete** | **Reporting Snapshot Bridge** | **✅ Complete and end-to-end accepted** |
-| **Phase 8** | **Power BI Dashboard** | **—** |
-| Phase 8.0 | Reporting & KPI Contract | ✅ Complete |
-| Phase 8.1 | Canonical Reporting Baseline | ✅ Complete |
-| Phase 8.2 | PBIP / PBIR / TMDL Project Scaffold | ✅ Complete |
-| Phase 8.3 | Curated CSV Loading & Technical Typing | ✅ Complete |
-| Phase 8.4 | Semantic Model Relationship | ✅ Complete |
-| Phase 8.5 | 21 DAX Measures | ✅ Complete |
-| Phase 8.6 | Management Overview | ✅ Complete |
-| Phase 8.7 | Control Monitoring | ✅ Complete |
-| Phase 8.8 | Process & Data Quality | ✅ Complete |
-| Phase 8.9 | Canonical Power BI Acceptance | ✅ Complete |
-| Phase 8.10 | Operational Phase 7 Output in Power BI | ✅ Complete |
-| Phase 8.11 | Final Documentation, Screenshots & Closure | ✅ Complete |
-| **Phase 8 Complete** | **Power BI Dashboard** | **✅ Complete** |
-| **Phase 9** | **Controlled AI Workflow** | **—** |
-| Phase 9.0 | AI Governance, Trust, Authority, Threat & Failure Contract | ✅ Complete |
-| Phase 9.1 | Structured AI Output Contract & JSON Schema | ✅ Complete |
-| Phase 9.2 | Version-Controlled Controlled Review Prompt | ✅ Complete |
-| Phase 9.3 | Canonical Input & Output Examples | ✅ Complete |
-| Phase 9.4 | Deterministic AI Output Validation | ✅ Complete |
-| Phase 9.5 | Controlled Manual AI Review | ✅ Complete |
-| Phase 9.6 | Adversarial Prompt-Injection Acceptance | ✅ Complete |
-| Phase 9.7 | Human Governance Review Procedure & Acceptance | ✅ SUB-005 + SUB-014 accepted |
-| Phase 9.8 | Current-State Documentation & Public Evidence | ✅ Complete |
-| Phase 9.9 | Regression, CI, PR & Closure | ✅ Complete after final PR merge |
-| **Phase 9 Complete** | **Controlled AI Workflow** | **✅ Complete** |
-| **Phase 10** | **Local Read-only REST API Integration** | **—** |
-| Phase 10.0 | REST API Contract Freeze | ✅ Complete |
-| Phase 10.1 | FastAPI Read-only Service | ✅ Complete |
-| Phase 10.2 | API Contract Tests | ✅ Complete |
-| Phase 10.3 | requests-based Python Client | ✅ Complete |
-| Phase 10.4 | Timeout / HTTP / JSON / Connection Failure Handling | ✅ Complete |
-| Phase 10.5 | Client Tests | ✅ Complete |
-| Phase 10.6 | Phase 0–9 Regression Verification | ✅ Complete |
-| Phase 10.7 | Local Uvicorn End-to-End Acceptance | ✅ Complete |
-| Phase 10.8 | Security & Privacy Acceptance | ✅ Complete |
-| Phase 10.9 | Documentation Synchronization | ✅ Complete |
-| Phase 10.10 | PR / CI / Closure | ✅ Complete when final PR is merged with CI green |
-| **Phase 10 Complete** | **Local Read-only REST API Integration** | **✅ Complete** |
-| **Phase 11** | **Documentation & Handover** | **○ Planned** |
+| DQ-001 | Missing Required Field | High |
+| DQ-002 | Unknown Control ID | High |
+| DQ-003 | Invalid Status | High |
+| DQ-004 | Missing Evidence | High |
+| DQ-005 | Duplicate Submission | High |
+| DQ-006 | Invalid Reporting Period | Medium |
+| DQ-007 | Invalid Due Date | High |
+| DQ-008 | Invalid Submission State | High |
+| DQ-009 | Invalid Evidence State | Medium |
+| DQ-010 | Invalid Submitter Email | Medium |
 
-## Phase 5 — Evidence Intake
+Workflow outcomes and REST/client errors are not new DQ rule IDs.
 
-Implemented path:
+## Power Automate Workflows
+
+### Phase 5 — Evidence Intake
 
 ```text
 Microsoft Forms
       ↓
-Read expected SubmissionRegister
+resolve control_id + reporting_period
       ↓
-Resolve control_id + reporting_period
+require exactly one expected Submission
       ↓
-Require exactly one match
+require status = Not Submitted
       ↓
-Require status = Not Submitted
-      ↓
-Update existing row by submission_id
+update existing row by submission_id
       ↓
 status = In Review
 ```
 
 The workflow performs **UPDATE, not APPEND** and never assigns `Compliant` or `Non-Compliant`.
 
-## Phase 6 — Scheduled Reminder Automation
+### Phase 6 — Scheduled Reminder Automation
 
 Overdue rule:
 
@@ -396,16 +279,14 @@ AND as_of_date > due_date
 Active Action resolution:
 
 ```text
-0 active Actions  → CREATE
-1 active Action   → REUSE
->1 active Actions → DUPLICATE_ACTIVE_ACTION
+0 active Actions  -> CREATE
+1 active Action   -> REUSE
+>1 active Actions -> DUPLICATE_ACTIVE_ACTION
 ```
 
-Reminder history is persisted on Action through `reminder_count` and `last_reminder_at`.
+Reminder history is persisted through `reminder_count` and `last_reminder_at`.
 
-Known limitation: evidence intake does not automatically complete an existing missing-submission Action when the Submission later moves to `In Review`.
-
-## Phase 7 — Reporting Snapshot Bridge
+### Phase 7 — Reporting Snapshot Bridge
 
 Successful private package:
 
@@ -416,9 +297,15 @@ security_action_snapshot_<snapshot_id>.csv
 security_snapshot_manifest_<snapshot_id>.json
 ```
 
-The manifest is written last. Python source overrides are all-or-none. Private snapshots and processed operational outputs remain outside Git.
+The manifest is written last. Private snapshots remain outside Git.
 
-## Phase 8 — Power BI Dashboard
+Sanitized workflow source:
+
+```text
+power_automate/solutions/cyber_governance_automation/
+```
+
+## Power BI
 
 Power BI consumes exactly:
 
@@ -438,9 +325,11 @@ Source-controlled model:
 3 primary report pages
 ```
 
-See [docs/phase8_final_acceptance.md](docs/phase8_final_acceptance.md).
+The repository `DataRoot` is a configurable Power Query parameter. Its checked-in default is a local development path and must be changed for another workstation.
 
-## Phase 9 — Controlled AI Workflow
+Final Phase 8 acceptance: [docs/phase8_final_acceptance.md](docs/phase8_final_acceptance.md).
+
+## Controlled AI Workflow
 
 Eligibility:
 
@@ -454,26 +343,44 @@ AND
 )
 ```
 
-The queue excludes `owner_email`, `submitted_by`, and `evidence_reference`. Record values remain untrusted. AI output is schema-constrained and correlation-validated before human review.
+The queue excludes selected identity/evidence-reference fields including:
 
-See [docs/phase9_ai_acceptance.md](docs/phase9_ai_acceptance.md).
+```text
+owner_email
+submitted_by
+evidence_reference
+```
 
-## Phase 10 — Local Read-only REST Integration
+Every supplied record value, including `comment`, remains untrusted input.
 
-### Server
+Relevant implementation:
 
-Implementation:
+```text
+ai/prompts/control_review_prompt.md
+ai/schemas/control_review.schema.json
+ai/examples/
+src/ai_validation.py
+tests/test_ai_contract.py
+```
+
+AI output must pass schema and Submission/Control correlation validation before human review.
+
+The project does **not** claim universal prompt-injection resistance and does not implement an external AI provider runtime or automatic source write-back.
+
+Final Phase 9 acceptance: [docs/phase9_ai_acceptance.md](docs/phase9_ai_acceptance.md).
+
+## Local Read-only REST Integration
+
+Server:
 
 ```text
 api/mock_api.py
 ```
 
-Source:
+Client:
 
 ```text
-data/reference/control_catalog.json
-        ↓
-src.extract.load_control_catalog()
+src/api_client.py
 ```
 
 Business endpoints:
@@ -483,128 +390,47 @@ GET /api/v1/controls
 GET /api/v1/controls/{control_id}
 ```
 
-External response model:
+Public representation:
 
 ```text
 control_id
 risk_level
 ```
 
-Unknown Control:
+Failure contracts:
 
 ```text
-404 CONTROL_NOT_FOUND
+unknown Control -> 404 CONTROL_NOT_FOUND
+source failure  -> 500 CONTROL_SOURCE_ERROR
 ```
 
-Unusable Control source:
+The accepted runtime target is loopback only. No authentication is implemented because Phase 10 is explicitly a local, synthetic, minimized, read-only PoC; that is not a production API pattern.
+
+Final Phase 10 acceptance: [docs/phase10_rest_api_acceptance.md](docs/phase10_rest_api_acceptance.md).
+
+## Run the Project
+
+Primary accepted Python runtime:
 
 ```text
-500 CONTROL_SOURCE_ERROR
+Python 3.14.5
 ```
 
-The API has no business write route and does not process private operational Submission/Action data.
-
-### Client
-
-Implementation:
-
-```text
-src/api_client.py
-```
-
-The client uses `requests`, an explicit three-second timeout, HTTP status handling, JSON parsing, response-shape checks, and controlled `ApiClientError` translation.
-
-### Run locally
+### Reproducible accepted environment
 
 ```bash
-python -m uvicorn api.mock_api:app --host 127.0.0.1 --port 8000
-```
-
-Then, for example:
-
-```bash
-python -c "from src.api_client import get_controls; print(get_controls())"
-```
-
-The accepted Phase 10 bind target is loopback only. No authentication is implemented because this is a local, synthetic, minimized, read-only PoC; that is not a production API security pattern.
-
-See:
-
-- [docs/phase10_rest_api_contract.md](docs/phase10_rest_api_contract.md)
-- [docs/phase10_rest_api_acceptance.md](docs/phase10_rest_api_acceptance.md)
-
-## Python Pipeline
-
-```text
-EXTRACT
-   ↓
-NORMALIZE
-   ↓
-VALIDATE
-   ↓
-TRANSFORM / ENRICH
-   ↓
-DERIVE
-   ↓
-LOAD
-```
-
-Submission remains the primary reporting grain. Control enrichment uses a `LEFT JOIN`; invalid rows remain visible; Action aggregation does not multiply Submission rows.
-
-## Data Quality
-
-The Submission rule catalog remains exactly DQ-001 through DQ-010:
-
-| Rule | Name | Severity |
-| --- | --- | --- |
-| DQ-001 | Missing Required Field | High |
-| DQ-002 | Unknown Control ID | High |
-| DQ-003 | Invalid Status | High |
-| DQ-004 | Missing Evidence | High |
-| DQ-005 | Duplicate Submission | High |
-| DQ-006 | Invalid Reporting Period | Medium |
-| DQ-007 | Invalid Due Date | High |
-| DQ-008 | Invalid Submission State | High |
-| DQ-009 | Invalid Evidence State | Medium |
-| DQ-010 | Invalid Submitter Email | Medium |
-
-Operational workflow and HTTP/client outcomes remain separate from DQ rule IDs.
-
-## Tech Stack
-
-| Technology | Role |
-| --- | --- |
-| Microsoft Forms | Authenticated evidence intake |
-| Power Automate | Evidence intake, reminders, reporting snapshot orchestration |
-| Excel Online / OneDrive | Operational Control/Submission/Action state and private snapshots |
-| Office 365 Outlook | Reminder and flow-failure notifications |
-| Python 3.14.5 | Deterministic processing, AI validation, API/client implementation |
-| pandas | Transformation and enrichment |
-| FastAPI | Local read-only REST service |
-| Uvicorn | Local ASGI server runtime |
-| requests | Phase 10 runtime HTTP client |
-| httpx2 | FastAPI/Starlette TestClient support |
-| pytest | Automated regression and contract testing |
-| jsonschema | Draft 2020-12 AI-output validation |
-| CSV / JSON | Canonical, snapshot, AI, and HTTP data contracts |
-| Power BI Desktop | Report authoring and local runtime acceptance |
-| Power Query | Curated-source loading and typing |
-| DAX | Governance/reporting measures |
-| PBIP / PBIR / TMDL | Source-controlled Power BI project definitions |
-| GitHub Actions | Continuous Integration |
-| Git / GitHub | Version control and review workflow |
-
-Phase 9 does not implement an external AI provider SDK/API call.
-
-## Running the Deterministic Pipeline
-
-```bash
-python -m pip install -r requirements.txt
+python -m venv .venv
+python -m pip install --upgrade pip
+python -m pip install -r requirements-lock.txt
 python -m pytest -q
 python src/main.py --as-of-date 2026-08-15
 ```
 
-Explicit private snapshot mode:
+`requirements.txt` remains the concise direct-dependency declaration; `requirements-lock.txt` records the concrete accepted environment used for Phase 11 handover/CI reproducibility.
+
+Detailed operating instructions: [docs/handover.md](docs/handover.md).
+
+### Explicit private snapshot mode
 
 ```bash
 python src/main.py \
@@ -615,71 +441,118 @@ python src/main.py \
   --output-directory "/private/processed/<id>"
 ```
 
-The three source overrides must be supplied together.
+The three source overrides are all-or-none.
 
-## Documentation Guide
+### Local API
 
-Start with [docs/README.md](docs/README.md) for the normalized phase/work-package documentation index.
+```bash
+python -m uvicorn api.mock_api:app --host 127.0.0.1 --port 8000
+```
+
+Then for example:
+
+```bash
+python -c "from src.api_client import get_controls; print(get_controls())"
+```
+
+## Tech Stack
+
+| Technology | Role |
+| --- | --- |
+| Microsoft Forms | Authenticated evidence intake |
+| Power Automate | Evidence intake, reminders, reporting snapshot orchestration |
+| Excel Online / OneDrive | Operational PoC state and private snapshots |
+| Office 365 Outlook | Reminder and flow-failure notifications |
+| Python 3.14.5 | Deterministic processing, AI validation, API/client implementation |
+| pandas | Transformation and enrichment |
+| FastAPI | Local read-only REST service |
+| Uvicorn | Local ASGI runtime |
+| requests | Runtime REST client |
+| pytest | Regression and contract tests |
+| jsonschema | Draft 2020-12 AI-output validation |
+| Power BI Desktop | Reporting runtime/authoring |
+| Power Query | Curated loading and typing |
+| DAX | Reporting measures |
+| PBIP / PBIR / TMDL | Source-controlled Power BI definitions |
+| GitHub Actions | Continuous Integration |
+| Git / GitHub | Version control and review workflow |
+
+## Security and Production Boundaries
+
+Consolidated security review:
+
+- [docs/security_considerations.md](docs/security_considerations.md)
+
+PoC-to-production gap assessment:
+
+- [docs/production_gap_assessment.md](docs/production_gap_assessment.md)
+
+Key accepted limitations include:
+
+- Excel/OneDrive rather than a transactional production datastore,
+- no transactional multi-table snapshot guarantee,
+- no automatic snapshot discovery/manifest ingestion/scheduled Python execution,
+- no automatic completion of a missing-submission Action after later evidence intake,
+- no Action-specific DQ rule catalog,
+- no production escalation/SLA engine,
+- no production IAM/RBAC/DLP/audit/retention/monitoring architecture,
+- no Power BI Service/Fabric enterprise deployment/RLS architecture,
+- no external AI provider runtime,
+- no universal prompt-injection-resistance claim,
+- no AI source write-back,
+- no production API authentication/authorization/gateway/rate limiting/telemetry,
+- no enforced required CI status check before merge.
+
+## Phase Status
+
+| Phase | Scope | Status |
+| --- | --- | --- |
+| Phase 0 | Repository & Project Foundation | ✅ Complete |
+| Phase 1 | Business Process & Data Model | ✅ Complete |
+| Phase 2 | Canonical Synthetic Dataset | ✅ Complete |
+| Phase 3 | Deterministic Python Data Quality Pipeline | ✅ Complete |
+| Phase 4 | Test Hardening & Acceptance | ✅ Complete |
+| Phase 5 | Power Automate Evidence Intake | ✅ Complete |
+| Phase 6 | Scheduled Reminder Automation | ✅ Complete |
+| Phase 7 | Reporting Snapshot Bridge | ✅ Complete |
+| Phase 8 | Power BI Dashboard | ✅ Complete |
+| Phase 9 | Controlled AI Workflow | ✅ Complete |
+| Phase 10 | Local Read-only REST API Integration | ✅ Complete |
+| Phase 11 | Documentation & Handover | 🔄 Final PR/CI closure in progress |
+
+Phase 11 adds documentation, reproducibility, evidence navigation, Security Considerations, production-gap analysis, and technical handover. It intentionally adds no new runtime business semantics.
+
+## Documentation
+
+Start with [docs/README.md](docs/README.md).
+
+Key current documents:
 
 | Document | Purpose |
 | --- | --- |
-| [docs/architecture.md](docs/architecture.md) | Current architecture and responsibility boundaries through Phase 10 |
-| [docs/business_process.md](docs/business_process.md) | Current governance-process semantics through Phase 10 |
-| [docs/data_model.md](docs/data_model.md) | Four-entity logical model and projections |
-| [docs/data_contract.md](docs/data_contract.md) | Canonical, operational, generated, and REST physical boundaries |
+| [docs/architecture.md](docs/architecture.md) | Final implemented runtime architecture |
+| [docs/business_process.md](docs/business_process.md) | Governance-process semantics |
+| [docs/data_model.md](docs/data_model.md) | Four-entity logical model |
+| [docs/data_contract.md](docs/data_contract.md) | Physical data/snapshot/REST contracts |
 | [docs/data_quality.md](docs/data_quality.md) | DQ-001 through DQ-010 |
-| [docs/repository_conventions.md](docs/repository_conventions.md) | Documentation, naming, privacy, and source-of-truth conventions |
-| [docs/phase7_end_to_end_acceptance.md](docs/phase7_end_to_end_acceptance.md) | Final Phase 7 acceptance |
-| [docs/phase8_final_acceptance.md](docs/phase8_final_acceptance.md) | Final Phase 8 acceptance |
-| [docs/phase9_ai_acceptance.md](docs/phase9_ai_acceptance.md) | Final Phase 9 acceptance |
-| [docs/phase10_rest_api_contract.md](docs/phase10_rest_api_contract.md) | Frozen Phase 10.0 REST contract |
-| [docs/phase10_rest_api_acceptance.md](docs/phase10_rest_api_acceptance.md) | Final Phase 10 implementation/acceptance record |
-
-## Security and Governance Boundaries
-
-- canonical repository identities are synthetic,
-- operational workbook and snapshot packages remain private,
-- actual evidence files are not stored in this repository,
-- reachable operational identities are not published,
-- tenant identifiers, connection identifiers, credentials, tokens, and private deployment packages are not committed,
-- generated `data/curated/` outputs remain outside Git,
-- Power BI local settings/cache remain outside Git,
-- evidence intake cannot assign compliance,
-- reminder automation cannot assign compliance,
-- reporting export cannot repair or reinterpret source state,
-- Power Query cannot duplicate Python business rules,
-- DQ-invalid records cannot enter the AI review queue,
-- free-text AI input remains untrusted,
-- AI cannot assign compliance or write source state,
-- schema-valid AI output is not automatically factually correct or governance-approved,
-- Phase 10 API is canonical-only, read-only, minimized, and local,
-- Phase 10 API exposes no owner e-mail or operational Submission/Action data,
-- every real Phase 10 client request uses an explicit timeout,
-- final governance authority remains human.
-
-## Limitations
-
-This repository is a **portfolio proof of concept**, not a production cybersecurity-governance platform.
-
-Current limitations include:
-
-- Excel/OneDrive rather than a transactional production datastore,
-- no transactional multi-table snapshot guarantee across the three Excel reads,
-- no automatic snapshot discovery, manifest ingestion, or scheduled Python execution,
-- no automatic completion of missing-submission Actions after later evidence intake,
-- no Action-specific DQ rule catalog beyond existing operational guardrails,
-- no automated reporting-period generation,
-- no production escalation hierarchy or SLA engine,
-- no production-grade IAM/RBAC, DLP, audit, monitoring, retention, or telemetry architecture,
-- no Power BI Service/Fabric deployment architecture or enterprise RLS,
-- no external AI provider runtime/API integration,
-- no universal prompt-injection-resistance claim,
-- no automated AI source write-back,
-- Phase 10 API has no authentication/authorization, cloud deployment, gateway, rate limiting, production telemetry, or write operations,
-- no enforced required CI status check before merge.
-
-For production, stronger persistence, IAM, audit, concurrency, governance, API security, and operational monitoring controls would be required.
+| [docs/security_considerations.md](docs/security_considerations.md) | Consolidated security/privacy/trust boundaries |
+| [docs/production_gap_assessment.md](docs/production_gap_assessment.md) | PoC-to-production gaps |
+| [docs/handover.md](docs/handover.md) | Technical runbook |
+| [docs/evidence.md](docs/evidence.md) | Curated engineering evidence |
+| [docs/phase11_handover_acceptance.md](docs/phase11_handover_acceptance.md) | Final project acceptance |
 
 ## Source of Truth
 
-Historical phase-specific documents remain valid for the phase they describe. Current implementation code, canonical datasets, automated tests, current-state foundation documents, and latest final acceptance evidence define the present project state.
+For current-state questions:
+
+```text
+implemented code + canonical data + automated tests
+        ↓
+current-state foundation documents
+        ↓
+Phase 11 handover/final acceptance
+        ↓
+historical phase contracts and acceptance records
+```
+
+Historical phase-specific documents remain valid for the phase they describe.
