@@ -1,14 +1,20 @@
 # Data Contract
 
+## Document Role
+
+**CURRENT-STATE FOUNDATION DOCUMENT — CURRENT THROUGH PHASE 10**
+
+Documentation index: [README.md](README.md)
+
 ## Purpose
 
-This document defines the physical data contracts used by the Cyber Governance Automation Lab and the boundary between deterministic repository fixtures and private operational Phase 7 snapshots.
+This document defines the physical data contracts used by the Cyber Governance Automation Lab, including the boundary between deterministic repository fixtures, private operational Phase 7 snapshots, generated outputs, and the Phase 10 external REST projection.
 
-Logical entities, relationships, status models, and derived-state semantics remain defined in [data_model.md](data_model.md). Data Quality rules remain defined in [data_quality.md](data_quality.md).
+Logical entities and derived-state semantics are defined in [data_model.md](data_model.md). Data Quality rules are defined in [data_quality.md](data_quality.md).
 
 ## 1. Data-Plane Rule
 
-The project maintains two distinct physical data planes:
+The project maintains two distinct business-source data planes:
 
 ```text
 Canonical repository fixtures
@@ -16,13 +22,13 @@ Canonical repository fixtures
 Operational Microsoft 365 state
 ```
 
-Canonical data exists for reproducible engineering acceptance. Operational data evolves through Phase 5–7 workflow execution.
+Canonical data exists for reproducible engineering acceptance. Operational data evolves through workflow execution.
 
-Phase 7 connects these planes through explicit private snapshot files. It does **not** overwrite canonical files.
+Phase 7 connects operational source facts to Python through explicit private snapshots without overwriting canonical files.
+
+Phase 10 does **not** add a third business-source data plane. It exposes a minimized read-only HTTP projection of the canonical Control Catalog only.
 
 ## 2. Canonical Repository Inputs
-
-Canonical files:
 
 ```text
 data/reference/control_catalog.json
@@ -30,7 +36,7 @@ data/raw/evidence_submissions.csv
 data/raw/actions.csv
 ```
 
-The deterministic acceptance baseline uses:
+Canonical deterministic reference date:
 
 ```text
 as_of_date = 2026-08-15
@@ -61,16 +67,7 @@ Submission and Action CSV contracts use:
 | Column set | exact |
 | Column order | exact |
 
-Literal strings such as:
-
-```text
-NULL
-null
-None
-N/A
-```
-
-must not be used to represent a genuinely missing value.
+Literal strings such as `NULL`, `null`, `None`, or `N/A` are not used to represent genuinely missing values.
 
 Fields containing commas, quotes, or line breaks use normal CSV quoting rules.
 
@@ -94,7 +91,7 @@ Physical representation:
 UTF-8 JSON top-level array
 ```
 
-Each Control contains exactly:
+Required Control fields:
 
 ```text
 control_id
@@ -107,7 +104,16 @@ frequency
 risk_level
 ```
 
-The operational snapshot may contain reachable operational ownership information and therefore remains private.
+The current canonical fixture contains exactly those eight properties per Control. The existing `src.extract.load_control_catalog()` loader enforces:
+
+- top-level array,
+- each entry is an object,
+- all required fields are present,
+- `control_id` is unique.
+
+The loader does not currently implement a separate strict `additionalProperties = false` rule for internal Control JSON. Phase 10 therefore does not change the internal loader contract; instead its public response model explicitly projects only two approved fields.
+
+Operational Control snapshots may contain reachable ownership information and therefore remain private.
 
 ## 5. Submission Contract
 
@@ -148,7 +154,7 @@ Physical rules:
 - `due_date` uses `YYYY-MM-DD` when structurally present,
 - `submitted_at` uses `YYYY-MM-DD` or is empty,
 - actual evidence files are not part of the contract,
-- all operational Submission rows are exported; Phase 7 does not pre-filter by compliance, timeliness, or DQ status.
+- Phase 7 exports all operational rows without pre-filtering by compliance, timeliness, or DQ status.
 
 Derived fields are excluded from the source contract:
 
@@ -207,25 +213,17 @@ Physical rules:
 - `reminder_count`: integer-compatible and non-negative under the logical model,
 - missing values: empty CSV field.
 
-The synthetic PoC Action due-date rule is:
+Synthetic PoC Action due-date rule:
 
 ```text
 due_date = created_at + 7 calendar days
 ```
 
-The operational Action snapshot preserves source facts such as:
-
-```text
-status
-reminder_count
-last_reminder_at
-```
-
-Phase 7 performs no Action aggregation during export.
+Phase 7 preserves Action source facts and performs no Action aggregation during export.
 
 ## 7. Operational Excel Representation
 
-The Microsoft 365 workbook uses:
+Operational workbook:
 
 ```text
 Cyber_Governance_Control_Register.xlsx
@@ -234,15 +232,11 @@ Cyber_Governance_Control_Register.xlsx
 └── ActionRegister
 ```
 
-Excel Online / Power Automate may expose date values as ISO 8601 timestamps.
-
-The Phase 7.2 reporting flow normalizes date representation to `YYYY-MM-DD` before serializing Submission and Action CSV snapshots.
-
-This technical conversion does not change business meaning.
+Excel Online / Power Automate can expose date values as ISO 8601 timestamps. Phase 7 normalizes snapshot date representation to `YYYY-MM-DD` before serializing Submission and Action CSV files. This is a technical representation conversion, not a business-state change.
 
 ## 8. Phase 7 Snapshot Package Contract
 
-Every successful snapshot package contains:
+A successful snapshot package contains:
 
 ```text
 security_control_snapshot_<snapshot_id>.json
@@ -253,7 +247,7 @@ security_snapshot_manifest_<snapshot_id>.json
 
 All artifacts share one `snapshot_id`.
 
-The manifest contains exactly the agreed provenance/completion fields:
+The manifest contains:
 
 ```text
 snapshot_id
@@ -274,7 +268,7 @@ Successful status:
 complete
 ```
 
-The manifest is created last. Source files without a corresponding `complete` manifest do not constitute a valid snapshot package.
+The manifest is written last. Source files without a corresponding `complete` manifest do not constitute a valid completed snapshot package.
 
 The manifest is technical metadata, not a fifth business entity.
 
@@ -286,7 +280,7 @@ Phase 7 uses:
 W. Europe Standard Time
 ```
 
-Target representations:
+Representations:
 
 ```text
 snapshot_id = yyyyMMdd_HHmmss
@@ -296,12 +290,10 @@ as_of_date  = yyyy-MM-dd
 Critical rule:
 
 ```text
-Python as_of_date
-=
-matching manifest as_of_date
+Python as_of_date = matching manifest as_of_date
 ```
 
-The Phase 7.3 CLI does not automatically parse the manifest. The caller supplies its date explicitly through `--as-of-date`.
+The Phase 7 Python CLI does not automatically parse the manifest; the caller supplies the date explicitly through `--as-of-date`.
 
 ## 10. Python Physical Input Boundary
 
@@ -321,29 +313,24 @@ Explicit operational mode:
 --actions-path
 ```
 
-The three source overrides are **all-or-none**.
-
-Valid:
+The three source overrides are all-or-none.
 
 ```text
-no source overrides
-→ all canonical defaults
+no overrides
+→ coherent canonical source set
+
+all three overrides
+→ coherent explicit source set
+
+partial overrides
+→ rejected
 ```
 
-or:
-
-```text
-all three source overrides
-→ one coherent explicit source set
-```
-
-Invalid partial combinations are rejected before processing. This prevents live operational state from being silently mixed with canonical synthetic state.
-
-`--output-directory` is independent and controls where the existing three pipeline outputs are written.
+`--output-directory` independently controls where generated pipeline outputs are written.
 
 ## 11. Python Output Contract
 
-The existing reporting outputs remain:
+Generated outputs:
 
 ```text
 curated_control_status.csv
@@ -351,27 +338,26 @@ data_quality_issues.csv
 ai_review_queue.json
 ```
 
-Phase 7 does not create an alternative set of transformation semantics for operational inputs.
+Submission remains the curated reporting grain. Phase 7 does not introduce alternative transformation semantics for operational inputs.
 
-Submission remains the curated grain.
-
-The exact curated schema and AI queue contract are defined in [phase3_pipeline_contract.md](phase3_pipeline_contract.md).
+Detailed curated/AI queue schema is defined in [phase3_pipeline_contract.md](phase3_pipeline_contract.md).
 
 ## 12. Fatal Physical Failures vs. Data Quality
 
-Fatal input-contract failures include unusable structures such as:
+Fatal physical input failures include:
 
-- missing required files,
+- missing required source file,
 - malformed JSON,
 - malformed CSV,
 - incorrect CSV header set/order,
-- invalid Control Catalog top-level structure,
+- invalid Control top-level structure,
+- non-object Control entries,
 - missing required Control fields,
-- duplicate `control_id` values in the Control Catalog.
+- duplicate `control_id` values.
 
-These stop the pipeline.
+These stop processing.
 
-Submission DQ findings remain business outputs and do **not** by themselves make the process fail.
+Submission DQ findings are successful business outputs and do not by themselves make the pipeline execution fail.
 
 ```text
 Physical input failure → non-zero execution
@@ -380,25 +366,72 @@ DQ finding             → successful run + DQ output
 
 ## 13. Empty Action Dataset
 
-A valid Action source may contain only the exact header and zero data rows.
+A valid Action source can contain only the exact header and zero rows.
 
-Phase 7.2 verified that Power Automate creates a header-only CSV for an empty `ActionRegister`, and Phase 7.3 verified that Python loads it successfully as:
+Phase 7 verified both:
 
 ```text
-Actions loaded: 0
+Power Automate → header-only Action CSV
+Python         → Actions loaded: 0
 ```
 
-No special business rule or alternative schema is required.
+No alternate Action schema is required.
 
-## 14. Privacy Boundary
+## 14. Phase 10 REST External Contract
 
-Operational snapshot artifacts remain private because they can contain:
+Phase 10 reads only the canonical Control Catalog through:
+
+```text
+src.extract.load_control_catalog()
+```
+
+The external HTTP representation is deliberately smaller than the internal Control source:
+
+```text
+Internal Control source
+├── control_id
+├── control_name
+├── control_statement
+├── business_unit
+├── owner_role
+├── owner_email
+├── frequency
+└── risk_level
+
+External ControlSummary
+├── control_id
+└── risk_level
+```
+
+Business endpoints:
+
+```text
+GET /api/v1/controls
+GET /api/v1/controls/{control_id}
+```
+
+Successful response media type is JSON. The collection returns a top-level array in canonical source order; the detail endpoint returns one object.
+
+Failure contracts:
+
+```text
+unknown Control → HTTP 404 / CONTROL_NOT_FOUND
+source failure  → HTTP 500 / CONTROL_SOURCE_ERROR
+```
+
+The API does not silently fall back to operational snapshots or generated output when the canonical source is unavailable.
+
+See [phase10_rest_api_contract.md](phase10_rest_api_contract.md) and [phase10_rest_api_acceptance.md](phase10_rest_api_acceptance.md).
+
+## 15. Privacy Boundary
+
+Operational artifacts remain private because they can contain:
 
 ```text
 owner_email
 submitted_by
 comments
-operational acceptance state
+operational state
 ```
 
 The following must not be committed:
@@ -410,11 +443,11 @@ The following must not be committed:
 - connection credentials or tokens,
 - private Power Platform deployment ZIPs.
 
-Public repository evidence uses sanitized screenshots, sanitized workflow source, synthetic examples, and non-sensitive acceptance results.
+Phase 10 does not process operational private data and intentionally excludes `owner_email` from its public Control response despite canonical e-mail values being synthetic.
 
-## 15. Accepted Phase 7 Operational Contract
+## 16. Accepted Operational Observation vs. Canonical Baseline
 
-The final Phase 7 WP3 acceptance processed a private complete snapshot with manifest source counts:
+The final Phase 7 private end-to-end acceptance observed:
 
 ```text
 Controls:    5
@@ -422,8 +455,12 @@ Submissions: 17
 Actions:     2
 ```
 
-Python loaded exactly the same source counts and produced the existing contractual outputs without modifying canonical files.
+Those values are operational acceptance observations only. They do not replace the canonical repository baseline:
 
-Those operational counts are acceptance observations only. They do not replace the canonical `5 / 15 / 5` repository inventory.
+```text
+Controls:    5
+Submissions: 15
+Actions:     5
+```
 
-See [phase7_end_to_end_acceptance.md](phase7_end_to_end_acceptance.md).
+Operational state and canonical deterministic fixtures remain separate by design.
