@@ -2,7 +2,7 @@
 
 ## Document Role
 
-**FINAL PROJECT HANDOVER ACCEPTANCE RECORD — PRE-MERGE CLOSURE STATE**
+**FINAL PROJECT HANDOVER ACCEPTANCE RECORD — PR CI ACCEPTED, MERGE GATE PENDING**
 
 Documentation index: [README.md](README.md)
 
@@ -10,7 +10,7 @@ Documentation index: [README.md](README.md)
 
 Phase 11 closes the Cyber Governance Automation Lab as a portfolio proof of concept.
 
-It does not add a new business feature. Its purpose is to make the completed implementation reproducible, reviewable, secure to hand over within its PoC boundaries, and explicit about what is and is not production-ready.
+It does not add a new business feature. Its purpose is to make the completed implementation reproducible, reviewable, safe to hand over within its PoC boundaries, and explicit about what is and is not production-ready.
 
 ## 2. Starting Baseline
 
@@ -20,7 +20,7 @@ Phase 11 starts from completed Phase 10 `main` commit:
 eebce4e78decf95cd8bb9e031eea471e5d47df8e
 ```
 
-The baseline GitHub Actions run used:
+The Phase 10 baseline GitHub Actions run used:
 
 ```text
 Ubuntu 24.04
@@ -161,7 +161,7 @@ was introduced.
 
 ## 9. Security Acceptance
 
-A consolidated security/trust review is now maintained in:
+A consolidated security/trust review is maintained in:
 
 ```text
 docs/security_considerations.md
@@ -198,7 +198,7 @@ The completed PoC explicitly retains limitations including:
 - no production API authentication/authorization/gateway/rate limiting/telemetry,
 - CI is active but not currently enforced as a required merge status check.
 
-The detailed matrix is maintained in:
+Detailed matrix:
 
 ```text
 docs/production_gap_assessment.md
@@ -206,7 +206,7 @@ docs/production_gap_assessment.md
 
 ## 11. Handover Acceptance
 
-A maintainer can now locate from public source control:
+A maintainer can locate from public source control:
 
 - setup instructions,
 - accepted Python version,
@@ -229,7 +229,7 @@ docs/handover.md
 
 ## 12. Evidence Acceptance
 
-The public evidence index now connects project claims to:
+The public evidence index connects project claims to:
 
 - canonical fixtures,
 - automated tests,
@@ -248,17 +248,37 @@ Evidence index:
 docs/evidence.md
 ```
 
-## 13. Functional Regression Status
+## 13. Phase 11 PR Regression Acceptance
 
-Pre-Phase-11 baseline:
+Pull request:
 
 ```text
-84 passed
+#46 — docs: complete Phase 11 documentation and handover
 ```
 
-Phase 11 changes executable CI dependency installation but do not change application business logic.
+First full PR regression run:
 
-Final PR CI result will be recorded here before final closure.
+```text
+GitHub Actions run: 32843014982
+Run number:         87
+Runner:             Ubuntu 24.04.4
+Python:             3.14.5
+Dependency source:  requirements-lock.txt
+Result:             SUCCESS
+Tests:              84 passed in 8.30s
+```
+
+The run checked out GitHub's synthetic merge ref for PR #46, successfully installed the complete locked dependency set, and executed the full Python regression suite.
+
+This validates both:
+
+```text
+locked dependency installability
++
+unchanged functional regression baseline
+```
+
+No application business logic changed in Phase 11.
 
 ## 14. Definition of Done
 
@@ -273,7 +293,7 @@ Phase 11 is complete when all conditions are true:
 - [x] CI is configured to use the accepted lock,
 - [x] README and documentation navigation are synchronized,
 - [x] obsolete placeholders in populated AI/Power BI directories are removed,
-- [ ] final pull request CI is green,
+- [x] full PR regression is green with the locked environment,
 - [ ] final PR is merged to `main`,
 - [ ] `main` CI is green after merge.
 
@@ -281,7 +301,8 @@ Phase 11 is complete when all conditions are true:
 
 ```text
 Implementation/documentation work: COMPLETE
-Final PR/CI/merge closure:        PENDING
+Locked-environment PR regression:  COMPLETE — 84 passed
+Final merge/main verification:     PENDING
 ```
 
-The project must not be marked fully closed until the final PR has passed CI and the merged `main` state is verified.
+The project is ready for merge. Full project closure is recorded only after the merged `main` state is verified green.
