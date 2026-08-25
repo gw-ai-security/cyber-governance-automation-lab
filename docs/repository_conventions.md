@@ -2,21 +2,19 @@
 
 ## Document Role
 
-**CURRENT-STATE FOUNDATION DOCUMENT — CURRENT THROUGH PHASE 10**
+**CURRENT-STATE FOUNDATION DOCUMENT — PHASE 11 HANDOVER**
 
 Documentation index: [README.md](README.md)
 
 ## Purpose
 
-This document defines lightweight repository, naming, status, and documentation conventions for the Cyber Governance Automation Lab. The goal is to keep later changes traceable and prevent inconsistent terminology, file roles, screenshot paths, status claims, or privacy boundaries.
-
-These conventions organize engineering evidence; they do not add business rules.
+This document defines repository, naming, status, privacy, dependency, and documentation conventions for the completed Cyber Governance Automation Lab. These conventions organize engineering evidence; they do not add business rules.
 
 ## 1. Documentation Classes
 
 ### Current-state foundation documents
 
-Stable cross-phase documents use descriptive names and describe the **present implementation**:
+Stable cross-phase documents describe the present implemented semantics:
 
 ```text
 docs/architecture.md
@@ -27,17 +25,27 @@ docs/data_quality.md
 docs/repository_conventions.md
 ```
 
-Each foundation document begins with a `Document Role` section stating that it is current-state documentation and the latest covered phase where useful.
+Phase 11 does not add new runtime business semantics, so the Phase 10 architecture/process/data foundation remains authoritative and is supplemented by the handover/security documents below.
 
-### Phase-specific documents
+### Phase 11 handover documents
 
-Phase-specific contracts, plans, implementation evidence, and acceptance records use:
+```text
+docs/security_considerations.md
+docs/production_gap_assessment.md
+docs/handover.md
+docs/evidence.md
+docs/phase11_handover_acceptance.md
+```
+
+### Phase-specific records
+
+Historical contracts, plans, implementation evidence, and acceptance records use:
 
 ```text
 docs/phase<N>_<scope>.md
 ```
 
-Preferred role suffixes where useful:
+Preferred suffixes:
 
 ```text
 _contract
@@ -46,100 +54,47 @@ _acceptance
 _final_acceptance
 ```
 
-Examples:
+Historical documents remain tied to the phase they describe and are not silently rewritten to look current.
+
+## 2. Source-of-Truth Order
+
+For current implementation questions:
 
 ```text
-docs/phase3_pipeline_contract.md
-docs/phase4_test_acceptance.md
-docs/phase7_implementation_plan.md
-docs/phase8_final_acceptance.md
-docs/phase10_rest_api_contract.md
-docs/phase10_rest_api_acceptance.md
+implemented code + canonical data + automated tests
+        ↓
+current-state foundation documents
+        ↓
+latest handover / acceptance record
+        ↓
+historical phase contracts, plans, and acceptance evidence
 ```
 
-The normalized mapping of all documentation to phase/work-package role and status is maintained in:
+For a historical question, use the phase-specific document in its recorded context.
+
+## 3. Current State vs. Historical Evidence
+
+A later test count does not invalidate an earlier acceptance record:
 
 ```text
-docs/README.md
+Phase 4 historical baseline = 35 tests
+Phase 9 completed state     = 64 tests
+Phase 10/11 baseline        = 84 tests
 ```
 
-## 2. Current State vs. Historical Evidence
-
-Current-state foundation documents must describe the present implementation accurately.
-
-Historical phase-specific documents remain valid for the phase/time they record. Historical observations such as test counts are not rewritten merely to match later phases.
+Likewise:
 
 ```text
-historical Phase 4 test count
+canonical repository fixtures
 !=
-current repository test count after Phase 10
+operational Microsoft 365 observations
 ```
 
-Historical implementation plans may be retained as engineering evidence but must be clearly identifiable as historical once implementation exists.
+Do not rewrite historical operational counts into canonical source data.
 
-When a later phase changes the current architecture without invalidating earlier evidence:
+## 4. Naming and Terminology
 
-- preserve the historical contract/acceptance record,
-- update current-state foundation documents,
-- add a new phase-specific acceptance/current-state record,
-- add a subsequent-status note only where needed to prevent ambiguity,
-- avoid rewriting frozen pre-implementation contracts as if they had been written after implementation.
-
-Phase 10 follows this pattern:
-
-```text
-phase10_rest_api_contract.md
-→ frozen Phase 10.0 design contract
-
-phase10_rest_api_acceptance.md
-→ implemented Phase 10.1–10.10 result
-```
-
-## 3. Documentation Index
-
-`docs/README.md` is the navigation layer for the documentation set.
-
-It should identify for each file:
-
-- phase/work-package association,
-- document role,
-- whether it is current-state, historical plan, contract, implementation evidence, or acceptance evidence.
-
-The index provides consistent assignment without renaming historical files and breaking traceability or links.
-
-## 4. Screenshot and Public Image Paths
-
-Phase-specific runtime/sanitized screenshot evidence normally uses:
-
-```text
-docs/screenshots/phase-<N>-<scope>/
-```
-
-Examples:
-
-```text
-docs/screenshots/phase-5-evidence-intake/
-docs/screenshots/phase-6-reminder-automation/
-docs/screenshots/phase-7-reporting-export/
-```
-
-Screenshot filenames use lower-case phase prefixes and descriptive names.
-
-Curated public image assets embedded in portfolio documentation may use:
-
-```text
-docs/images/phase<N>/
-```
-
-Phase 8 uses this for the three canonical dashboard images.
-
-A public image should have one canonical repository path rather than being duplicated only to satisfy folder conventions.
-
-Public screenshots/images must be sanitized when authenticated identities, reachable e-mail addresses, tenant/environment identifiers, connection/resource identifiers, or similar operational metadata could be exposed.
-
-## 5. Terminology
-
-Logical entity names are capitalized in prose:
+Logical entities are capitalized in prose:
 
 ```text
 Control
@@ -148,18 +103,18 @@ Action
 Data Quality Issue
 ```
 
-Physical/table/field identifiers keep exact technical representation:
+Technical identifiers preserve their exact representation:
 
 ```text
-SubmissionRegister
 ControlCatalog
+SubmissionRegister
 ActionRegister
 submission_id
 control_id
 reminder_count
 ```
 
-Technical integration objects are named as technical objects rather than promoted to domain entities:
+Technical integration artifacts are not promoted to business entities:
 
 ```text
 snapshot manifest
@@ -169,7 +124,9 @@ HTTP response
 ApiClientError
 ```
 
-The following semantic separations remain explicit:
+## 5. Frozen Semantic Separations
+
+Documentation, code, tests, workflow automation, reporting, AI review, and REST integration must preserve:
 
 ```text
 Evidence Present != Compliant
@@ -189,9 +146,124 @@ REST API != Governance authority
 API response != Compliance decision
 ```
 
-## 6. Implementation Status Language
+Changing one of these requires an explicit re-contracting decision, not a convenience refactor.
 
-Use explicit labels such as:
+## 6. Rule and Outcome Naming
+
+Submission Data Quality remains exactly:
+
+```text
+DQ-001 through DQ-010
+```
+
+Workflow outcomes such as:
+
+```text
+NO_MATCH
+DUPLICATE_BUSINESS_KEY
+INVALID_SUBMISSION_STATE
+CONTROL_NOT_FOUND
+DUPLICATE_CONTROL
+DUPLICATE_ACTIVE_ACTION
+SAME_DAY_REMINDER_SKIPPED
+```
+
+are not DQ rule IDs.
+
+REST/client outcomes such as:
+
+```text
+CONTROL_NOT_FOUND
+CONTROL_SOURCE_ERROR
+ApiClientError
+```
+
+are integration outcomes, not DQ or compliance results.
+
+## 7. Directory Roles
+
+```text
+src/      deterministic pipeline, AI validation, REST client
+api/      FastAPI service boundary
+tests/    automated contract/regression tests
+ai/       controlled prompt/schema/examples
+data/     canonical fixtures + ignored generated outputs
+power_automate/ sanitized workflow source
+powerbi/  source-controlled PBIP/PBIR/TMDL project
+docs/     current-state, historical, evidence, and handover documentation
+```
+
+Do not duplicate business rules merely because a new technical component is added.
+
+## 8. Dependency Conventions
+
+```text
+requirements.txt
+```
+
+contains direct project/test dependencies.
+
+```text
+requirements-lock.txt
+```
+
+records the exact accepted Python environment for reproducible Phase 11 handover and CI.
+
+The lock is an engineering reproducibility artifact, not a guarantee that future operating systems or package indexes will support the environment indefinitely.
+
+Current distinction:
+
+```text
+requests -> runtime REST client
+httpx2   -> FastAPI/Starlette TestClient support
+```
+
+## 9. Generated and Private Artifacts
+
+Generated runtime outputs remain outside normal version control:
+
+```text
+data/curated/
+```
+
+Private operational artifacts must not be committed:
+
+- live operational workbook,
+- private reporting snapshots,
+- private processed outputs,
+- tenant/environment/resource identifiers,
+- reachable private identities,
+- credentials/tokens/certificates,
+- private deployment ZIPs,
+- machine-local Power BI cache/state.
+
+Public Power Automate source and screenshots must remain sanitized.
+
+## 10. Screenshot and Image Conventions
+
+Runtime evidence:
+
+```text
+docs/screenshots/phase-<N>-<scope>/
+```
+
+Curated public portfolio images:
+
+```text
+docs/images/phase<N>/
+```
+
+Prefer code/tests over screenshots where they provide stronger evidence. Do not publish private data solely to make a portfolio claim look more concrete.
+
+## 11. Placeholder Hygiene
+
+`.gitkeep` exists only to retain otherwise-empty directories.
+
+Once a directory contains real tracked implementation files, remove the obsolete placeholder when safe. `data/curated/.gitkeep` remains intentional because generated outputs are ignored.
+
+## 12. Status Language
+
+Use explicit status labels:
 
 ```text
 CURRENT-STATE FOUNDATION DOCUMENT
@@ -204,152 +276,46 @@ PLANNED
 NOT IMPLEMENTED
 ```
 
-Phase-completion claims must be supported by applicable implementation and acceptance evidence.
+A completion claim must be supported by applicable implementation and acceptance evidence.
 
-A final work package that includes PR/CI closure may be described as complete **when the final PR is merged with CI green**; before that point its closure condition should remain explicit.
+## 13. Change Checklist
 
-## 7. Data-Plane Boundary
+For future changes:
 
-Documentation and code must preserve:
+1. start from current `main`,
+2. create a feature branch,
+3. preserve frozen semantics unless explicitly re-contracted,
+4. implement the smallest coherent change,
+5. add focused tests for executable behavior,
+6. run the complete regression suite,
+7. perform required manual acceptance separately,
+8. verify privacy/security boundaries,
+9. update current-state documentation,
+10. update the documentation index,
+11. add/update acceptance evidence,
+12. review the complete PR diff,
+13. require green CI before merge.
 
-```text
-Operational Microsoft 365 state
-!=
-Canonical repository fixtures
-```
+Avoid unsupported claims of production readiness, certification, compliance, universal security, or universal AI resilience.
 
-Operational acceptance activity is not copied into canonical CSV/JSON simply to make live and deterministic states look identical.
+## 14. Final Handover Convention
 
-Phase 7 private source snapshots can be processed through explicit external paths without becoming canonical repository data.
-
-Phase 10 deliberately reads only the canonical synthetic Control Catalog and does not create a new operational data plane.
-
-## 8. Rule and Outcome Naming
-
-Canonical Submission Data Quality rules remain exactly:
-
-```text
-DQ-001 through DQ-010
-```
-
-Operational workflow outcomes such as:
+The completed portfolio PoC is handed over through:
 
 ```text
-NO_MATCH
-DUPLICATE_BUSINESS_KEY
-INVALID_SUBMISSION_STATE
-CONTROL_NOT_FOUND
-DUPLICATE_CONTROL
-DUPLICATE_ACTIVE_ACTION
-SAME_DAY_REMINDER_SKIPPED
-```
-
-are workflow outcomes, not DQ rule IDs.
-
-Phase 10 integration outcomes such as:
-
-```text
-CONTROL_NOT_FOUND
-CONTROL_SOURCE_ERROR
-ApiClientError
-```
-
-are HTTP/client integration outcomes, not DQ rules or compliance decisions.
-
-## 9. Source-Code Directory Roles
-
-Current source boundaries:
-
-```text
-src/      deterministic pipeline, AI validation, REST client
-api/      FastAPI service boundary
-tests/    automated contract/regression tests
-ai/       controlled prompt/schema/examples
-data/     canonical fixtures + ignored generated outputs
-power_automate/ sanitized workflow source
-powerbi/  source-controlled PBIP/PBIR/TMDL project
-docs/     current-state and phase-specific engineering evidence
-```
-
-Do not duplicate a business rule merely because a new technical integration directory is added.
-
-Phase 10 specifically reuses:
-
-```text
-src.extract.load_control_catalog()
-```
-
-rather than adding a second Control parser under `api/`.
-
-## 10. Dependency Conventions
-
-`requirements.txt` contains dependencies required by implemented repository functionality and automated tests.
-
-A dependency's presence must not be interpreted as proof that a phase is implemented; implementation code, tests, and acceptance evidence are authoritative.
-
-Current Phase 10 distinction:
-
-```text
-requests → runtime REST client
-httpx2   → FastAPI/Starlette TestClient support
-```
-
-## 11. Git and Privacy Hygiene
-
-Later changes should:
-
-- keep generated runtime outputs outside version control,
-- keep private operational snapshots outside version control,
-- keep operational workbook copies outside version control,
-- keep tenant/environment/resource identifiers and credentials outside version control,
-- keep public Power Automate source sanitized,
-- keep Power BI local cache/settings excluded,
-- remove placeholder `.gitkeep` files when a formerly empty directory receives real tracked implementation files where doing so improves clarity,
-- avoid committing unrelated generated editor/runtime changes with a phase implementation.
-
-## 12. Repository Change Checklist
-
-A phase that changes the current system should:
-
-1. implement the smallest code/config change consistent with the frozen contract,
-2. add focused automated coverage,
-3. run the complete regression suite,
-4. perform required manual acceptance separately from unit/in-process tests,
-5. verify privacy/security boundaries,
-6. update `README.md` when public project status or architecture changes,
-7. update current-state foundation documents when responsibilities/process/data boundaries change,
-8. add/update the phase-specific acceptance record,
-9. update `docs/README.md` when documentation is added or its role changes,
-10. review the complete PR diff and CI result before merge.
-
-Avoid unsupported production-readiness, compliance-certification, ROI, security-certification, or universal-resilience claims.
-
-## 13. Test Count Convention
-
-Current documentation distinguishes current and historical test counts.
-
-Examples:
-
-```text
-Phase 4 historical baseline = 35
-Phase 9 completed state     = 64
-Phase 10 completed state    = 84
-```
-
-Historical acceptance files keep their historical numbers. Current-state README/architecture use the current complete-suite result.
-
-## 14. Source-of-Truth Priority
-
-For the current project state:
-
-```text
-implemented code + canonical data + automated tests
+README.md
         ↓
-current-state foundation documents
+docs/README.md
         ↓
-latest phase implementation/acceptance evidence
+docs/handover.md
         ↓
-historical phase-specific contracts/plans/acceptance records
+docs/security_considerations.md
+        ↓
+docs/production_gap_assessment.md
+        ↓
+docs/evidence.md
+        ↓
+docs/phase11_handover_acceptance.md
 ```
 
-For a historical question, use the document tied to that phase and interpret it in its recorded context.
+This sequence makes setup, trust boundaries, residual risk, public evidence, and final acceptance discoverable without reconstructing the project from chat history.
