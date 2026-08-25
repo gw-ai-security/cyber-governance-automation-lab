@@ -100,13 +100,21 @@ SUB-005
 SUB-014
 ```
 
-Current functional test baseline before Phase 11 documentation-only changes:
+Final Phase 11 functional baseline:
 
 ```text
 84 passed
 ```
 
-The successful Phase 10 `main` CI run used Ubuntu 24.04, Python 3.14.5, and completed the full suite with **84 passed in 6.51s**.
+The completed Phase 11 delivery was verified twice through GitHub Actions with the locked environment:
+
+```text
+PR #46 regression: 84 passed in 8.30s
+Merged main:        84 passed in 8.12s
+Python:             3.14.5
+Runner:             Ubuntu 24.04.4
+Dependencies:       requirements-lock.txt
+```
 
 ## Engineering Evidence
 
@@ -129,7 +137,7 @@ The successful Phase 10 `main` CI run used Ubuntu 24.04, Python 3.14.5, and comp
 | REST business endpoints | 2 GET endpoints |
 | REST public Control fields | 2 |
 | REST client timeout | 3 seconds |
-| Phase 10/11 functional test baseline | 84 |
+| Final functional test baseline | 84 |
 | Continuous Integration | GitHub Actions |
 
 Curated evidence navigation: [docs/evidence.md](docs/evidence.md).
@@ -518,7 +526,7 @@ Key accepted limitations include:
 | Phase 8 | Power BI Dashboard | ✅ Complete |
 | Phase 9 | Controlled AI Workflow | ✅ Complete |
 | Phase 10 | Local Read-only REST API Integration | ✅ Complete |
-| Phase 11 | Documentation & Handover | 🔄 Final PR/CI closure in progress |
+| Phase 11 | Documentation & Handover | ✅ Complete |
 
 Phase 11 adds documentation, reproducibility, evidence navigation, Security Considerations, production-gap analysis, and technical handover. It intentionally adds no new runtime business semantics.
 
