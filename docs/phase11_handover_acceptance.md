@@ -2,7 +2,7 @@
 
 ## Document Role
 
-**FINAL PROJECT HANDOVER ACCEPTANCE RECORD — PR CI ACCEPTED, MERGE GATE PENDING**
+**FINAL PROJECT HANDOVER ACCEPTANCE RECORD — COMPLETE**
 
 Documentation index: [README.md](README.md)
 
@@ -10,30 +10,25 @@ Documentation index: [README.md](README.md)
 
 Phase 11 closes the Cyber Governance Automation Lab as a portfolio proof of concept.
 
-It does not add a new business feature. Its purpose is to make the completed implementation reproducible, reviewable, safe to hand over within its PoC boundaries, and explicit about what is and is not production-ready.
+It adds no new business feature. Its purpose is to make the completed implementation reproducible, reviewable, safe to hand over within its PoC boundaries, and explicit about what is and is not production-ready.
 
 ## 2. Starting Baseline
 
-Phase 11 starts from completed Phase 10 `main` commit:
+Phase 11 started from completed Phase 10 `main` commit:
 
 ```text
 eebce4e78decf95cd8bb9e031eea471e5d47df8e
 ```
 
-The Phase 10 baseline GitHub Actions run used:
+Phase 10 baseline CI:
 
 ```text
-Ubuntu 24.04
-Python 3.14.5
+Runner: Ubuntu 24.04
+Python: 3.14.5
+Result: 84 passed in 6.51s
 ```
 
-and completed:
-
-```text
-84 passed in 6.51s
-```
-
-Canonical acceptance remains:
+Canonical acceptance remained unchanged throughout Phase 11:
 
 ```text
 as_of_date = 2026-08-15
@@ -53,21 +48,19 @@ SUB-005
 SUB-014
 ```
 
-## 3. Phase 11 Scope
+## 3. Implemented Phase 11 Scope
 
-Implemented handover work:
-
-1. repository audit against the completed Phase 10 runtime,
-2. obsolete placeholder cleanup in populated implementation directories,
-3. accepted dependency lock for Python reproducibility,
-4. CI installation from the accepted lock,
+1. audited the completed Phase 10 repository/runtime boundaries,
+2. removed obsolete placeholders from populated implementation directories,
+3. added an exact accepted Python dependency lock,
+4. changed CI to install/cache from the lock,
 5. consolidated Security Considerations,
-6. explicit PoC-to-production gap assessment,
-7. technical handover/runbook,
-8. curated public engineering-evidence index,
-9. final README refactor,
-10. final documentation-index/convention synchronization,
-11. PR/CI/final project closure.
+6. documented PoC-to-production gaps,
+7. created a technical handover runbook,
+8. created a curated engineering-evidence index,
+9. refactored the root README for final portfolio/handover use,
+10. synchronized documentation navigation/conventions,
+11. completed PR regression, merge, and `main` regression verification.
 
 ## 4. Files Added
 
@@ -91,7 +84,7 @@ docs/repository_conventions.md
 
 ## 6. Repository Hygiene
 
-Obsolete placeholder files were removed from populated directories:
+Removed obsolete placeholders:
 
 ```text
 ai/examples/.gitkeep
@@ -102,33 +95,26 @@ powerbi/.gitkeep
 
 `data/curated/.gitkeep` remains intentional because generated curated outputs stay outside Git.
 
-An attempted cleanup of `api/.gitkeep` found no file at the current branch path; no deletion was required.
+No `api/.gitkeep` existed at closure time, so no deletion was required there.
 
-## 7. Reproducibility Decision
+## 7. Reproducibility Acceptance
 
-The project now uses two dependency artifacts:
-
-```text
-requirements.txt
-```
-
-Direct dependency declaration.
+The project now distinguishes:
 
 ```text
-requirements-lock.txt
+requirements.txt      -> concise direct dependency declaration
+requirements-lock.txt -> exact accepted Phase 11 environment
 ```
 
-Exact dependency set captured from the successful Python 3.14.5 CI environment on the Phase 10 baseline.
+GitHub Actions installs `requirements-lock.txt` and uses it as the pip cache dependency source.
 
-GitHub Actions now installs the lock file and uses it as the pip cache dependency key.
+This improves reproducibility without claiming a complete software-supply-chain security program.
 
-This improves reproducibility without pretending that a lock file alone provides a full software-supply-chain security program.
+## 8. Runtime Architecture Acceptance
 
-## 8. Runtime Architecture Decision
+Phase 11 introduced no new runtime component.
 
-Phase 11 intentionally adds no new runtime component.
-
-The final runtime architecture remains the Phase 10 architecture:
+The final runtime architecture remains:
 
 ```text
 Microsoft 365 operational workflows
@@ -146,22 +132,11 @@ local read-only FastAPI
 requests client
 ```
 
-No new:
-
-- business entity,
-- Submission status,
-- Action status,
-- DQ rule,
-- Power BI table/measure/page,
-- AI authority,
-- REST endpoint,
-- source write-back path
-
-was introduced.
+No new business entity, Submission/Action status, DQ rule, Power BI table/measure/page, AI authority, REST endpoint, or source write-back path was introduced.
 
 ## 9. Security Acceptance
 
-A consolidated security/trust review is maintained in:
+Consolidated security/trust documentation:
 
 ```text
 docs/security_considerations.md
@@ -169,7 +144,7 @@ docs/security_considerations.md
 
 Accepted boundaries include:
 
-- canonical public identities are synthetic,
+- public canonical identities are synthetic,
 - private operational state stays outside Git,
 - actual evidence files are not stored in the repository,
 - Power Automate source remains sanitized,
@@ -181,13 +156,19 @@ Accepted boundaries include:
 - HTTP/client failures are not DQ rules,
 - final governance authority remains human.
 
-## 10. Residual Risk Acceptance
+## 10. Production-Gap Acceptance
 
-The completed PoC explicitly retains limitations including:
+Detailed production-gap matrix:
+
+```text
+docs/production_gap_assessment.md
+```
+
+Explicitly retained limitations include:
 
 - Excel/OneDrive is not a transactional production datastore,
-- Phase 7 reads are not transactionally atomic,
-- no automatic snapshot discovery/manifest ingestion/scheduling of Python,
+- Phase 7 multi-table reads are not transactionally atomic,
+- no automatic snapshot discovery/manifest ingestion/scheduled Python execution,
 - no automatic completion of missing-submission Actions after later intake,
 - no Action-specific DQ rule catalog,
 - no production IAM/RBAC/DLP/audit/retention/monitoring architecture,
@@ -198,28 +179,7 @@ The completed PoC explicitly retains limitations including:
 - no production API authentication/authorization/gateway/rate limiting/telemetry,
 - CI is active but not currently enforced as a required merge status check.
 
-Detailed matrix:
-
-```text
-docs/production_gap_assessment.md
-```
-
 ## 11. Handover Acceptance
-
-A maintainer can locate from public source control:
-
-- setup instructions,
-- accepted Python version,
-- direct and locked dependencies,
-- canonical acceptance values,
-- external snapshot invocation,
-- Power Automate source/privacy boundary,
-- local REST invocation,
-- Power BI `DataRoot` configuration,
-- AI prompt/schema/validation path,
-- privacy checklist,
-- troubleshooting guidance,
-- production limitations.
 
 Runbook:
 
@@ -227,20 +187,9 @@ Runbook:
 docs/handover.md
 ```
 
+A maintainer can locate setup, accepted Python/dependencies, canonical acceptance values, snapshot invocation, Power Automate privacy/source boundary, REST invocation, Power BI `DataRoot` configuration, AI validation workflow, privacy checklist, troubleshooting, and production limitations from source control.
+
 ## 12. Evidence Acceptance
-
-The public evidence index connects project claims to:
-
-- canonical fixtures,
-- automated tests,
-- sanitized workflow screenshots,
-- sanitized Phase 7 workflow source,
-- PBIP/PBIR/TMDL source,
-- Power BI images,
-- AI prompt/schema/examples/tests,
-- API/client implementation/tests,
-- CI evidence,
-- historical/final acceptance records.
 
 Evidence index:
 
@@ -248,7 +197,9 @@ Evidence index:
 docs/evidence.md
 ```
 
-## 13. Phase 11 PR Regression Acceptance
+It links project claims to canonical fixtures, tests, sanitized workflow screenshots/source, PBIP/PBIR/TMDL, Power BI images, AI prompt/schema/examples/tests, API/client implementation/tests, CI results, and phase acceptance records.
+
+## 13. PR Regression Acceptance
 
 Pull request:
 
@@ -256,7 +207,7 @@ Pull request:
 #46 — docs: complete Phase 11 documentation and handover
 ```
 
-First full PR regression run:
+Accepted PR regression:
 
 ```text
 GitHub Actions run: 32843014982
@@ -268,41 +219,65 @@ Result:             SUCCESS
 Tests:              84 passed in 8.30s
 ```
 
-The run checked out GitHub's synthetic merge ref for PR #46, successfully installed the complete locked dependency set, and executed the full Python regression suite.
+The run used GitHub's synthetic merge ref for PR #46 and validated both locked dependency installability and the unchanged functional regression baseline.
 
-This validates both:
+A subsequent PR run after recording that evidence was also green before merge.
+
+## 14. Merge Acceptance
+
+PR #46 was merged into `main` using a regular merge because squash merging is disabled for this repository.
+
+Merge commit:
 
 ```text
-locked dependency installability
-+
-unchanged functional regression baseline
+7547d8a035fc54fa93dddcc58e73103ec32bd990
 ```
 
-No application business logic changed in Phase 11.
+The merge commit is GitHub signature-verified.
 
-## 14. Definition of Done
+## 15. Final Main Regression Acceptance
 
-Phase 11 is complete when all conditions are true:
+Post-merge GitHub Actions run:
 
-- [x] final architecture/process/data semantics remain unchanged unless explicitly documented,
+```text
+GitHub Actions run: 32843287146
+Run number:         89
+Branch:             main
+Commit:             7547d8a035fc54fa93dddcc58e73103ec32bd990
+Event:              push
+Runner:             Ubuntu 24.04.4
+Python:             3.14.5
+Dependency source:  requirements-lock.txt
+Result:             SUCCESS
+Tests:              84 passed in 8.12s
+```
+
+This verifies the merged Phase 11 state rather than only the feature branch.
+
+## 16. Definition of Done
+
+- [x] architecture/process/data semantics remain unchanged unless explicitly documented,
 - [x] security/trust boundaries are consolidated,
 - [x] production gaps are explicit,
 - [x] handover runbook exists,
 - [x] public evidence index exists,
 - [x] dependency acceptance is reproducible through a lock file,
-- [x] CI is configured to use the accepted lock,
+- [x] CI uses the accepted lock,
 - [x] README and documentation navigation are synchronized,
 - [x] obsolete placeholders in populated AI/Power BI directories are removed,
 - [x] full PR regression is green with the locked environment,
-- [ ] final PR is merged to `main`,
-- [ ] `main` CI is green after merge.
+- [x] final PR is merged to `main`,
+- [x] merged `main` CI is green.
 
-## 15. Current Closure State
+## 17. Final Closure State
 
 ```text
 Implementation/documentation work: COMPLETE
 Locked-environment PR regression:  COMPLETE — 84 passed
-Final merge/main verification:     PENDING
+PR merge:                          COMPLETE
+Merged main regression:            COMPLETE — 84 passed
+Phase 11:                          COMPLETE
+Project:                           COMPLETE AS PORTFOLIO PoC
 ```
 
-The project is ready for merge. Full project closure is recorded only after the merged `main` state is verified green.
+The project is closed at its defined proof-of-concept scope. Further work should be treated as a new enhancement/release rather than silently extending Phase 11.
