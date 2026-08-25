@@ -1,17 +1,26 @@
 # Data Quality Rules
 
+## Document Role
+
+**CURRENT-STATE FOUNDATION DOCUMENT — CURRENT THROUGH PHASE 10**
+
+Documentation index: [README.md](README.md)
+
 ## Purpose
 
-This document defines the implementation-independent data quality rule catalog for the Cyber Governance Automation Lab. The executable checks are implemented in `src/validate.py` and verified by the automated test suite.
+This document defines the implementation-independent Data Quality rule catalog for the Cyber Governance Automation Lab. Executable checks are implemented in `src/validate.py` and verified by the automated test suite.
 
-## Data Quality Principles
+Phase 10 does not add, execute, redefine, or renumber any Data Quality rule.
 
-* Data quality rules validate the structure, referential integrity, and consistency of submitted data.
-* Data quality rules do not evaluate whether a control is compliant, on time, or effective — those are separate business concepts.
-* A data quality issue is a flag for review, not an automatic correction. Rules never silently change a submission's status.
-* Rules are grouped by category: completeness, referential integrity, validity, consistency, and uniqueness.
+## 1. Data Quality Principles
 
-## Rule Summary
+- Data Quality rules validate the structure, referential integrity, validity, and consistency of Submission data.
+- Data Quality rules do not evaluate compliance, timeliness, Control effectiveness, or AI review priority.
+- A Data Quality Issue is a finding for review, not an automatic correction.
+- Source facts are never silently repaired by a DQ rule.
+- Dependent checks are not evaluated when prerequisite reference/state information is unavailable.
+
+## 2. Rule Summary
 
 | Rule | Category | Severity |
 | --- | --- | --- |
@@ -26,9 +35,15 @@ This document defines the implementation-independent data quality rule catalog f
 | DQ-009 Invalid Evidence State | Consistency | Medium |
 | DQ-010 Invalid Submitter Email | Validity | Medium |
 
-## DQ-001 Missing Required Field
+The catalog is exactly:
 
-**Category:** Completeness
+```text
+DQ-001 through DQ-010
+```
+
+There is no DQ-011.
+
+## 3. DQ-001 Missing Required Field
 
 Required fields:
 
@@ -40,11 +55,10 @@ due_date
 status
 ```
 
+**Category:** Completeness  
 **Severity:** High
 
-## DQ-002 Unknown Control ID
-
-**Category:** Referential Integrity
+## 4. DQ-002 Unknown Control ID
 
 Condition:
 
@@ -54,11 +68,12 @@ must exist in
 control.control_id
 ```
 
+**Category:** Referential Integrity  
 **Severity:** High
 
-## DQ-003 Invalid Status
+## 5. DQ-003 Invalid Status
 
-Allowed:
+Allowed Submission statuses:
 
 ```text
 Not Submitted
@@ -67,20 +82,12 @@ Compliant
 Non-Compliant
 ```
 
-Invalid examples:
+Invalid examples include `Open`, `Pending`, `Done`, `OK`, `Complete`, or case-mismatched values such as `compliant`.
 
-```text
-Open
-Pending
-Done
-OK
-Complete
-compliant
-```
-
+**Category:** Validity  
 **Severity:** High
 
-## DQ-004 Missing Evidence
+## 6. DQ-004 Missing Evidence
 
 Condition:
 
@@ -94,11 +101,12 @@ AND
 evidence_reference is null or empty
 ```
 
+Evidence must be present once a Submission enters review and for either final assessment outcome. A `Non-Compliant` result represents a reviewed control outcome; it does not mean evidence is missing.
+
+**Category:** Consistency  
 **Severity:** High
 
-Evidence must be present once a Submission enters review and for either final assessment outcome. A `Non-Compliant` result represents reviewed evidence whose assessed control outcome failed; it does not represent missing evidence. This rule does not automatically change Submission status. It is flagged as a data quality conflict for review, not resolved automatically.
-
-## DQ-005 Duplicate Submission
+## 7. DQ-005 Duplicate Submission
 
 DQ-005 enforces two separate uniqueness invariants:
 
@@ -110,69 +118,76 @@ Business uniqueness:
 control_id + reporting_period
 ```
 
-DQ-005 is triggered when either the same `submission_id` occurs more than once, or the same `control_id + reporting_period` business key occurs more than once.
+DQ-005 is triggered when either invariant is duplicated. When both invariants overlap for one source row, the deterministic implementation emits one DQ-005 issue for that row rather than duplicate findings for the same rule.
 
+**Category:** Uniqueness  
 **Severity:** High
 
-## DQ-006 Invalid Reporting Period
+## 8. DQ-006 Invalid Reporting Period
 
 Valid patterns:
 
 ```text
-Monthly   -> YYYY-MM
-Quarterly -> YYYY-Q1 ... YYYY-Q4
-Annual    -> YYYY
+Monthly   → YYYY-MM
+Quarterly → YYYY-Q1 ... YYYY-Q4
+Annual    → YYYY
 ```
 
-The frequency of the related control and the format of the reporting period must match.
+The related Control frequency and reporting-period format must match.
 
+**Category:** Validity  
 **Severity:** Medium
 
-## DQ-007 Invalid Due Date
+## 9. DQ-007 Invalid Due Date
 
-The due date must match the due-date rule defined for the control's frequency in [business_process.md](business_process.md#due-date-logic).
+The due date must match the synthetic due-date rule defined for the related Control frequency in [business_process.md](business_process.md#7-reporting-periods-and-synthetic-due-dates).
 
+If the related Control cannot be resolved, this dependent rule is not evaluated rather than being automatically failed.
+
+**Category:** Validity  
 **Severity:** High
 
-## DQ-008 Invalid Submission State
+## 10. DQ-008 Invalid Submission State
 
 Rules:
 
 ```text
 Not Submitted
--> submitted_at must be null
--> submitted_by must be null
+→ submitted_at must be null
+→ submitted_by must be null
 ```
 
 ```text
 In Review
 Compliant
 Non-Compliant
--> submitted_at must be present
+→ submitted_at must be present
 ```
 
-The `submitted_by must be null` condition closes a gap with DQ-010: without it, a `Not Submitted` record could carry a `submitted_by` value despite no submission having occurred. The reverse case, `submitted_by` required once `submitted_at` is present, is already covered by DQ-010.
+The `submitted_by must be null` condition for `Not Submitted` prevents a submitter identity from existing when no submission has occurred. The reverse requirement is covered by DQ-010.
 
+**Category:** Consistency  
 **Severity:** High
 
-## DQ-009 Invalid Evidence State
+## 11. DQ-009 Invalid Evidence State
 
 Rule:
 
 ```text
 status = Not Submitted
--> evidence_reference must be null
+→ evidence_reference must be null
 ```
 
+Together, DQ-004 and DQ-009 define the evidence-state relationship across the Submission lifecycle.
+
+**Category:** Consistency  
 **Severity:** Medium
 
-Together, DQ-004 and DQ-009 define the complete evidence state model: evidence is required for `In Review`, `Compliant`, and `Non-Compliant`, and must be absent for `Not Submitted`.
+## 12. DQ-010 Invalid Submitter Email
 
-## DQ-010 Invalid Submitter Email
+DQ-010 applies to `submitted_by` when `submitted_at` is present.
 
-Applies to `submitted_by` on submissions that have actually been submitted (`submitted_at` is present).
-
-For this proof of concept, only a simple plausibility check is documented:
+PoC plausibility rule:
 
 ```text
 value exists
@@ -180,15 +195,16 @@ AND
 contains "@"
 ```
 
-This is not a full RFC email validation.
+This is not full RFC e-mail validation.
 
-This rule validates `submitted_by` on the submission record, not `owner_email` on the control. Keeping the rule scoped to the submission keeps all ten DQ rules operating at the same level. Validating `owner_email` on the control catalog is a separate, simpler check to be applied when control reference data is loaded, and is not part of this submission-level rule catalog.
+DQ-010 validates the Submission `submitted_by` field. It does not validate Control `owner_email`; all ten DQ rules intentionally operate at Submission-row level.
 
+**Category:** Validity  
 **Severity:** Medium
 
-## Severity Model
+## 13. Severity Model
 
-Data quality severity uses exactly:
+Data Quality severity uses exactly:
 
 ```text
 High
@@ -196,25 +212,42 @@ Medium
 Low
 ```
 
-There is no `Critical` severity for data quality issues. A control's `risk_level` (Low, Medium, High, Critical) and a data quality issue's `severity` (High, Medium, Low) are two different concepts and are not interchangeable.
+There is no `Critical` DQ severity.
 
-## Rule Evaluation Order and Dependencies
+```text
+Control risk_level ∈ {Low, Medium, High, Critical}
+DQ severity        ∈ {Low, Medium, High}
+```
 
-Rules are evaluated conceptually in this order:
+These are separate concepts and must not be mapped implicitly.
 
-1. Completeness
-2. Referential Integrity
-3. Basic Validity
-4. Cross-field Consistency
-5. Derived / downstream evaluation
+## 14. Rule Evaluation Order and Dependencies
 
-Dependent rules must not generate misleading secondary errors when a prerequisite cannot be evaluated. For example, if `control_id = CTRL-999`, DQ-002 Unknown Control ID is triggered. DQ-006 Invalid Reporting Period and DQ-007 Invalid Due Date cannot reliably compare the row against the Control frequency because the referenced Control does not exist. Those dependent checks are therefore treated as not evaluated, rather than automatically failed because prerequisite reference data is unavailable.
+Conceptual evaluation order:
 
-`Not evaluated` is an evaluation behavior, not a new Data Quality Issue severity or status, and it does not produce a Data Quality Issue record. A single row may legitimately trigger multiple independent Data Quality Issues wherever their checks can be evaluated.
+1. completeness,
+2. referential integrity,
+3. basic validity,
+4. cross-field consistency,
+5. derived/downstream evaluation.
 
-## Data Quality Issue Output
+Dependent rules must not create misleading secondary failures when a prerequisite cannot be evaluated.
 
-Each triggered rule produces a Data Quality Issue record, as defined in [data_model.md](data_model.md#data-quality-issue):
+Example:
+
+```text
+control_id = CTRL-999
+→ DQ-002 Unknown Control ID
+→ DQ-006 / DQ-007 not evaluated because Control frequency is unavailable
+```
+
+`Not Evaluated` is evaluation behavior, not a DQ status, severity, or additional rule. It does not create a Data Quality Issue record.
+
+A row may legitimately trigger multiple independent rules when each rule can be evaluated.
+
+## 15. Data Quality Issue Output
+
+Each triggered rule produces a Data Quality Issue with:
 
 ```text
 issue_id
@@ -227,38 +260,37 @@ field
 message
 ```
 
-`submission_id` and `control_id` are nullable on a Data Quality Issue when the corresponding identifier is missing from the source Submission row. `source_row_number` is the 1-based raw Submission row number that preserves traceability in those cases.
+`submission_id` and `control_id` can be null when the corresponding source identifier is missing. `source_row_number` preserves one-based raw-row traceability.
 
-## Out of Scope
+## 16. Out of Scope
 
-The following are explicitly not data quality errors:
+The following are explicitly not Data Quality errors:
 
 ```text
 Non-Compliant
-is NOT a data-quality error.
-```
-
-```text
 Overdue
-is NOT a data-quality error.
-```
-
-```text
 Late Submission
-is NOT a data-quality error.
 ```
 
-These distinctions matter because they point to different types of problems:
+Example distinction:
 
 ```text
 Missing control_id
--> Data Problem
+→ Data problem
 
 Submission 12 days overdue
--> Process Problem
+→ Process problem
 
 Backup recovery failed
--> Security / Control Problem
+→ Security / Control problem
 ```
 
-Data quality rules validate the shape and consistency of the data. They do not judge whether a control is effective, whether a deadline was met, or whether a security outcome was acceptable — those are governance and process concerns, handled elsewhere in this documentation.
+Phase 10 REST transport errors are also not DQ rules:
+
+```text
+CONTROL_NOT_FOUND
+CONTROL_SOURCE_ERROR
+ApiClientError
+```
+
+They are integration/HTTP outcomes and must not be relabeled as DQ-011 or any other new DQ rule.
